@@ -1,0 +1,385 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Activity, Menu, X, MessageSquare, ChevronDown, Calendar } from 'lucide-react';
+import { useUser, UserButton } from '@clerk/react';
+import { cn } from '@/lib/utils';
+import { FeedbackModal } from './FeedbackModal';
+import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
+
+// ── Public nav ────────────────────────────────────────────────────────────────
+// Always shown on public pages regardless of auth state.
+// Signed-in users in /app/* use AppNavbar instead.
+
+const PUBLIC_NAV = [
+  { label: 'Product',      href: '/product' },
+  { label: 'How it works', href: '/platform-demo' },
+  { label: 'AI Risk',      href: '/ai-risk' },
+  { label: 'Evidence',     href: '/evidence' },
+  { label: 'Trust',        href: '/trust' },
+];
+
+const PUBLIC_MORE = [
+  { label: 'Pricing',              href: '/pricing' },
+  { label: 'Registry coverage',    href: '/registry-coverage' },
+  { label: 'Request private beta', href: '/request-pilot' },
+  { label: 'FAQ',                  href: '/faq' },
+];
+
+// "Use cases" dropdown — the 6 buyer landing pages
+const USE_CASES_NAV = [
+  { label: 'Private Equity',        href: '/private-equity' },
+  { label: 'Software Roll-ups',     href: '/software-rollups' },
+  { label: 'Corporate Development', href: '/corporate-development' },
+  { label: 'Search Funds',          href: '/search-funds' },
+  { label: 'Founders',              href: '/founders' },
+  { label: 'VC / Growth',           href: '/vc-growth' },
+];
+
+// ── Use cases dropdown ─────────────────────────────────────────────────────────
+
+function UseCasesDropdown({ isActive }: { isActive: (href: string) => boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const anyActive = USE_CASES_NAV.some(({ href }) => isActive(href));
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onEscape(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        className={cn(
+          'flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+          anyActive
+            ? 'bg-accent/60 text-foreground font-medium'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+        )}
+      >
+        Use cases <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div role="menu" className="absolute left-0 top-full mt-1 w-56 rounded-lg border border-border bg-popover shadow-lg py-1 z-50">
+          {USE_CASES_NAV.map(({ label, href }) => (
+            <Link
+              key={href}
+              href={href}
+              role="menuitem"
+              className={cn(
+                'block px-3 py-2 text-sm transition-colors',
+                isActive(href)
+                  ? 'text-foreground font-medium bg-accent/40'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
+              )}
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── More dropdown ─────────────────────────────────────────────────────────────
+
+function MoreDropdown({
+  items,
+  isActive,
+  onFeedback,
+}: {
+  items: { label: string; href: string }[];
+  isActive: (href: string) => boolean;
+  onFeedback: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const anyActive = items.some(({ href }) => isActive(href));
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onEscape(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        className={cn(
+          'flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+          anyActive
+            ? 'bg-accent/60 text-foreground font-medium'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+        )}
+      >
+        More <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div role="menu" className="absolute left-0 top-full mt-1 w-52 rounded-lg border border-border bg-popover shadow-lg py-1 z-50">
+          {items.map(({ label, href }) => (
+            <Link
+              key={href}
+              href={href}
+              role="menuitem"
+              className={cn(
+                'block px-3 py-2 text-sm transition-colors',
+                isActive(href)
+                  ? 'text-foreground font-medium bg-accent/40'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
+              )}
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+          <div className="border-t border-border mt-1 pt-1">
+            <button
+              onClick={() => { setOpen(false); onFeedback(); }}
+              role="menuitem"
+              className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              Feedback
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Navbar component ──────────────────────────────────────────────────────
+// Renders the public navigation. Shown on all routes outside /app/*.
+// Signed-in users visiting public pages see "Open app" + UserButton on the right.
+
+export function Navbar() {
+  const [location] = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  const { isLoaded, isSignedIn } = useUser();
+
+  const isActive = (href: string) =>
+    href === '/' ? location === '/' : location.startsWith(href);
+
+  return (
+    <>
+      <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="w-full max-w-7xl mx-auto flex h-14 items-center px-4 md:px-8 gap-3">
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <Activity className="h-4 w-4 text-primary" />
+            <span className="font-bold text-sm tracking-widest uppercase text-foreground">
+              Frontier OS
+            </span>
+          </Link>
+
+          {/* Desktop public nav — always the same set */}
+          <div className="hidden lg:flex items-center gap-0.5 ml-4">
+            {PUBLIC_NAV.map(({ label, href }, i) => (
+              <React.Fragment key={href}>
+                <Link
+                  href={href}
+                  className={cn(
+                    'px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+                    isActive(href)
+                      ? 'bg-accent/60 text-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+                  )}
+                >
+                  {label}
+                </Link>
+                {/* "Use cases" dropdown after "Product" (index 0) */}
+                {i === 0 && <UseCasesDropdown isActive={isActive} />}
+              </React.Fragment>
+            ))}
+            <MoreDropdown
+              items={PUBLIC_MORE}
+              isActive={isActive}
+              onFeedback={() => setFeedbackOpen(true)}
+            />
+          </div>
+
+          {/* Right side */}
+          <div className="ml-auto flex items-center gap-2">
+
+            {!isLoaded && (
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+                BETA
+              </span>
+            )}
+
+            {isLoaded && isSignedIn && (
+              /* Signed-in on a public page — "Open app" returns them to the workspace */
+              <>
+                <Link
+                  href="/app/cockpit"
+                  className="hidden sm:inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
+                >
+                  Open app
+                </Link>
+                <div className="flex items-center">
+                  <UserButton />
+                </div>
+              </>
+            )}
+
+            {isLoaded && !isSignedIn && (
+              /* Public / signed-out right rail */
+              <>
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+                  BETA
+                </span>
+                <a
+                  href={BOOK_INTRO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden lg:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  Intro
+                </a>
+                <Link
+                  href="/sign-in"
+                  className="hidden sm:inline-flex items-center justify-center text-sm font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/run?mode=sample"
+                  className="hidden sm:inline-flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
+                >
+                  Run screen
+                </Link>
+              </>
+            )}
+
+            {/* Mobile hamburger */}
+            <button
+              className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+              onClick={() => setMobileOpen(o => !o)}
+              aria-label="Toggle navigation"
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="lg:hidden border-t border-border bg-background px-4 py-3">
+            {/* Public nav links + use cases + more */}
+            <div className="space-y-0.5 mb-3">
+              {[...PUBLIC_NAV, ...USE_CASES_NAV, ...PUBLIC_MORE].map(({ label, href }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    'block px-3 py-2.5 rounded-md text-sm transition-colors',
+                    isActive(href)
+                      ? 'bg-accent/60 text-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+                  )}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+
+            {/* Auth section */}
+            <div className="pt-3 flex flex-col gap-2 border-t border-border">
+              {isLoaded && isSignedIn ? (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <UserButton />
+                  <Link
+                    href="/app/cockpit"
+                    className="inline-flex items-center justify-center text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Open app
+                  </Link>
+                </div>
+              ) : isLoaded && !isSignedIn ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+                      BETA
+                    </span>
+                    <a
+                      href={BOOK_INTRO_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileOpen(false)}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground border border-border h-8 px-3 rounded-md"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      Intro
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                      href="/sign-in"
+                      className="inline-flex items-center justify-center text-sm font-medium text-muted-foreground border border-border h-8 px-3 rounded-md"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      href="/sign-up"
+                      className="inline-flex items-center justify-center text-sm font-medium border border-border h-8 px-3 rounded-md hover:bg-accent/40 transition-colors"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Create account
+                    </Link>
+                    <Link
+                      href="/run?mode=sample"
+                      className="inline-flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Run screen
+                    </Link>
+                  </div>
+                </>
+              ) : null}
+
+              <button
+                onClick={() => { setMobileOpen(false); setFeedbackOpen(true); }}
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-accent/40 transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Feedback
+              </button>
+            </div>
+          </div>
+        )}
+      </nav>
+
+      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+    </>
+  );
+}
