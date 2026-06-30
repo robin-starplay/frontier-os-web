@@ -8,20 +8,17 @@ import { getBackendBaseUrl } from '@/lib/frontierApi';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Tier {
-  id: string;
+  plan_id: string;
   name: string;
   badge?: string;
-  price: string;
-  priceNote: string;
-  description: string;
-  cta: string;
-  /** Default href used when backend cta_url is absent. */
-  ctaHrefDefault: string;
+  price_label: string;
+  audience: string;
+  cta_label: string;
+  cta_url: string;
   ctaVariant: 'primary' | 'outline';
   showBookIntro?: boolean;
   bookIntroEvent?: string;
-  /** Show "Paid beta access is currently activated manually after payment." */
-  showPaymentNote?: boolean;
+  manual_activation_note?: string;
   features: string[];
 }
 
@@ -29,13 +26,12 @@ interface Tier {
 
 const STATIC_TIERS: Tier[] = [
   {
-    id: 'free',
+    plan_id: 'free_preview',
     name: 'Free Preview',
-    price: 'Free',
-    priceNote: 'No payment required',
-    description: 'Run URL-only acquisition screens with no commitment. See how Frontier OS surfaces evidence, AI risk and diligence gaps.',
-    cta: 'Start free',
-    ctaHrefDefault: '/create-workspace',
+    price_label: 'Free',
+    audience: 'Try public-source acquisition screening.',
+    cta_label: 'Start free',
+    cta_url: '/create-workspace',
     ctaVariant: 'primary',
     features: [
       '5 URL-only acquisition screens',
@@ -49,19 +45,17 @@ const STATIC_TIERS: Tier[] = [
     ],
   },
   {
-    id: 'starter',
+    plan_id: 'starter_growth',
     name: 'Starter / Growth',
     badge: 'Private beta',
-    price: '$99/month',
-    priceNote: 'Billed monthly · private beta',
-    description:
-      'For founders, searchers, independent sponsors and solo operators who want to screen targets, compare buyer-fit and prepare diligence questions.',
-    cta: 'Start beta',
-    ctaHrefDefault: '/request-pilot',
+    price_label: '£99/month',
+    audience: 'For founders, searchers, independent sponsors and solo operators.',
+    cta_label: 'Start beta',
+    cta_url: '/request-pilot',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_starter',
-    showPaymentNote: true,
+    manual_activation_note: 'Paid beta access is currently activated manually after payment.',
     features: [
       'More URL screens',
       'Compare targets',
@@ -72,15 +66,13 @@ const STATIC_TIERS: Tier[] = [
     ],
   },
   {
-    id: 'team',
+    plan_id: 'team_platform',
     name: 'Team / Platform',
     badge: 'Private beta',
-    price: 'Pricing on request',
-    priceNote: 'Private beta pricing',
-    description:
-      'For advisors, small funds, corp dev and software roll-ups that need buyer-thesis workflows, document workflows and IC pack preparation.',
-    cta: 'Request pilot',
-    ctaHrefDefault: '/request-pilot',
+    price_label: 'Pricing on request',
+    audience: 'For advisors, small funds, corp dev and software roll-ups.',
+    cta_label: 'Request pilot',
+    cta_url: '/request-pilot',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_team',
@@ -94,15 +86,13 @@ const STATIC_TIERS: Tier[] = [
     ],
   },
   {
-    id: 'enterprise',
+    plan_id: 'enterprise',
     name: 'Enterprise',
     badge: 'Custom',
-    price: 'Pricing on request',
-    priceNote: 'Custom terms',
-    description:
-      'For confidential workflows, evidence retention rules, custom integrations and private pilot setup.',
-    cta: 'Discuss access',
-    ctaHrefDefault: '/request-pilot',
+    price_label: 'Pricing on request',
+    audience: 'For confidential workflows, evidence retention rules, custom integrations and private pilot setup.',
+    cta_label: 'Discuss access',
+    cta_url: '/request-pilot',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_enterprise',
@@ -139,36 +129,76 @@ const COMPARISON_ROWS: { label: string; vals: string[] }[] = [
 // ─── Backend plan shape ───────────────────────────────────────────────────────
 
 interface BackendPlan {
-  id: string;
+  plan_id: string;
+  name: string;
+  price_label: string;
+  audience: string;
+  features: string[];
+  cta_label: string;
   cta_url?: string;
+  manual_activation_note?: string;
 }
 
-/** Resolve the Starter / Growth CTA href.
- *  Uses backend cta_url if it is an absolute URL (Stripe Payment Link or similar).
- *  Falls back to /request-pilot otherwise. */
-function resolveStarterHref(backendCtaUrl: string | null): { href: string; external: boolean } {
-  if (backendCtaUrl && (backendCtaUrl.startsWith('https://') || backendCtaUrl.startsWith('http://'))) {
-    return { href: backendCtaUrl, external: true };
+interface PricingResponse {
+  status?: string;
+  currency?: string;
+  plans?: BackendPlan[];
+}
+
+function tierBadge(planId: string): string | undefined {
+  if (planId === 'starter_growth' || planId === 'team_platform') return 'Private beta';
+  if (planId === 'enterprise') return 'Custom';
+  return undefined;
+}
+
+function tierVariant(planId: string): Tier['ctaVariant'] {
+  return planId === 'free_preview' ? 'primary' : 'outline';
+}
+
+function bookIntroEvent(planId: string): string | undefined {
+  if (planId === 'starter_growth') return 'clicked_book_intro_pricing_starter';
+  if (planId === 'team_platform') return 'clicked_book_intro_pricing_team';
+  if (planId === 'enterprise') return 'clicked_book_intro_pricing_enterprise';
+  return undefined;
+}
+
+function normalisePriceLabel(plan: BackendPlan, currency?: string): string {
+  const label = plan.price_label || '';
+  if (currency === 'GBP' && plan.plan_id === 'free_preview' && label === '$0') return '£0';
+  return label || (plan.plan_id === 'free_preview' ? 'Free' : 'Pricing on request');
+}
+
+function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
+  return {
+    plan_id: plan.plan_id,
+    name: plan.name,
+    badge: tierBadge(plan.plan_id),
+    price_label: normalisePriceLabel(plan, currency),
+    audience: plan.audience,
+    cta_label: plan.cta_label,
+    cta_url: plan.cta_url || '/request-pilot',
+    ctaVariant: tierVariant(plan.plan_id),
+    showBookIntro: plan.plan_id !== 'free_preview',
+    bookIntroEvent: bookIntroEvent(plan.plan_id),
+    manual_activation_note: plan.manual_activation_note,
+    features: Array.isArray(plan.features) ? plan.features : [],
+  };
+}
+
+function resolveCtaHref(ctaUrl: string): { href: string; external: boolean } {
+  if (ctaUrl && (ctaUrl.startsWith('https://') || ctaUrl.startsWith('http://'))) {
+    return { href: ctaUrl, external: true };
   }
-  if (backendCtaUrl && backendCtaUrl.startsWith('/')) {
-    return { href: backendCtaUrl, external: false };
+  if (ctaUrl && ctaUrl.startsWith('/')) {
+    return { href: ctaUrl, external: false };
   }
   return { href: '/request-pilot', external: false };
 }
 
 // ─── Tier card ────────────────────────────────────────────────────────────────
 
-function TierCard({
-  tier,
-  starterCtaUrl,
-}: {
-  tier: Tier;
-  starterCtaUrl: string | null;
-}) {
-  const isStarter = tier.id === 'starter';
-  const { href, external } = isStarter
-    ? resolveStarterHref(starterCtaUrl)
-    : { href: tier.ctaHrefDefault, external: false };
+function TierCard({ tier }: { tier: Tier }) {
+  const { href, external } = resolveCtaHref(tier.cta_url);
 
   return (
     <div className={cn(
@@ -187,15 +217,14 @@ function TierCard({
         </div>
         <p className={cn(
           'font-bold text-foreground',
-          tier.price === 'Free' ? 'text-2xl' : 'text-xl',
+          tier.price_label === 'Free' || tier.price_label === '£0' ? 'text-2xl' : 'text-xl',
         )}>
-          {tier.price}
+          {tier.price_label}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">{tier.priceNote}</p>
       </div>
 
       {/* Description */}
-      <p className="text-xs text-muted-foreground leading-relaxed mb-5">{tier.description}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed mb-5">{tier.audience}</p>
 
       {/* Features — flex-1 pushes CTA block to card bottom */}
       <div className="flex-1 space-y-2 mb-6">
@@ -221,7 +250,7 @@ function TierCard({
                 : 'border border-primary/40 bg-transparent text-foreground hover:bg-primary/5 hover:border-primary/60',
             )}
           >
-            {tier.cta}
+            {tier.cta_label}
             <ExternalLink className="w-3 h-3 shrink-0" />
           </a>
         ) : (
@@ -234,14 +263,14 @@ function TierCard({
                 : 'border border-primary/40 bg-transparent text-foreground hover:bg-primary/5 hover:border-primary/60',
             )}
           >
-            {tier.cta}
+            {tier.cta_label}
             {tier.ctaVariant === 'primary' && <ArrowRight className="w-3.5 h-3.5 shrink-0" />}
           </Link>
         )}
 
-        {tier.showPaymentNote && (
+        {tier.manual_activation_note && (
           <p className="text-[10px] text-muted-foreground/60 text-center leading-snug px-1">
-            Paid beta access is currently activated manually after payment.
+            {tier.manual_activation_note}
           </p>
         )}
 
@@ -261,20 +290,19 @@ function TierCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
-  const [starterCtaUrl, setStarterCtaUrl] = useState<string | null>(null);
+  const [tiers, setTiers] = useState<Tier[]>(STATIC_TIERS);
 
-  // Try to fetch backend pricing plans; only use cta_url for the starter tier.
-  // Fails silently — static TIERS data is the fallback.
+  // Backend pricing is canonical. Fallback remains GBP-safe if the endpoint is unavailable.
   useEffect(() => {
     let cancelled = false;
     const base = getBackendBaseUrl();
     const url  = base ? `${base}/api/pricing/plans` : '/api/pricing/plans';
     fetch(url)
       .then(r => (r.ok ? r.json() : null))
-      .then((data: { plans?: BackendPlan[] } | null) => {
+      .then((data: PricingResponse | null) => {
         if (cancelled || !data?.plans) return;
-        const starterPlan = data.plans.find(p => p.id === 'starter' || p.id === 'starter_growth');
-        if (starterPlan?.cta_url) setStarterCtaUrl(starterPlan.cta_url);
+        const backendTiers = data.plans.map(plan => tierFromBackend(plan, data.currency));
+        if (backendTiers.length > 0) setTiers(backendTiers);
       })
       .catch(() => { /* silent fallback — STATIC_TIERS remain */ });
     return () => { cancelled = true; };
@@ -291,7 +319,7 @@ export default function PricingPage() {
             Start free. Scale as you screen.
           </h1>
           <p className="text-base text-muted-foreground max-w-xl mx-auto">
-            Free preview includes 5 URL-only screens. Starter / Growth is $99/month in private beta.
+            Free preview includes one document-assisted review. Starter / Growth is £99/month in private beta.
             Team and Enterprise pricing available on request.
           </p>
           <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary/80 text-xs">
@@ -304,8 +332,8 @@ export default function PricingPage() {
 
         {/* Tier cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-16 items-stretch">
-          {STATIC_TIERS.map(t => (
-            <TierCard key={t.id} tier={t} starterCtaUrl={starterCtaUrl} />
+          {tiers.map(t => (
+            <TierCard key={t.plan_id} tier={t} />
           ))}
         </div>
 

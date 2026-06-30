@@ -118,13 +118,13 @@ export default function WorkspaceCreationPage() {
             </h1>
             <p className="text-sm text-muted-foreground">
               {name ? `Welcome, ${name.split(' ')[0]}. ` : ''}
-              Follow these steps to run your first acquisition screen.
+              Run a sample acquisition screen to see the workflow before using your own target.
             </p>
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6 space-y-4 mb-6">
             {[
-              { n: '1', label: 'Run Cerillion', desc: 'Screen a real UK SaaS target — cerillion.com — using public-source data.' },
+              { n: '1', label: 'Run sample screen', desc: 'Review the sample acquisition screen before using your own target.' },
               { n: '2', label: 'Compare with Checkit', desc: 'Add a second target and rank them side-by-side in the Compare view.' },
               { n: '3', label: 'Open Deal Cockpit', desc: 'See both targets saved to your private Cockpit with IC readiness scores.' },
               { n: '4', label: 'Send feedback', desc: 'Use the Feedback button to tell us what you think.' },
@@ -146,7 +146,7 @@ export default function WorkspaceCreationPage() {
               href="/app/run"
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors w-full"
             >
-              Start guided review — Run Cerillion
+              Run sample screen
               <ArrowRight className="w-4 h-4" />
             </Link>
             <div className="flex gap-2">

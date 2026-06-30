@@ -52,7 +52,7 @@ function RunYourOwnLink() {
   );
 }
 
-/** "Start guided review" — sends to workspace creation or /app/run if already set up. */
+/** "Run sample screen" — sends to workspace creation or /app/run if already set up. */
 function ReviewerStartButton() {
   const { isLoaded, isSignedIn } = useOptionalUser();
   const trialAccount = getTrialAccount();
@@ -63,7 +63,7 @@ function ReviewerStartButton() {
       href={href}
       className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-5 rounded-md transition-colors"
     >
-      Start guided review <ArrowRight className="w-4 h-4" />
+      Run sample screen <ArrowRight className="w-4 h-4" />
     </Link>
   );
 }
@@ -251,7 +251,7 @@ export default function Landing() {
               <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">3-minute review</p>
               <h2 className="text-xl font-bold text-foreground mb-2">Try Frontier OS in 3 minutes</h2>
               <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                Follow these steps to see the full workflow, from screening to Deal Cockpit.
+                Run a sample acquisition screen to see the workflow before using your own target.
               </p>
               <ReviewerStartButton />
             </div>
@@ -261,8 +261,8 @@ export default function Landing() {
               {[
                 {
                   n: 1,
-                  label: 'Run Cerillion',
-                  detail: 'Company: Cerillion · cerillion.com',
+                  label: 'Run sample screen',
+                  detail: 'Example/private-beta preview',
                 },
                 {
                   n: 2,
