@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Switch, Route, Link } from 'wouter';
-import { useUser } from '@clerk/react';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { AppNavbar } from './AppNavbar';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { getTrialAccount, ensureTrialAccount } from '@/lib/trialAccount';
+import { useOptionalUser } from '@/lib/optionalClerk';
 
 // Pages served inside the app shell
 import AnalysisSetupBase from '@/pages/AnalysisSetup';
@@ -89,7 +89,7 @@ function WorkspaceGate() {
 // unauthenticated users who have not created a local workspace.
 
 export function AppShell() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useOptionalUser();
   // Read trial account synchronously — updated via useEffect after sign-in
   const [trialAccount, setTrialAccount] = useState(() => getTrialAccount());
 

@@ -229,6 +229,10 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
   }
 }
 
+function apiUrl(path: string): string {
+  return FRONTIER_API_BASE_URL ? `${FRONTIER_API_BASE_URL}${path}` : path;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -238,7 +242,7 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
  */
 export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<AnalysisResult> {
   try {
-    const res = await fetchWithTimeout('/api/analyse/url', {
+    const res = await fetchWithTimeout(apiUrl('/api/analyse/url'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -258,7 +262,7 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
  */
 export async function compareCompanies(payload: ComparePayload): Promise<CompareResult> {
   try {
-    const res = await fetchWithTimeout('/api/analyse/compare', {
+    const res = await fetchWithTimeout(apiUrl('/api/analyse/compare'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -304,7 +308,7 @@ export interface CockpitRunRecord {
 }
 
 async function cockpitFetch(path: string): Promise<unknown> {
-  const res = await fetchWithTimeout(path, { method: 'GET' });
+  const res = await fetchWithTimeout(apiUrl(path), { method: 'GET' });
   if (!res.ok) return null;
   return res.json().catch(() => null);
 }
@@ -338,7 +342,7 @@ export async function postCockpitDecision(
   note: string,
 ): Promise<void> {
   try {
-    await fetchWithTimeout('/api/cockpit/decision', {
+    await fetchWithTimeout(apiUrl('/api/cockpit/decision'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ workspace_id: workspaceId, target_id: targetId, note }),

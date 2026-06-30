@@ -10,6 +10,8 @@
 //   frontier_account          — JSON summary of account type and plan
 //   frontier_workspace_session — session data from /api/workspace/session
 
+import { getBackendBaseUrl } from './frontierApi';
+
 export interface TrialAccount {
   plan_id: 'free_trial';
   url_screens_limit: number;
@@ -94,6 +96,11 @@ export function ensureTrialAccount(): TrialAccount {
   return account;
 }
 
+function backendUrl(path: string): string {
+  const base = getBackendBaseUrl();
+  return base ? `${base}${path}` : path;
+}
+
 /**
  * Persist workspace_id + user_id to all individual keys.
  * Called after a successful /api/trial/create-account response.
@@ -130,7 +137,7 @@ export async function createBackendAccount(
   }
 
   try {
-    const res = await fetch('/api/trial/create-account', {
+    const res = await fetch(backendUrl('/api/trial/create-account'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -165,7 +172,7 @@ export async function fetchWorkspaceSession(
 ): Promise<Record<string, unknown> | null> {
   try {
     const res = await fetch(
-      `/api/workspace/session?workspace_id=${encodeURIComponent(workspaceId)}`,
+      backendUrl(`/api/workspace/session?workspace_id=${encodeURIComponent(workspaceId)}`),
     );
     if (!res.ok) return null;
     const data = await res.json() as Record<string, unknown>;

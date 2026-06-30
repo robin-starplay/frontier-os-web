@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { useUser, useClerk } from '@clerk/react';
 import { ArrowRight, LogOut, Trash2, RotateCcw, Activity, Loader2, WifiOff } from 'lucide-react';
 import {
   getTrialAccount,
@@ -12,6 +11,7 @@ import { getRuns, clearRuns } from '@/lib/runHistory';
 import { getBackendBaseUrl, isBackendConfigured } from '@/lib/frontierApi';
 import { BackendStatusBadge } from '@/components/BackendStatusBadge';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
+import { clerkEnabled, useOptionalClerk, useOptionalUser } from '@/lib/optionalClerk';
 
 // ─── Local API health ─────────────────────────────────────────────────────────
 
@@ -40,8 +40,8 @@ function useLocalApiHealth() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const { isLoaded, isSignedIn, user } = useOptionalUser();
+  const { signOut } = useOptionalClerk();
   const localApi = useLocalApiHealth();
 
   const trial = getTrialAccount();
@@ -85,12 +85,14 @@ export default function SettingsPage() {
     );
   }
 
-  if (!isSignedIn) {
+  if (!isSignedIn && !trial) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 py-20 text-center">
-        <p className="text-sm text-muted-foreground">Sign in to view your settings.</p>
-        <Link href="/sign-in" className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-md transition-colors">
-          Sign in <ArrowRight className="w-3.5 h-3.5" />
+        <p className="text-sm text-muted-foreground">
+          {clerkEnabled ? 'Sign in to view your settings.' : 'Create a private beta workspace to view your settings.'}
+        </p>
+        <Link href={clerkEnabled ? '/sign-in' : '/create-workspace'} className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-md transition-colors">
+          {clerkEnabled ? 'Sign in' : 'Create workspace'} <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
     );
@@ -118,15 +120,17 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Name</p>
-                <p className="text-sm text-foreground">{user.fullName ?? '—'}</p>
+                <p className="text-sm text-foreground">{user?.fullName ?? 'Private beta reviewer'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Email</p>
-                <p className="text-sm text-foreground">{user.primaryEmailAddress?.emailAddress ?? '—'}</p>
+                <p className="text-sm text-foreground">{user?.primaryEmailAddress?.emailAddress ?? 'Local workspace'}</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Profile details are managed through your Clerk account. Use the avatar menu in the top nav to update your profile or change your password.
+              {clerkEnabled && isSignedIn
+                ? 'Profile details are managed through your Clerk account. Use the avatar menu in the top nav to update your profile or change your password.'
+                : 'This reviewer workspace is stored locally in this browser and connected to the Frontier OS backend workspace IDs below.'}
             </p>
           </div>
         </section>
@@ -374,15 +378,17 @@ export default function SettingsPage() {
         </section>
 
         {/* Sign out */}
-        <div className="pb-6">
-          <button
-            onClick={handleSignOut}
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-red-400 border border-border hover:border-red-500/20 h-9 px-4 rounded-md transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            Sign out
-          </button>
-        </div>
+        {clerkEnabled && isSignedIn && (
+          <div className="pb-6">
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-red-400 border border-border hover:border-red-500/20 h-9 px-4 rounded-md transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
+            </button>
+          </div>
+        )}
 
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { SignUpButton, SignInButton } from '@clerk/react';
 import {
   Lock,
@@ -12,6 +12,8 @@ import {
   Table2,
   BookOpen,
 } from 'lucide-react';
+import { clerkEnabled } from '@/lib/optionalClerk';
+import { createBackendAccount, ensureTrialAccount } from '@/lib/trialAccount';
 
 interface BetaGateProps {
   /**
@@ -385,6 +387,14 @@ function CockpitPreview() {
  * When page='run' or page='cockpit', a static sample preview renders below the gate.
  */
 export function BetaGate({ page }: BetaGateProps) {
+  const [, setLocation] = useLocation();
+
+  async function handleLocalWorkspace() {
+    ensureTrialAccount();
+    await createBackendAccount().catch(() => null);
+    setLocation('/app/run');
+  }
+
   return (
     <div className="flex-1 flex flex-col items-center px-4 pt-16 pb-24">
 
@@ -410,15 +420,25 @@ export function BetaGate({ page }: BetaGateProps) {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
 
-          {/* Primary — Clerk sign-up */}
-          <SignUpButton mode="redirect">
+          {/* Primary — Clerk sign-up or no-login reviewer workspace */}
+          {clerkEnabled ? (
+            <SignUpButton mode="redirect">
+              <button
+                type="button"
+                className="inline-flex items-center justify-center h-10 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors cursor-pointer"
+              >
+                Create free beta account
+              </button>
+            </SignUpButton>
+          ) : (
             <button
               type="button"
+              onClick={handleLocalWorkspace}
               className="inline-flex items-center justify-center h-10 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors cursor-pointer"
             >
-              Create free beta account
+              Continue with private beta workspace
             </button>
-          </SignUpButton>
+          )}
 
           {/* Secondary — context-specific sample preview link */}
           {page === 'run' && (
@@ -439,14 +459,16 @@ export function BetaGate({ page }: BetaGateProps) {
           )}
 
           {/* Tertiary — sign in */}
-          <SignInButton mode="redirect">
-            <button
-              type="button"
-              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-0 p-0"
-            >
-              Sign in
-            </button>
-          </SignInButton>
+          {clerkEnabled && (
+            <SignInButton mode="redirect">
+              <button
+                type="button"
+                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-0 p-0"
+              >
+                Sign in
+              </button>
+            </SignInButton>
+          )}
 
         </div>
       </div>

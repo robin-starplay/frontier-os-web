@@ -4,9 +4,7 @@ import {
   SignIn,
   SignUp,
   useClerk,
-  useUser,
 } from '@clerk/react';
-import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Route, Switch, Router as WouterRouter, useLocation, useSearch } from 'wouter';
@@ -58,15 +56,11 @@ import RequestPilotPage from '@/pages/RequestPilotPage';
 import PricingPage from '@/pages/PricingPage';
 import PublicEvidencePage from '@/pages/PublicEvidencePage';
 import PublicAIRiskPage from '@/pages/PublicAIRiskPage';
+import { clerkEnabled, clerkPublishableKey, useOptionalUser } from '@/lib/optionalClerk';
 
 // ── Clerk setup ───────────────────────────────────────────────────────────────
-// REQUIRED — copy verbatim. Resolves key from hostname so the same build serves
-// multiple Clerk custom domains. Never inline the raw env var.
-
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+// Clerk is optional for reviewer/private-beta workspaces. When a publishable key
+// is absent, the app uses the local workspace flow backed by /api/trial/create-account.
 
 // REQUIRED — empty in dev (intentional), auto-populated in prod.
 // Do NOT gate on import.meta.env.PROD / NODE_ENV.
@@ -79,12 +73,6 @@ function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
     ? path.slice(basePath.length) || '/'
     : path;
-}
-
-if (!clerkPubKey) {
-  throw new Error(
-    'Missing VITE_CLERK_PUBLISHABLE_KEY — add it to .env (see .env.example)',
-  );
 }
 
 // ── Appearance: Frontier OS dark-navy theme ───────────────────────────────────
@@ -213,6 +201,7 @@ function OAuthDivider() {
 }
 
 function SignInPage() {
+  if (!clerkEnabled) return <WorkspaceCreationPage />;
   // After Clerk auth, PostSignInRedirector picks the destination (/app/cockpit or /app/run)
   const redirectUrlComplete = `${window.location.origin}${basePath}/app/run`;
   return (
@@ -233,6 +222,7 @@ function SignInPage() {
 }
 
 function SignUpPage() {
+  if (!clerkEnabled) return <WorkspaceCreationPage />;
   const redirectUrlComplete = `${window.location.origin}${basePath}/app/run`;
   return (
     <AuthCard>
@@ -256,7 +246,7 @@ function SignUpPage() {
 // runs) or /app/run (first-run experience). Also bootstraps the trial account.
 
 function PostSignInRedirector() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useOptionalUser();
   const [, setLocation] = useLocation();
   const prevSignedIn = useRef<boolean | undefined>(undefined);
 
@@ -283,7 +273,7 @@ function PostSignInRedirector() {
 // unauthenticated visitors while seamlessly upgrading signed-in users.
 
 function AppRedirect({ to, fallback }: { to: string; fallback: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useOptionalUser();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -458,7 +448,7 @@ function ClerkProviderWithRoutes() {
 
   return (
     <ClerkProvider
-      publishableKey={clerkPubKey}
+      publishableKey={clerkPublishableKey}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
@@ -497,10 +487,24 @@ function ClerkProviderWithRoutes() {
   );
 }
 
+function LocalWorkspaceProviderWithRoutes() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AccessProvider>
+        <GateModal />
+        <Switch>
+          <Route path="/app/:rest*" component={AppShell} />
+          <Route component={PublicShell} />
+        </Switch>
+      </AccessProvider>
+    </QueryClientProvider>
+  );
+}
+
 function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      {clerkEnabled ? <ClerkProviderWithRoutes /> : <LocalWorkspaceProviderWithRoutes />}
     </WouterRouter>
   );
 }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/react';
 import { Link } from 'wouter';
 import { BetaCTA } from '@/components/BetaCTA';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
@@ -17,6 +16,7 @@ import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { getWorkspaceId } from '@/lib/trialAccount';
 import { getCockpitRuns, type CockpitRunRecord } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
+import { useOptionalUser } from '@/lib/optionalClerk';
 import {
   DEAL_COCKPIT_TARGETS,
   DECISION_HISTORY,
@@ -710,7 +710,7 @@ function cockpitNextAction(run: RunEntry): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DealCockpitPage() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useOptionalUser();
   const { openGate } = useAccess();
 
   // ── Run history ──

@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Activity, Menu, X, MessageSquare, ChevronDown, Calendar } from 'lucide-react';
-import { useUser, UserButton } from '@clerk/react';
 import { cn } from '@/lib/utils';
 import { FeedbackModal } from './FeedbackModal';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
+import { clerkEnabled, OptionalUserButton, useOptionalUser } from '@/lib/optionalClerk';
 
 // ── Public nav ────────────────────────────────────────────────────────────────
 // Always shown on public pages regardless of auth state.
@@ -180,7 +180,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useOptionalUser();
 
   const isActive = (href: string) =>
     href === '/' ? location === '/' : location.startsWith(href);
@@ -243,7 +243,7 @@ export function Navbar() {
                   Open app
                 </Link>
                 <div className="flex items-center">
-                  <UserButton />
+                  <OptionalUserButton />
                 </div>
               </>
             )}
@@ -264,16 +264,16 @@ export function Navbar() {
                   Intro
                 </a>
                 <Link
-                  href="/sign-in"
+                  href={clerkEnabled ? '/sign-in' : '/create-workspace'}
                   className="hidden sm:inline-flex items-center justify-center text-sm font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors"
                 >
-                  Sign in
+                  {clerkEnabled ? 'Sign in' : 'Beta workspace'}
                 </Link>
                 <Link
-                  href="/run?mode=sample"
+                  href={clerkEnabled ? '/run?mode=sample' : '/create-workspace'}
                   className="hidden sm:inline-flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
                 >
-                  Run screen
+                  {clerkEnabled ? 'Run screen' : 'Start free'}
                 </Link>
               </>
             )}
@@ -315,7 +315,7 @@ export function Navbar() {
             <div className="pt-3 flex flex-col gap-2 border-t border-border">
               {isLoaded && isSignedIn ? (
                 <div className="flex items-center gap-3 flex-wrap">
-                  <UserButton />
+                  <OptionalUserButton />
                   <Link
                     href="/app/cockpit"
                     className="inline-flex items-center justify-center text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
@@ -343,25 +343,25 @@ export function Navbar() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
-                      href="/sign-in"
+                      href={clerkEnabled ? '/sign-in' : '/create-workspace'}
                       className="inline-flex items-center justify-center text-sm font-medium text-muted-foreground border border-border h-8 px-3 rounded-md"
                       onClick={() => setMobileOpen(false)}
                     >
-                      Sign in
+                      {clerkEnabled ? 'Sign in' : 'Beta workspace'}
                     </Link>
                     <Link
-                      href="/sign-up"
+                      href={clerkEnabled ? '/sign-up' : '/create-workspace'}
                       className="inline-flex items-center justify-center text-sm font-medium border border-border h-8 px-3 rounded-md hover:bg-accent/40 transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
-                      Create account
+                      {clerkEnabled ? 'Create account' : 'Create workspace'}
                     </Link>
                     <Link
-                      href="/run?mode=sample"
+                      href={clerkEnabled ? '/run?mode=sample' : '/create-workspace'}
                       className="inline-flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
-                      Run screen
+                      {clerkEnabled ? 'Run screen' : 'Start free'}
                     </Link>
                   </div>
                 </>

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link } from 'wouter';
 import { ArrowRight, Search, GitCompare, Layers, MessageSquare } from 'lucide-react';
-import { useUser } from '@clerk/react';
 import { BookIntroButton } from '@/components/BookIntroButton';
 import { BetaCTA } from '@/components/BetaCTA';
 import { getTrialAccount } from '@/lib/trialAccount';
 import { getFeedbackMailto } from '@/components/SendFeedbackButton';
+import { useOptionalUser } from '@/lib/optionalClerk';
 
 // ─── Large acquisition screen card ───────────────────────────────────────────
 
@@ -38,7 +38,7 @@ const SCREEN_ROWS: { label: string; value?: string; chip?: { label: string; vari
 
 /** "Run your own →" link in the hero card — auth-aware. */
 function RunYourOwnLink() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useOptionalUser();
   const trialAccount = getTrialAccount();
   const hasWorkspace = (isLoaded && isSignedIn) || !!trialAccount;
   const href = hasWorkspace ? '/app/run' : '/create-workspace';
@@ -54,7 +54,7 @@ function RunYourOwnLink() {
 
 /** "Start guided review" — sends to workspace creation or /app/run if already set up. */
 function ReviewerStartButton() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useOptionalUser();
   const trialAccount = getTrialAccount();
   const hasWorkspace = (isLoaded && isSignedIn) || !!trialAccount;
   const href = hasWorkspace ? '/app/run' : '/create-workspace';

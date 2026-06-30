@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Activity, Menu, X, ChevronDown, Calendar } from 'lucide-react';
-import { UserButton } from '@clerk/react';
 import { cn } from '@/lib/utils';
 import { FeedbackModal } from './FeedbackModal';
 import { SendFeedbackButton } from './SendFeedbackButton';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { getRuns } from '@/lib/runHistory';
+import { OptionalUserButton } from '@/lib/optionalClerk';
 
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
@@ -188,7 +188,7 @@ export function AppNavbar() {
               Intro
             </a>
             <div className="flex items-center">
-              <UserButton />
+              <OptionalUserButton />
             </div>
 
             {/* Mobile hamburger */}
@@ -224,7 +224,7 @@ export function AppNavbar() {
             </div>
             <div className="pt-3 flex flex-col gap-2 border-t border-border">
               <div className="flex items-center gap-3 flex-wrap">
-                <UserButton />
+                <OptionalUserButton />
                 <a
                   href={BOOK_INTRO_URL}
                   target="_blank"
