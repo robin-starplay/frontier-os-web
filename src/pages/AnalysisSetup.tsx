@@ -707,7 +707,7 @@ function Step2({ company, stages, isComplete, error, onContinue }: {
               ? 'Analysis failed.'
               : isComplete
               ? 'Analysis complete.'
-              : 'Building acquisition screen. Working through each stage…'}
+              : 'Public-source preview. Evidence checked. Gaps flagged.'}
           </p>
         </div>
 
@@ -767,20 +767,20 @@ function Step2({ company, stages, isComplete, error, onContinue }: {
         <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-lg bg-red-500/5 border border-red-500/20">
           <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-medium text-red-400">Live analysis could not complete.</p>
+            <p className="text-xs font-medium text-red-400">Analysis could not complete.</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{error}</p>
           </div>
         </div>
       )}
 
-      {/* Quality-first trust banner */}
+      {/* Analysis mode note */}
       <div className="mt-4 px-4 py-3 rounded-lg bg-muted/20 border border-border/60">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          <span className="font-medium text-foreground/80">Quality-first public-source preview.</span>{' '}
-          Frontier OS separates verified facts from claims and shows what still needs diligence.
+          <span className="font-medium text-foreground/80">Public-source preview.</span>{' '}
+          Evidence checked. Gaps flagged. Frontier OS separates verified facts from claims and shows what still needs diligence.
         </p>
         <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">
-          Fast results do not mean diligence-grade certainty. Financials, retention and customer concentration require source-backed verification.
+          Quality-first is available for private pilots once the hosted worker is enabled.
         </p>
       </div>
 
@@ -2337,7 +2337,8 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setSaveSource(merged.saved_to_cockpit ? 'backend' : 'local');
       setIsTimelineComplete(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Backend analysis failed.';
+      const detail = err instanceof Error ? err.message : 'Backend analysis failed.';
+      const message = detail;
       setAnalysisError(message);
       setResult(null);
       setIsTimelineComplete(false);

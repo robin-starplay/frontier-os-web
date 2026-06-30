@@ -58,14 +58,12 @@ export interface DemoScenario {
 // the sampleMode homepage loop.
 
 export const NEUTRAL_STAGES: AnalysisStageData[] = [
-  { id: 1, label: 'Resolve entity',             evidenceFound: 0, confidence: 'Medium', finding: 'Checking company identity from the submitted website and available public-source signals.',                                                                      durationMs: 1100 },
-  { id: 2, label: 'Check public sources',       evidenceFound: 0, confidence: 'Medium', finding: 'Checking company website and public registry signals where available.',                                                                                         durationMs: 900  },
-  { id: 3, label: 'Rank evidence',              evidenceFound: 0, confidence: 'Medium', finding: 'Separating verified facts, company claims, unknowns and diligence blockers.',                                                                                   durationMs: 1100 },
-  { id: 4, label: 'Extract financial evidence', evidenceFound: 0, confidence: 'Medium', finding: 'Financial evidence checked. Revenue, ARR and retention remain unverified unless supported by filings, management accounts or trusted source metadata.',       durationMs: 1400 },
-  { id: 5, label: 'Assess AI defensibility',    evidenceFound: 0, confidence: 'Medium', finding: 'Assessing AI defensibility from available public evidence only.',                                                                                               durationMs: 1300 },
-  { id: 6, label: 'Test strategic fit',         evidenceFound: 0, confidence: 'Medium', finding: 'Assessing fit against selected investment lens and buyer thesis assumptions.',                                                                                   durationMs: 1000 },
-  { id: 7, label: 'Find diligence gaps',        evidenceFound: 0, confidence: 'Medium', finding: 'Flagging gaps that should be resolved before IC or client use.',                                                                                                durationMs: 1200 },
-  { id: 8, label: 'Save to Cockpit',            evidenceFound: 0, confidence: 'Medium', finding: 'Saving run summary, blockers and next actions.',                                                                                                               durationMs: 900  },
+  { id: 1, label: 'Preparing quality-first run',   evidenceFound: 0, confidence: 'Medium', finding: 'Preparing a source-backed run and preserving the submitted workspace context.',                                      durationMs: 1800 },
+  { id: 2, label: 'Checking public website',       evidenceFound: 0, confidence: 'Medium', finding: 'Checking the submitted company website for public positioning and claims.',                                           durationMs: 2000 },
+  { id: 3, label: 'Attempting registry verification', evidenceFound: 0, confidence: 'Medium', finding: 'Attempting registry and filing checks where available. Financials remain unverified unless source metadata is returned.', durationMs: 2400 },
+  { id: 4, label: 'Ranking evidence',              evidenceFound: 0, confidence: 'Medium', finding: 'Separating verified facts, company claims, unknowns and diligence blockers.',                                         durationMs: 2000 },
+  { id: 5, label: 'Identifying diligence gaps',    evidenceFound: 0, confidence: 'Medium', finding: 'Flagging unresolved financial, customer, retention and defensibility questions for follow-up.',                       durationMs: 2100 },
+  { id: 6, label: 'Preparing result',              evidenceFound: 0, confidence: 'Medium', finding: 'Preparing the reviewer screen and saving the run summary where workspace IDs are available.',                         durationMs: 1900 },
 ];
 
 // ─── Stage definitions per scenario ──────────────────────────────────────────

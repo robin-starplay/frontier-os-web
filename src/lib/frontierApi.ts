@@ -20,6 +20,7 @@
  */
 
 const TIMEOUT_MS = 8_000;
+const URL_ANALYSIS_TIMEOUT_MS = 120_000;
 
 // ─── Payload types ────────────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ export interface UrlAnalysisPayload {
   buyer_name?: string;
   buyer_thesis: string;
   jurisdiction: string;
+  /** Optional private-pilot path only. Default runs must omit this. */
+  analysis_mode?: 'quality_first';
   // Cockpit persistence — included when backend workspace IDs are available
   workspace_id?: string;
   user_id?: string;
@@ -234,9 +237,9 @@ function buildCompareFallback(companies: CompareCompany[]): CompareResult {
 
 // ─── Fetch with timeout ───────────────────────────────────────────────────────
 
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } finally {
@@ -248,20 +251,69 @@ function apiUrl(path: string): string {
   return FRONTIER_API_BASE_URL ? `${FRONTIER_API_BASE_URL}${path}` : path;
 }
 
+function isLocalDevBrowser(): boolean {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+}
+
+function apiRequestUrl(path: string): { requestUrl: string; targetUrl: string; apiBaseUrl: string; usesDevProxy: boolean } {
+  const apiBaseUrl = FRONTIER_API_BASE_URL;
+  const targetUrl = apiBaseUrl ? `${apiBaseUrl}${path}` : path;
+  const usesDevProxy = Boolean(apiBaseUrl && isLocalDevBrowser() && path.startsWith('/api/'));
+  return {
+    requestUrl: usesDevProxy ? path : targetUrl,
+    targetUrl,
+    apiBaseUrl,
+    usesDevProxy,
+  };
+}
+
 function debugFrontendApi(message: string, data?: Record<string, unknown>) {
   if (!import.meta.env.DEV) return;
   if (data) console.debug(`[frontierApi] ${message}`, data);
   else console.debug(`[frontierApi] ${message}`);
 }
 
-async function readJsonResponse(res: Response): Promise<unknown> {
-  const text = await res.text();
+class UrlAnalysisRequestError extends Error {
+  httpStatus?: number;
+  backendStatus?: string;
+  backendReason?: string;
+  backendAnalysisMode?: string;
+  backendBody?: unknown;
+
+  constructor(message: string, httpStatus?: number, backendBody?: unknown) {
+    super(message);
+    this.name = 'UrlAnalysisRequestError';
+    this.httpStatus = httpStatus;
+    this.backendBody = backendBody;
+    if (backendBody && typeof backendBody === 'object') {
+      const b = backendBody as Record<string, unknown>;
+      this.backendStatus = typeof b.status === 'string' ? b.status : undefined;
+      this.backendReason = typeof b.reason === 'string' ? b.reason : undefined;
+      this.backendAnalysisMode = typeof b.analysis_mode === 'string' ? b.analysis_mode : undefined;
+    }
+  }
+}
+
+function parseJsonText(text: string): unknown {
   if (!text) return null;
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error('Backend returned malformed JSON');
+    throw new UrlAnalysisRequestError('Backend returned malformed JSON');
   }
+}
+
+function backendErrorMessage(body: unknown, httpStatus: number): string {
+  if (!body || typeof body !== 'object') return `Backend returned status ${httpStatus}.`;
+  const b = body as Record<string, unknown>;
+  const detail = typeof b.detail === 'string' ? b.detail : undefined;
+  const message = typeof b.message === 'string' ? b.message : undefined;
+  const reason = typeof b.reason === 'string' ? b.reason : undefined;
+  const status = typeof b.status === 'string' ? b.status : undefined;
+  const analysisMode = typeof b.analysis_mode === 'string' ? b.analysis_mode : undefined;
+  const parts = [message || detail, reason && `Reason: ${reason}`, status && `Status: ${status}`, analysisMode && `Mode: ${analysisMode}`].filter(Boolean);
+  return parts.length > 0 ? `Backend returned status ${httpStatus}. ${parts.join(' ')}` : `Backend returned status ${httpStatus}.`;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -272,35 +324,63 @@ async function readJsonResponse(res: Response): Promise<unknown> {
  * Real user-triggered runs never fall back to sample data.
  */
 export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<AnalysisResult> {
-  const endpoint = apiUrl('/api/analyse/url');
-  debugFrontendApi('runUrlAnalysis request', { endpoint, sampleFallbackUsed: false });
+  const endpoint = apiRequestUrl('/api/analyse/url');
+  debugFrontendApi('runUrlAnalysis request', {
+    apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
+    requestUrl: endpoint.requestUrl,
+    targetUrl: endpoint.targetUrl,
+    usesDevProxy: endpoint.usesDevProxy,
+    payload,
+    payloadAnalysisMode: payload.analysis_mode,
+    sampleFallbackUsed: false,
+  });
 
   try {
-    const res = await fetchWithTimeout(endpoint, {
+    const res = await fetchWithTimeout(endpoint.requestUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+    }, URL_ANALYSIS_TIMEOUT_MS);
+    const responseText = await res.text();
+    debugFrontendApi('runUrlAnalysis response', {
+      apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
+      requestUrl: endpoint.requestUrl,
+      targetUrl: endpoint.targetUrl,
+      usesDevProxy: endpoint.usesDevProxy,
+      httpStatus: res.status,
+      payloadAnalysisMode: payload.analysis_mode,
+      sampleFallbackUsed: false,
+      responseText: res.ok ? undefined : responseText.slice(0, 1000),
     });
-    debugFrontendApi('runUrlAnalysis response', { endpoint, httpStatus: res.status, sampleFallbackUsed: false });
-    const body = await readJsonResponse(res);
+    const body = parseJsonText(responseText);
     if (!res.ok) {
-      const err = body && typeof body === 'object' ? body as Record<string, unknown> : {};
-      throw new Error(String(err.message ?? err.detail ?? `Backend returned ${res.status}`));
+      throw new UrlAnalysisRequestError(backendErrorMessage(body, res.status), res.status, body);
     }
     debugFrontendApi('runUrlAnalysis payload keys', {
-      endpoint,
+      apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
+      requestUrl: endpoint.requestUrl,
+      targetUrl: endpoint.targetUrl,
+      usesDevProxy: endpoint.usesDevProxy,
       httpStatus: res.status,
+      payloadAnalysisMode: payload.analysis_mode,
       sampleFallbackUsed: false,
       keys: body && typeof body === 'object' ? Object.keys(body as Record<string, unknown>) : [],
     });
     return body as AnalysisResult;
   } catch (err) {
     debugFrontendApi('runUrlAnalysis failed', {
-      endpoint,
+      apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
+      requestUrl: endpoint.requestUrl,
+      targetUrl: endpoint.targetUrl,
+      usesDevProxy: endpoint.usesDevProxy,
+      payloadAnalysisMode: payload.analysis_mode,
       sampleFallbackUsed: false,
-      error: err instanceof Error ? err.message : String(err),
+      errorName: err instanceof Error ? err.name : typeof err,
+      errorMessage: err instanceof Error ? err.message : String(err),
+      httpStatus: err instanceof UrlAnalysisRequestError ? err.httpStatus : undefined,
     });
-    throw err;
+    if (err instanceof UrlAnalysisRequestError) throw err;
+    throw new Error('Analysis request failed before a backend response was received. Check API connection.');
   }
 }
 
