@@ -120,8 +120,33 @@ function asArray(value: unknown): unknown[] {
 
 function textValue(value: unknown, fallback = ''): string {
   if (value === null || value === undefined) return fallback;
+  if (Array.isArray(value)) {
+    const rendered = value.map(item => textValue(item, '')).filter(Boolean).join(', ');
+    return rendered || fallback;
+  }
+  if (typeof value === 'object') {
+    const rec = value as Record<string, unknown>;
+    const primary = rec.summary ?? rec.message ?? rec.finding ?? rec.claim_text ?? rec.blocker ?? rec.value ?? rec.status ?? rec.label ?? rec.name;
+    if (primary !== undefined && primary !== value) return textValue(primary, fallback);
+    const pairs = Object.entries(rec)
+      .filter(([, v]) => v !== null && v !== undefined && typeof v !== 'object')
+      .slice(0, 3)
+      .map(([k, v]) => `${formatLabel(k)}: ${String(v)}`);
+    return pairs.join(' · ') || fallback;
+  }
   const s = String(value).trim();
   return s || fallback;
+}
+
+function displayValue(value: unknown, fallback = 'Unavailable in this preview'): string {
+  return textValue(value, fallback);
+}
+
+function resultModeLabel(value: unknown): string {
+  const raw = textValue(value, 'public_source_preview').toLowerCase();
+  if (raw === 'private_beta_preview' || raw === 'private beta · public-source screen') return 'Public-source preview';
+  if (raw === 'public_source_preview' || raw === 'url_only_public_screen' || raw === 'public_sources_only') return 'Public-source preview';
+  return formatLabel(raw);
 }
 
 function confidenceValue(value: unknown): 'High' | 'Medium' | 'Low' {
@@ -229,7 +254,7 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
   return {
     ...raw,
     status: (r.status === 'ok' ? 'ok' : 'partial') as 'ok' | 'partial',
-    data_mode: textValue(r.data_mode ?? r.source_mode ?? r.verification_mode, 'Public-source preview'),
+    data_mode: resultModeLabel(r.data_mode ?? r.source_mode ?? r.verification_mode),
     company: companyName,
     company_name: companyName,
     website: textValue(r.website, fallbackWebsite),
@@ -892,7 +917,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── Hero: acquisition screen verdict ─────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Acquisition screen · {result.data_mode}</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Acquisition screen · {resultModeLabel(result.data_mode)}</p>
           <span className="text-xs font-mono text-muted-foreground">{result.company}</span>
         </div>
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -934,7 +959,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                 <div className="space-y-1">
                   {Object.entries(analysisQuality).slice(0, 5).map(([key, value]) => (
                     <p key={key} className="text-xs text-muted-foreground">
-                      <span className="text-foreground">{formatLabel(key)}:</span> {String(value)}
+                      <span className="text-foreground">{formatLabel(key)}:</span> {displayValue(value)}
                     </p>
                   ))}
                 </div>
@@ -1552,12 +1577,12 @@ function AnalysisResultDisplay({
                     {(val as unknown[]).map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                         <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
-                        {String(item)}
+                        {displayValue(item)}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-xs text-foreground">{String(val)}</p>
+                  <p className="text-xs text-foreground">{displayValue(val)}</p>
                 )}
               </div>
             ))}
@@ -1583,16 +1608,16 @@ function AnalysisResultDisplay({
                 blocking: 'Blocking',
                 unknown:  'Not verified in this run',
               };
-              const conf = String(c.confidence ?? '');
+              const conf = displayValue(c.confidence, '');
               return (
                 <div key={i} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3 mb-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-foreground">
-                        {String(c.field ?? c.name ?? `Item ${i + 1}`)}
+                        {displayValue(c.field ?? c.name ?? `Item ${i + 1}`)}
                       </span>
                       {c.value !== undefined && (
-                        <span className="text-sm text-muted-foreground">{String(c.value)}</span>
+                        <span className="text-sm text-muted-foreground">{displayValue(c.value)}</span>
                       )}
                       {c.status != null && (
                         <span className={cn(
@@ -1610,10 +1635,10 @@ function AnalysisResultDisplay({
                     )}
                   </div>
                   {c.summary != null && (
-                    <p className="text-xs text-muted-foreground leading-snug mb-1">{String(c.summary)}</p>
+                    <p className="text-xs text-muted-foreground leading-snug mb-1">{displayValue(c.summary)}</p>
                   )}
                   {c.source != null && (
-                    <p className="text-[10px] text-muted-foreground/50">Source: {String(c.source)}</p>
+                    <p className="text-[10px] text-muted-foreground/50">Source: {displayValue(c.source, 'Not verified in this run')}</p>
                   )}
                 </div>
               );
@@ -1689,10 +1714,10 @@ function AnalysisResultDisplay({
                     ? <ul className="space-y-1">{(field as unknown[]).map((item, i) => (
                         <li key={i} className="text-xs text-muted-foreground leading-snug flex gap-1.5">
                           <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
-                          {String(item)}
+                          {displayValue(item)}
                         </li>
                       ))}</ul>
-                    : <p className="text-xs text-foreground">{String(field)}</p>
+                    : <p className="text-xs text-foreground">{displayValue(field)}</p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground/40 italic">Unavailable in this preview</p>
                 )}
@@ -1724,10 +1749,10 @@ function AnalysisResultDisplay({
                     ? <ul className="space-y-1">{(field as unknown[]).map((item, i) => (
                         <li key={i} className="text-xs text-muted-foreground leading-snug flex gap-1.5">
                           <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
-                          {String(item)}
+                          {displayValue(item)}
                         </li>
                       ))}</ul>
-                    : <p className="text-xs text-foreground">{String(field)}</p>
+                    : <p className="text-xs text-foreground">{displayValue(field)}</p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground/40 italic">Unavailable in this preview</p>
                 )}
@@ -1766,8 +1791,8 @@ function AnalysisResultDisplay({
                       <div key={i} className="flex items-start gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0 mt-1.5" />
                         <div>
-                          <p className="text-xs text-foreground font-medium">{String(cat.name ?? cat.category ?? `Signal ${i + 1}`)}</p>
-                          {cat.finding != null && <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{String(cat.finding)}</p>}
+                          <p className="text-xs text-foreground font-medium">{displayValue(cat.name ?? cat.category ?? `Signal ${i + 1}`)}</p>
+                          {cat.finding != null && <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{displayValue(cat.finding)}</p>}
                         </div>
                       </div>
                     ))}
