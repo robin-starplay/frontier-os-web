@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, ExternalLink } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { BookIntroButton, BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { getBackendBaseUrl } from '@/lib/frontierApi';
@@ -145,6 +145,8 @@ interface PricingResponse {
   plans?: BackendPlan[];
 }
 
+type PricingLoadState = 'loading' | 'loaded' | 'fallback';
+
 function tierBadge(planId: string): string | undefined {
   if (planId === 'starter_growth' || planId === 'team_platform') return 'Private beta';
   if (planId === 'enterprise') return 'Custom';
@@ -197,8 +199,18 @@ function resolveCtaHref(ctaUrl: string): { href: string; external: boolean } {
 
 // ─── Tier card ────────────────────────────────────────────────────────────────
 
-function TierCard({ tier }: { tier: Tier }) {
-  const { href, external } = resolveCtaHref(tier.cta_url);
+function TierCard({
+  tier,
+  pricingState,
+  onPlanCta,
+}: {
+  tier: Tier;
+  pricingState: PricingLoadState;
+  onPlanCta: (tier: Tier) => void;
+}) {
+  const { external } = resolveCtaHref(tier.cta_url);
+  const waitingForPaidCta = tier.plan_id === 'starter_growth' && pricingState === 'loading';
+  const ctaLabel = waitingForPaidCta ? 'Loading beta link' : tier.cta_label;
 
   return (
     <div className={cn(
@@ -238,36 +250,22 @@ function TierCard({ tier }: { tier: Tier }) {
 
       {/* CTA block — pinned to card bottom */}
       <div className="space-y-2">
-        {external ? (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              'inline-flex items-center justify-center gap-1.5 w-full h-9 rounded-md text-sm font-semibold transition-colors whitespace-nowrap',
-              tier.ctaVariant === 'primary'
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'border border-primary/40 bg-transparent text-foreground hover:bg-primary/5 hover:border-primary/60',
-            )}
-          >
-            {tier.cta_label}
-            <ExternalLink className="w-3 h-3 shrink-0" />
-          </a>
-        ) : (
-          <Link
-            href={href}
-            className={cn(
-              'inline-flex items-center justify-center gap-1.5 w-full h-9 rounded-md text-sm font-semibold transition-colors whitespace-nowrap',
-              tier.ctaVariant === 'primary'
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'border border-primary/40 bg-transparent text-foreground hover:bg-primary/5 hover:border-primary/60',
-            )}
-          >
-            {tier.cta_label}
-            {tier.ctaVariant === 'primary' && <ArrowRight className="w-3.5 h-3.5 shrink-0" />}
-          </Link>
-        )}
-
+        <button
+          type="button"
+          disabled={waitingForPaidCta}
+          onClick={() => onPlanCta(tier)}
+          className={cn(
+            'inline-flex items-center justify-center gap-1.5 w-full h-9 rounded-md text-sm font-semibold transition-colors whitespace-nowrap',
+            tier.ctaVariant === 'primary'
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'border border-primary/40 bg-transparent text-foreground hover:bg-primary/5 hover:border-primary/60',
+            waitingForPaidCta && 'opacity-60 cursor-wait hover:bg-transparent hover:border-primary/40',
+          )}
+        >
+          {ctaLabel}
+          {external && !waitingForPaidCta && <ExternalLink className="w-3 h-3 shrink-0" />}
+          {tier.ctaVariant === 'primary' && !external && <ArrowRight className="w-3.5 h-3.5 shrink-0" />}
+        </button>
         {tier.manual_activation_note && (
           <p className="text-[10px] text-muted-foreground/60 text-center leading-snug px-1">
             {tier.manual_activation_note}
@@ -290,7 +288,20 @@ function TierCard({ tier }: { tier: Tier }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
+  const [, setLocation] = useLocation();
   const [tiers, setTiers] = useState<Tier[]>(STATIC_TIERS);
+  const [pricingState, setPricingState] = useState<PricingLoadState>('loading');
+
+  function handlePlanCta(tier: Tier) {
+    if (tier.plan_id === 'starter_growth' && pricingState === 'loading') return;
+
+    const { href, external } = resolveCtaHref(tier.cta_url);
+    if (external) {
+      window.open(href, '_self');
+      return;
+    }
+    setLocation(href);
+  }
 
   // Backend pricing is canonical. Fallback remains GBP-safe if the endpoint is unavailable.
   useEffect(() => {
@@ -300,11 +311,22 @@ export default function PricingPage() {
     fetch(url)
       .then(r => (r.ok ? r.json() : null))
       .then((data: PricingResponse | null) => {
-        if (cancelled || !data?.plans) return;
+        if (cancelled) return;
+        if (!data?.plans) {
+          setPricingState('fallback');
+          return;
+        }
         const backendTiers = data.plans.map(plan => tierFromBackend(plan, data.currency));
-        if (backendTiers.length > 0) setTiers(backendTiers);
+        if (backendTiers.length > 0) {
+          setTiers(backendTiers);
+          setPricingState('loaded');
+        } else {
+          setPricingState('fallback');
+        }
       })
-      .catch(() => { /* silent fallback — STATIC_TIERS remain */ });
+      .catch(() => {
+        if (!cancelled) setPricingState('fallback');
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -333,7 +355,12 @@ export default function PricingPage() {
         {/* Tier cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-16 items-stretch">
           {tiers.map(t => (
-            <TierCard key={t.plan_id} tier={t} />
+            <TierCard
+              key={t.plan_id}
+              tier={t}
+              pricingState={pricingState}
+              onPlanCta={handlePlanCta}
+            />
           ))}
         </div>
 
