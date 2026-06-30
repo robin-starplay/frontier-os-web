@@ -28,6 +28,7 @@ import {
   type RunStatusResponse,
   type AnalysisResultResponse,
   type StartAnalysisOutcome,
+  type AnalysisEvidenceCard,
   type EvidenceStatus,
   type Level,
 } from '@/lib/frontierApi';
@@ -107,6 +108,170 @@ function confidenceColor(c: string) {
   if (c === 'High')   return 'text-green-400';
   if (c === 'Medium') return 'text-amber-400';
   return 'text-red-400';
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function textValue(value: unknown, fallback = ''): string {
+  if (value === null || value === undefined) return fallback;
+  const s = String(value).trim();
+  return s || fallback;
+}
+
+function confidenceValue(value: unknown): 'High' | 'Medium' | 'Low' {
+  const s = textValue(value).toLowerCase();
+  if (s === 'high') return 'High';
+  if (s === 'medium') return 'Medium';
+  return 'Low';
+}
+
+function evidenceStatusValue(value: unknown): EvidenceStatus {
+  return safeEvidenceStatus(textValue(value), undefined, undefined);
+}
+
+function recommendationLevel(value: unknown): Level {
+  const s = textValue(value).toLowerCase();
+  if (!s) return 'grey';
+  if (s.includes('request') || s.includes('review') || s.includes('financial')) return 'amber';
+  if (s.includes('pass') || s.includes('reject') || s.includes('decline')) return 'red';
+  if (s.includes('proceed') || s.includes('advance') || s.includes('ready')) return 'green';
+  return 'blue';
+}
+
+function readinessText(value: unknown, fallback = 'Not verified in this run'): string {
+  const s = textValue(value);
+  return s ? formatLabel(s) : fallback;
+}
+
+function normalizeBackendEvidenceCard(item: unknown, fallbackField: string): AnalysisEvidenceCard {
+  if (typeof item === 'string') {
+    return {
+      field: item,
+      value: '',
+      status: 'blocking',
+      source: 'Diligence blocker',
+      summary: '',
+      confidence: 'Low',
+    };
+  }
+  const c = asRecord(item);
+  const field = textValue(c.field ?? c.title ?? c.name ?? c.claim_type ?? c.blocker, fallbackField);
+  const value = textValue(c.value ?? c.metric ?? c.claim_text ?? '');
+  const summary = textValue(
+    c.summary ?? c.why_it_matters ?? c.ic_impact ?? c.evidence_needed ?? c.next_action ?? c.claim_text,
+    '',
+  );
+  const source = textValue(c.source ?? c.source_url ?? c.source_type ?? c.evidence_source, 'Not verified in this run');
+  return {
+    field,
+    value,
+    status: evidenceStatusValue(c.status ?? c.evidence_status),
+    source,
+    summary,
+    confidence: confidenceValue(c.confidence),
+  };
+}
+
+function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string, fallbackWebsite: string): AnalysisResult {
+  const r = asRecord(raw);
+  const bundle = asRecord(r.evidence_bundle);
+  const cardsRaw = asArray(r.evidence_cards).length > 0 ? asArray(r.evidence_cards) : asArray(bundle.evidence_cards);
+  const verifiedRaw = asArray(r.verified_facts).length > 0 ? asArray(r.verified_facts) : asArray(bundle.verified_facts);
+  const claimsRaw = asArray(r.claims).length > 0 ? asArray(r.claims) : asArray(bundle.claims);
+  const unknownsRaw = asArray(r.unknowns).length > 0 ? asArray(r.unknowns) : asArray(bundle.unknowns);
+  const blockersRaw = asArray(r.diligence_blockers).length > 0
+    ? asArray(r.diligence_blockers)
+    : asArray(bundle.diligence_blockers ?? bundle.blockers);
+
+  const evidenceCards: AnalysisEvidenceCard[] = [
+    ...cardsRaw.map((item, i) => normalizeBackendEvidenceCard(item, `Evidence ${i + 1}`)),
+    ...verifiedRaw.map((item, i) => {
+      const card = normalizeBackendEvidenceCard(item, `Verified fact ${i + 1}`);
+      return { ...card, status: 'verified' as EvidenceStatus };
+    }),
+    ...claimsRaw.map((item, i) => {
+      const card = normalizeBackendEvidenceCard(item, `Claim ${i + 1}`);
+      return { ...card, status: card.status === 'unknown' ? 'claim' as EvidenceStatus : card.status };
+    }),
+    ...unknownsRaw.map((item, i) => {
+      const card = normalizeBackendEvidenceCard(item, `Unknown ${i + 1}`);
+      return { ...card, status: 'unknown' as EvidenceStatus, source: 'Not verified in this run' };
+    }),
+    ...blockersRaw.map((item, i) => {
+      const card = normalizeBackendEvidenceCard(item, `Blocker ${i + 1}`);
+      return { ...card, status: 'blocking' as EvidenceStatus, source: card.source || 'Diligence blocker' };
+    }),
+  ];
+
+  const mainBlocker = textValue(r.main_blocker ?? bundle.main_blocker ?? blockersRaw[0], '');
+  if (mainBlocker && !evidenceCards.some(c => c.field === mainBlocker)) {
+    evidenceCards.push({
+      field: mainBlocker,
+      value: '',
+      status: 'blocking',
+      source: 'Diligence blocker',
+      summary: textValue(r.next_action, ''),
+      confidence: 'Low',
+    });
+  }
+
+  const sf = asRecord(r.strategic_fit);
+  const ai = asRecord(r.ai_disruption);
+  const innovation = asRecord(r.innovation_operating_signals);
+  const companyName = textValue(r.company_name ?? r.company, fallbackCompany);
+
+  return {
+    ...raw,
+    status: (r.status === 'ok' ? 'ok' : 'partial') as 'ok' | 'partial',
+    data_mode: textValue(r.data_mode ?? r.source_mode ?? r.verification_mode, 'Public-source preview'),
+    company: companyName,
+    company_name: companyName,
+    website: textValue(r.website, fallbackWebsite),
+    recommendation: textValue(r.recommendation, 'Request financials'),
+    recommendation_level: recommendationLevel(r.recommendation),
+    ic_readiness: readinessText(r.ic_readiness, 'Request financials'),
+    valuation_readiness: readinessText(r.valuation_readiness, 'Not ready'),
+    strategic_fit_label: textValue(sf.label ?? sf.score, 'Not assessed'),
+    evidence_confidence: textValue(r.evidence_confidence, '')
+      ? confidenceValue(r.evidence_confidence)
+      : r.evidence_confidence_score != null ? `${r.evidence_confidence_score}/100` : 'Not verified in this run',
+    ai_replica_risk: textValue(ai.replica_risk, 'Unavailable in this preview'),
+    ai_moat: textValue(ai.moat_evidence, 'Unavailable in this preview'),
+    next_action: textValue(r.next_action ?? mainBlocker, 'Request source-backed financials and management data.'),
+    strategic_fit: {
+      score: textValue(sf.score, 'Not assessed'),
+      why_fits: asArray(sf.why_fits).map(String),
+      why_not: asArray(sf.why_not).map(String),
+      assumptions: asArray(sf.assumptions).map(String),
+      risks: asArray(sf.risks).map(String),
+      diligence_questions: asArray(sf.diligence_questions).map(String),
+    },
+    evidence_cards: evidenceCards,
+    ai_disruption: {
+      replica_risk: textValue(ai.replica_risk, 'Unavailable in this preview'),
+      replica_risk_level: recommendationLevel(ai.replica_risk),
+      moat_evidence: textValue(ai.moat_evidence, 'Unavailable in this preview'),
+      inference_economics: textValue(ai.inference_economics, 'Unavailable in this preview'),
+      product_expansion: textValue(ai.product_expansion, 'Unavailable in this preview'),
+      opex_improvement: textValue(ai.opex_improvement, 'Unavailable in this preview'),
+      diligence_questions: asArray(ai.diligence_questions).map(String),
+    },
+    verified_facts: verifiedRaw,
+    claims: claimsRaw,
+    unknowns: unknownsRaw,
+    diligence_blockers: blockersRaw,
+    analysis_quality: r.analysis_quality,
+    run_log: asArray(r.run_log),
+    innovation_operating_signals: innovation,
+    __sample_fallback: false,
+    fallback_used: false,
+  };
 }
 
 // ─── Scenario selector ───────────────────────────────────────────────────────
@@ -506,10 +671,11 @@ function Step1({
 
 // ─── Step 2: Analysis timeline ────────────────────────────────────────────────
 
-function Step2({ company, stages, isComplete, onContinue }: {
+function Step2({ company, stages, isComplete, error, onContinue }: {
   company: string;
   stages: RunningStage[];
   isComplete: boolean;
+  error?: string | null;
   onContinue: () => void;
 }) {
   const completedCount = stages.filter(s => s.status === 'complete').length;
@@ -537,7 +703,9 @@ function Step2({ company, stages, isComplete, onContinue }: {
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
           <p className="text-xs text-muted-foreground">
-            {isComplete
+            {error
+              ? 'Analysis failed.'
+              : isComplete
               ? 'Analysis complete.'
               : 'Building acquisition screen. Working through each stage…'}
           </p>
@@ -595,6 +763,16 @@ function Step2({ company, stages, isComplete, onContinue }: {
         </div>
       </div>
 
+      {error && (
+        <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-lg bg-red-500/5 border border-red-500/20">
+          <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-medium text-red-400">Live analysis could not complete.</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Quality-first trust banner */}
       <div className="mt-4 px-4 py-3 rounded-lg bg-muted/20 border border-border/60">
         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -606,7 +784,7 @@ function Step2({ company, stages, isComplete, onContinue }: {
         </p>
       </div>
 
-      {isComplete && (
+      {isComplete && !error && (
         <div className="mt-6 flex justify-end">
           <Button onClick={onContinue} className="h-10">
             View result <ArrowRight className="w-3.5 h-3.5 ml-2" />
@@ -650,6 +828,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 }) {
   const { openGate } = useAccess();
   const hasBuyerThesis = buyerThesis.trim().length > 0;
+  const rawResult = result as unknown as Record<string, unknown>;
+  const analysisQuality = asRecord(rawResult.analysis_quality);
+  const runLog = asArray(rawResult.run_log);
+  const innovationSignals = asRecord(rawResult.innovation_operating_signals);
+  const isSampleFallback = result.__sample_fallback === true || result.fallback_used === true;
 
   // Hero metric cards — 5 key acquisition signals
   const topCards = [
@@ -686,10 +869,10 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
     <div className="w-full max-w-3xl mx-auto space-y-4">
 
       {/* Fallback notice */}
-      {result.status === 'partial' && (
+      {isSampleFallback && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
-          Private beta sample screen shown while live analysis is unavailable.
+          Example screen only. Run a target from the form for live backend analysis.
         </div>
       )}
 
@@ -738,6 +921,45 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <p className="text-xs text-foreground leading-snug">{result.next_action}</p>
         </div>
       </div>
+
+      {(Object.keys(analysisQuality).length > 0 || runLog.length > 0) && (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-card/50">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Run quality</p>
+          </div>
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Object.keys(analysisQuality).length > 0 && (
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Analysis quality</p>
+                <div className="space-y-1">
+                  {Object.entries(analysisQuality).slice(0, 5).map(([key, value]) => (
+                    <p key={key} className="text-xs text-muted-foreground">
+                      <span className="text-foreground">{formatLabel(key)}:</span> {String(value)}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+            {runLog.length > 0 && (
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Run log</p>
+                <ul className="space-y-1.5">
+                  {runLog.slice(-4).map((entry, i) => {
+                    const rec = asRecord(entry);
+                    const message = textValue(rec.message ?? rec.step ?? rec.status ?? entry, '');
+                    return message ? (
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
+                        {message}
+                      </li>
+                    ) : null;
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── 1. What is verified ──────────────────────────────────────── */}
       {verifiedCards.length > 0 && (
@@ -1074,7 +1296,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
           <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Innovation &amp; operating signals</p>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">Roadmap · Private beta</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">
+            {textValue(innovationSignals.status, '') === 'not_checked'
+              ? 'Roadmap · Not checked'
+              : textValue(innovationSignals.status, 'Roadmap · Private beta')}
+          </span>
         </div>
         <div className="px-4 py-4">
           <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
@@ -1826,6 +2052,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [isTimelineComplete, setIsTimelineComplete] = useState(false);
   const [result, setResult]     = useState<AnalysisResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Form state
   const [company,      setCompany]      = useState(DEFAULT_SCENARIO.company);
@@ -1928,6 +2155,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setStages(s.analysis_stages.map(st => ({ ...st, status: 'queued' })));
     setIsTimelineComplete(false);
     setResult(null);
+    setAnalysisError(null);
     cancelRef.current.cancelled = true;
     setRailwayPhase({ kind: 'idle' });
   }
@@ -2063,16 +2291,17 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     await doPollLoop(run_id, token);
   }
 
-  /** Sample-screen path — calls the local TypeScript API server. */
-  async function runSampleAnalysis() {
+  /** Real URL-analysis path: calls POST /api/analyse/url and never substitutes sample data. */
+  async function runUrlAnalysisForForm() {
     // Provision backend workspace on first run (no-op if already done; silent on failure)
     await createBackendAccount(buyer, buyerThesis).catch(() => null);
     const workspaceId = getWorkspaceId();
     const userId = getUserId();
+    const normalizedWebsite = normaliseUrl(website);
     const apiPromise = runUrlAnalysis({
-      company,
-      url: normaliseUrl(website),
-      buyer,
+      company_name: company.trim(),
+      website: normalizedWebsite,
+      buyer_name: buyer.trim() || undefined,
       buyer_thesis: buyerThesis,
       jurisdiction,
       ...(workspaceId && userId
@@ -2086,6 +2315,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setStages(fresh);
     setIsTimelineComplete(false);
     setResult(null);
+    setAnalysisError(null);
     setStep(2);
 
     const updated = [...fresh];
@@ -2097,25 +2327,33 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setStages([...updated]);
     }
 
-    const apiResult = await apiPromise;
-    const merged = { ...apiResult, company: company?.trim() || apiResult.company };
-    setResult(merged);
-    // Save to local run history so the Deal Cockpit shows this run
-    try { saveUrlRun(merged, website); } catch { /* storage not available */ }
-    // Track whether backend confirmed persistence
-    setSaveSource(merged.saved_to_cockpit ? 'backend' : 'local');
-    setIsTimelineComplete(true);
+    try {
+      const apiResult = await apiPromise;
+      const merged = normalizeUrlAnalysisResult(apiResult, company.trim(), normalizedWebsite);
+      setResult(merged);
+      // Save to local run history so the Deal Cockpit shows this run
+      try { saveUrlRun(merged, normalizedWebsite); } catch { /* storage not available */ }
+      // Track whether backend confirmed persistence
+      setSaveSource(merged.saved_to_cockpit ? 'backend' : 'local');
+      setIsTimelineComplete(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Backend analysis failed.';
+      setAnalysisError(message);
+      setResult(null);
+      setIsTimelineComplete(false);
+    }
   }
 
   function handleSubmit() {
     // Always use the local API (POST /api/analyse/url) as the primary path.
     // The Railway async backend (handleRailwaySubmit) is a separate optional flow
     // activated only via the localStorage resume on mount.
-    runSampleAnalysis();
+    runUrlAnalysisForForm();
   }
 
   function reset() {
     setStep(1);
+    setAnalysisError(null);
     handleScenarioSelect(scenario);
   }
 
@@ -2469,6 +2707,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 company={company}
                 stages={stages}
                 isComplete={isTimelineComplete}
+                error={analysisError}
                 onContinue={() => setStep(3)}
               />
             )}

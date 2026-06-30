@@ -304,10 +304,10 @@ function CompareResultView({ result, onReset, saveSource }: {
     <div className="w-full max-w-4xl mx-auto space-y-6">
 
       {/* Fallback notice */}
-      {result.status === 'partial' && (
+      {result.fallback_used && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
-          Private beta sample screen shown while live analysis is unavailable.
+          Example comparison screen only. Run live targets to use backend analysis.
         </div>
       )}
 

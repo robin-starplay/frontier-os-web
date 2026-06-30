@@ -4,7 +4,7 @@
  * Responsibilities (frontend only):
  *   1. Collect user input and POST to the real backend.
  *   2. Return backend JSON to the caller unchanged.
- *   3. On failure / timeout: show a static private-beta sample screen.
+ *   3. On URL-analysis failure / timeout: surface the error to the caller.
  *
  * This file MUST NOT contain:
  *   - investment recommendation logic
@@ -13,7 +13,7 @@
  *   - evidence-card construction
  *   - strategic fit computation
  *
- * Fallback data is static display scaffolding only.
+ * Compare fallback data is static display scaffolding only.
  * Every analytical field shows "Unavailable in this preview".
  * If a backend field is absent in a live response, the rendering
  * layer should show "Unavailable in this preview" — not this adapter.
@@ -24,9 +24,9 @@ const TIMEOUT_MS = 8_000;
 // ─── Payload types ────────────────────────────────────────────────────────────
 
 export interface UrlAnalysisPayload {
-  company: string;
-  url: string;
-  buyer: string;
+  company_name: string;
+  website: string;
+  buyer_name?: string;
   buyer_thesis: string;
   jurisdiction: string;
   // Cockpit persistence — included when backend workspace IDs are available
@@ -90,6 +90,8 @@ export interface AnalysisResult {
   data_mode: string;
   limitation?: string;
   company: string;
+  company_name?: string;
+  website?: string;
   recommendation: string;
   recommendation_level: Level;
   ic_readiness: string;
@@ -105,6 +107,17 @@ export interface AnalysisResult {
   // Backend cockpit persistence confirmation — present when save_to_cockpit: true and backend saved it
   saved_to_cockpit?: boolean;
   saved_run_id?: string;
+  __sample_fallback?: boolean;
+  fallback_used?: boolean;
+  verified_facts?: unknown[];
+  claims?: unknown[];
+  unknowns?: unknown[];
+  diligence_blockers?: unknown[];
+  evidence_confidence_score?: number;
+  analysis_quality?: unknown;
+  run_log?: unknown[];
+  innovation_operating_signals?: unknown;
+  main_blocker?: string;
 }
 
 export interface CompareTargetResult {
@@ -133,6 +146,7 @@ export interface CompareResult {
   // Backend cockpit persistence confirmation
   saved_to_cockpit?: boolean;
   comparison_id?: string;
+  fallback_used?: boolean;
 }
 
 // ─── Static fallback display scaffolding ─────────────────────────────────────
@@ -214,6 +228,7 @@ function buildCompareFallback(companies: CompareCompany[]): CompareResult {
     highest_ai_risk:    UNAVAILABLE,
     most_evidence_gaps: UNAVAILABLE,
     best_next_action:   UNAVAILABLE,
+    fallback_used:      true,
   };
 }
 
@@ -233,25 +248,59 @@ function apiUrl(path: string): string {
   return FRONTIER_API_BASE_URL ? `${FRONTIER_API_BASE_URL}${path}` : path;
 }
 
+function debugFrontendApi(message: string, data?: Record<string, unknown>) {
+  if (!import.meta.env.DEV) return;
+  if (data) console.debug(`[frontierApi] ${message}`, data);
+  else console.debug(`[frontierApi] ${message}`);
+}
+
+async function readJsonResponse(res: Response): Promise<unknown> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Backend returned malformed JSON');
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
  * POST /api/analyse/url
  * Returns backend JSON unchanged.
- * Falls back to a static private-beta sample screen on failure.
+ * Real user-triggered runs never fall back to sample data.
  */
 export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<AnalysisResult> {
+  const endpoint = apiUrl('/api/analyse/url');
+  debugFrontendApi('runUrlAnalysis request', { endpoint, sampleFallbackUsed: false });
+
   try {
-    const res = await fetchWithTimeout(apiUrl('/api/analyse/url'), {
+    const res = await fetchWithTimeout(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(`Backend returned ${res.status}`);
-    return await res.json() as AnalysisResult;
-  } catch {
-    console.log('[frontierApi] runUrlAnalysis: backend unavailable — showing static sample screen');
-    return buildAnalysisFallback(payload.company?.trim() || 'Target Company');
+    debugFrontendApi('runUrlAnalysis response', { endpoint, httpStatus: res.status, sampleFallbackUsed: false });
+    const body = await readJsonResponse(res);
+    if (!res.ok) {
+      const err = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+      throw new Error(String(err.message ?? err.detail ?? `Backend returned ${res.status}`));
+    }
+    debugFrontendApi('runUrlAnalysis payload keys', {
+      endpoint,
+      httpStatus: res.status,
+      sampleFallbackUsed: false,
+      keys: body && typeof body === 'object' ? Object.keys(body as Record<string, unknown>) : [],
+    });
+    return body as AnalysisResult;
+  } catch (err) {
+    debugFrontendApi('runUrlAnalysis failed', {
+      endpoint,
+      sampleFallbackUsed: false,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
   }
 }
 
@@ -270,7 +319,7 @@ export async function compareCompanies(payload: ComparePayload): Promise<Compare
     if (!res.ok) throw new Error(`Backend returned ${res.status}`);
     return await res.json() as CompareResult;
   } catch {
-    console.log('[frontierApi] compareCompanies: backend unavailable — showing static sample screen');
+    console.log('[frontierApi] compareCompanies: backend unavailable — showing fallback comparison screen');
     return buildCompareFallback(payload.companies ?? []);
   }
 }

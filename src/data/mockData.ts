@@ -237,7 +237,7 @@ export const AGENT_STAGES = [
     findings: [
       "Primary method: revenue multiple — base revenue figure requires filing confirmation",
       "Multiple range: 3.5x / 4.5x / 6.0x (illustrative)",
-      "EV range: illustrative only — dependent on verified revenue and ARR definition",
+      "EV range: illustrative only — dependent on source-backed revenue and ARR definition",
       "Caveat: multiple depends on ARR definition and SaaS/services split",
       "AI upside caveat: not reflected in base valuation pending technical diligence",
     ],
