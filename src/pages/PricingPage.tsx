@@ -15,12 +15,15 @@ interface Tier {
   audience: string;
   cta_label: string;
   cta_url: string;
+  payment_mode?: string;
   ctaVariant: 'primary' | 'outline';
   showBookIntro?: boolean;
   bookIntroEvent?: string;
   manual_activation_note?: string;
   features: string[];
 }
+
+const STARTER_GROWTH_STRIPE_FALLBACK = 'https://buy.stripe.com/eVqcN4128dobghf8X8b7y00';
 
 // ─── Static fallback tier data ────────────────────────────────────────────────
 
@@ -31,7 +34,8 @@ const STATIC_TIERS: Tier[] = [
     price_label: 'Free',
     audience: 'Try public-source acquisition screening.',
     cta_label: 'Start free',
-    cta_url: '/create-workspace',
+    cta_url: '/app/run',
+    payment_mode: 'none',
     ctaVariant: 'primary',
     features: [
       '5 URL-only acquisition screens',
@@ -51,7 +55,8 @@ const STATIC_TIERS: Tier[] = [
     price_label: '£99/month',
     audience: 'For founders, searchers, independent sponsors and solo operators.',
     cta_label: 'Start beta',
-    cta_url: '/request-pilot',
+    cta_url: STARTER_GROWTH_STRIPE_FALLBACK,
+    payment_mode: 'stripe_payment_link',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_starter',
@@ -73,6 +78,7 @@ const STATIC_TIERS: Tier[] = [
     audience: 'For advisors, small funds, corp dev and software roll-ups.',
     cta_label: 'Request pilot',
     cta_url: '/request-pilot',
+    payment_mode: 'request_access',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_team',
@@ -93,6 +99,7 @@ const STATIC_TIERS: Tier[] = [
     audience: 'For confidential workflows, evidence retention rules, custom integrations and private pilot setup.',
     cta_label: 'Discuss access',
     cta_url: '/request-pilot',
+    payment_mode: 'request_access',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_enterprise',
@@ -175,11 +182,10 @@ function normalisePriceLabel(plan: BackendPlan, currency?: string): string {
   return label || (plan.plan_id === 'free_preview' ? 'Free' : 'Pricing on request');
 }
 
-function isExternalUrl(value: string | undefined): value is string {
-  return Boolean(value && (value.startsWith('https://') || value.startsWith('http://')));
-}
-
 function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
+  const fallback = STATIC_TIERS.find(tier => tier.plan_id === plan.plan_id);
+  const ctaUrl = plan.cta_url || fallback?.cta_url || '/request-pilot';
+
   return {
     plan_id: plan.plan_id,
     name: plan.name,
@@ -187,7 +193,8 @@ function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
     price_label: normalisePriceLabel(plan, currency),
     audience: plan.audience,
     cta_label: plan.cta_label || (plan.plan_id === 'starter_growth' ? 'Start beta' : 'Request pilot'),
-    cta_url: plan.cta_url || '/request-pilot',
+    cta_url: ctaUrl,
+    payment_mode: plan.payment_mode,
     ctaVariant: tierVariant(plan.plan_id),
     showBookIntro: plan.plan_id !== 'free_preview',
     bookIntroEvent: bookIntroEvent(plan.plan_id),
@@ -196,14 +203,16 @@ function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
   };
 }
 
-function resolveCtaHref(ctaUrl: string): { href: string; external: boolean } {
-  if (isExternalUrl(ctaUrl)) {
-    return { href: ctaUrl, external: true };
+function resolveCtaHref(url?: string): { href: string; external: boolean } {
+  if (!url) return { href: '/request-pilot', external: false };
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return { href: url, external: true };
   }
-  if (ctaUrl && ctaUrl.startsWith('/')) {
-    return { href: ctaUrl, external: false };
-  }
-  return { href: '/request-pilot', external: false };
+  return { href: url, external: false };
+}
+
+function hasLoadedStripeCta(tier: Tier): boolean {
+  return tier.plan_id === 'starter_growth' && tier.cta_url.startsWith('https://');
 }
 
 // ─── Tier card ────────────────────────────────────────────────────────────────
@@ -218,8 +227,7 @@ function TierCard({
   onPlanCta: (tier: Tier) => void;
 }) {
   const { external } = resolveCtaHref(tier.cta_url);
-  const waitingForPaidCta = tier.plan_id === 'starter_growth' && pricingState === 'loading';
-  const ctaLabel = waitingForPaidCta ? 'Loading beta link' : tier.cta_label;
+  void pricingState;
 
   return (
     <div className={cn(
@@ -261,20 +269,23 @@ function TierCard({
       <div className="space-y-2">
         <button
           type="button"
-          disabled={waitingForPaidCta}
           onClick={() => onPlanCta(tier)}
           className={cn(
             'inline-flex items-center justify-center gap-1.5 w-full h-9 rounded-md text-sm font-semibold transition-colors whitespace-nowrap',
             tier.ctaVariant === 'primary'
               ? 'bg-primary text-primary-foreground hover:bg-primary/90'
               : 'border border-primary/40 bg-transparent text-foreground hover:bg-primary/5 hover:border-primary/60',
-            waitingForPaidCta && 'opacity-60 cursor-wait hover:bg-transparent hover:border-primary/40',
           )}
         >
-          {ctaLabel}
-          {external && !waitingForPaidCta && <ExternalLink className="w-3 h-3 shrink-0" />}
+          {tier.cta_label}
+          {external && <ExternalLink className="w-3 h-3 shrink-0" />}
           {tier.ctaVariant === 'primary' && !external && <ArrowRight className="w-3.5 h-3.5 shrink-0" />}
         </button>
+        {import.meta.env.DEV && hasLoadedStripeCta(tier) && (
+          <p className="text-[10px] text-muted-foreground/60 text-center leading-snug px-1">
+            CTA: Stripe link loaded
+          </p>
+        )}
         {tier.manual_activation_note && (
           <p className="text-[10px] text-muted-foreground/60 text-center leading-snug px-1">
             {tier.manual_activation_note}
@@ -301,17 +312,20 @@ export default function PricingPage() {
   const [pricingState, setPricingState] = useState<PricingLoadState>('loading');
 
   function handlePlanCta(tier: Tier) {
-    if (tier.plan_id === 'starter_growth' && pricingState === 'loading') return;
-
     const { href, external } = resolveCtaHref(tier.cta_url);
-    if (tier.plan_id === 'starter_growth' && external) {
-      window.location.href = href;
-      return;
+    if (import.meta.env.DEV) {
+      console.debug('[pricing] CTA', {
+        plan_id: tier.plan_id,
+        payment_mode: tier.payment_mode,
+        cta_url: tier.cta_url,
+      });
     }
+
     if (external) {
-      window.open(href, '_self');
+      window.location.assign(href);
       return;
     }
+
     setLocation(href);
   }
 
@@ -366,14 +380,19 @@ export default function PricingPage() {
 
         {/* Tier cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-16 items-stretch">
-          {tiers.map(t => (
-            <TierCard
-              key={t.plan_id}
-              tier={t}
-              pricingState={pricingState}
-              onPlanCta={handlePlanCta}
-            />
-          ))}
+          {tiers.map(t => {
+            if (import.meta.env.DEV) {
+              console.log('pricing plan', t.plan_id, t.payment_mode, t.cta_url);
+            }
+            return (
+              <TierCard
+                key={t.plan_id}
+                tier={t}
+                pricingState={pricingState}
+                onPlanCta={handlePlanCta}
+              />
+            );
+          })}
         </div>
 
         {/* Trust / safety copy */}

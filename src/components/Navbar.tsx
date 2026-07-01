@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { FeedbackModal } from './FeedbackModal';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { clerkEnabled, OptionalUserButton, useOptionalUser } from '@/lib/optionalClerk';
+import { getTrialAccount } from '@/lib/trialAccount';
 
 // ── Public nav ────────────────────────────────────────────────────────────────
 // Always shown on public pages regardless of auth state.
@@ -181,6 +182,23 @@ export function Navbar() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const { isLoaded, isSignedIn } = useOptionalUser();
+  const [hasLocalWorkspace, setHasLocalWorkspace] = useState(() => Boolean(getTrialAccount()));
+
+  useEffect(() => {
+    function refreshWorkspaceState() {
+      setHasLocalWorkspace(Boolean(getTrialAccount()));
+    }
+    refreshWorkspaceState();
+    window.addEventListener('storage', refreshWorkspaceState);
+    window.addEventListener('focus', refreshWorkspaceState);
+    return () => {
+      window.removeEventListener('storage', refreshWorkspaceState);
+      window.removeEventListener('focus', refreshWorkspaceState);
+    };
+  }, []);
+
+  const hasWorkspace = isSignedIn || hasLocalWorkspace;
+  const workspaceHref = getRuns().length > 0 ? '/app/cockpit' : '/app/run';
 
   const isActive = (href: string) =>
     href === '/' ? location === '/' : location.startsWith(href);
@@ -233,14 +251,14 @@ export function Navbar() {
               </span>
             )}
 
-            {isLoaded && isSignedIn && (
-              /* Signed-in on a public page — "Open app" returns them to the workspace */
+            {isLoaded && hasWorkspace && (
+              /* Signed-in or local reviewer workspace on a public page — return to workspace */
               <>
                 <Link
-                  href="/app/cockpit"
+                  href={workspaceHref}
                   className="hidden sm:inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
                 >
-                  Open app
+                  Open workspace
                 </Link>
                 <div className="flex items-center">
                   <OptionalUserButton />
@@ -248,7 +266,7 @@ export function Navbar() {
               </>
             )}
 
-            {isLoaded && !isSignedIn && (
+            {isLoaded && !hasWorkspace && (
               /* Public / signed-out right rail */
               <>
                 <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
@@ -313,18 +331,18 @@ export function Navbar() {
 
             {/* Auth section */}
             <div className="pt-3 flex flex-col gap-2 border-t border-border">
-              {isLoaded && isSignedIn ? (
+              {isLoaded && hasWorkspace ? (
                 <div className="flex items-center gap-3 flex-wrap">
                   <OptionalUserButton />
                   <Link
-                    href="/app/cockpit"
+                    href={workspaceHref}
                     className="inline-flex items-center justify-center text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Open app
+                    Open workspace
                   </Link>
                 </div>
-              ) : isLoaded && !isSignedIn ? (
+              ) : isLoaded && !hasWorkspace ? (
                 <>
                   <div className="flex items-center gap-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">

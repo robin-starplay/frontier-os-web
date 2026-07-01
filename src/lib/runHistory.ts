@@ -44,6 +44,71 @@ export interface RunEntry {
 const STORAGE_KEY = 'fos_run_history';
 const MAX_ENTRIES = 30;
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function textValue(value: unknown, fallback = ''): string {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'object') {
+    const rec = asRecord(value);
+    return textValue(rec.title ?? rec.blocker ?? rec.field ?? rec.claim_text ?? rec.summary ?? rec.value ?? rec.next_action, fallback);
+  }
+  const text = String(value).trim();
+  return text || fallback;
+}
+
+function isGenericFinancialAction(value: string): boolean {
+  const normalised = value.toLowerCase().replace(/\s+/g, ' ').trim();
+  return normalised === 'request latest accounts, management accounts and arr bridge.'
+    || normalised === 'request latest accounts, management accounts and arr bridge';
+}
+
+function blockerText(item: unknown): string {
+  const rec = asRecord(item);
+  return textValue(rec.title ?? rec.blocker ?? rec.field ?? rec.claim_text ?? item);
+}
+
+function resultBlockers(result: AnalysisResult): string[] {
+  const rawResult = result as unknown as Record<string, unknown>;
+  const structured = [
+    ...asArray(rawResult.actionable_diligence_blockers),
+    ...asArray(result.diligence_blockers),
+  ];
+  const fromStructured = structured.map(blockerText).filter(Boolean);
+  const fromCards = result.evidence_cards
+    ?.filter((c) => c.status === 'blocking')
+    .map((c) => c.field)
+    .filter(Boolean) ?? [];
+  return Array.from(new Set([...fromStructured, ...fromCards]));
+}
+
+function keyEvidenceHighlight(result: AnalysisResult): string {
+  const verified = asArray(result.verified_facts);
+  const claims = asArray(result.claims);
+  const item = verified[0] ?? claims[0];
+  const rec = asRecord(item);
+  return textValue(rec.title ?? rec.field ?? rec.claim_type ?? rec.claim_text ?? rec.summary ?? rec.value ?? item);
+}
+
+function targetSpecificNextAction(result: AnalysisResult): string {
+  if (result.next_action && !isGenericFinancialAction(result.next_action)) return result.next_action;
+  const blockers = resultBlockers(result);
+  const highlight = keyEvidenceHighlight(result);
+  const company = result.company || result.company_name || 'Target';
+  if (highlight && /revenue|turnover/i.test(highlight)) {
+    return `${company}: ${highlight}; request ARR bridge, retention, churn and customer concentration.`;
+  }
+  if (blockers.length > 0) {
+    return `${company}: ${blockers[0]}; request the source documents needed to verify before IC.`;
+  }
+  return `${company}: Review evidence gaps before IC use.`;
+}
+
 function generateId(): string {
   return `run_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -101,9 +166,7 @@ function persistRuns(entries: RunEntry[]): void {
 
 /** Save a URL analysis result. De-dupes by company name (most recent wins). */
 export function saveUrlRun(result: AnalysisResult, website: string): RunEntry {
-  const blockers = result.evidence_cards
-    ?.filter((c) => c.status === 'blocking')
-    .map((c) => c.field) ?? [];
+  const blockers = resultBlockers(result);
 
   const entry: RunEntry = {
     id: generateId(),
@@ -119,7 +182,7 @@ export function saveUrlRun(result: AnalysisResult, website: string): RunEntry {
     evidence_confidence: result.evidence_confidence,
     ai_replica_risk: result.ai_replica_risk,
     blockers,
-    next_action: result.next_action,
+    next_action: targetSpecificNextAction(result),
     result,
   };
 

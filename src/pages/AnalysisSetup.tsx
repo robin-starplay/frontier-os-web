@@ -363,6 +363,66 @@ function PositioningList({ title, items, empty }: { title: string; items: unknow
   );
 }
 
+const SOURCE_COVERAGE_LABELS: Record<string, string> = {
+  company_website: 'Company website',
+  public_registry: 'Public registry / filing checks',
+  evidence_sanity: 'Evidence sanity checks',
+  public_financial_sources: 'Public financial-source search',
+  management_accounts: 'Management accounts',
+  customer_data: 'Customer data',
+  job_postings: 'Job postings',
+  tech_stack: 'Technology / stack signals',
+  traffic_estimates: 'Traffic / market attention signals',
+  product_launch_cadence: 'Product launch cadence',
+};
+
+function sourceCoverageLabel(value: unknown): string {
+  const raw = textValue(value, '').trim();
+  return SOURCE_COVERAGE_LABELS[raw] || formatLabel(raw);
+}
+
+function CoveragePill({ status }: { status: 'checked' | 'not_checked' | 'private_beta' | 'requires_documents' }) {
+  const label = status === 'checked'
+    ? 'Checked'
+    : status === 'private_beta'
+      ? 'Private beta'
+      : status === 'requires_documents'
+        ? 'Requires documents'
+        : 'Not checked in this preview';
+  const level: Level = status === 'checked' ? 'green' : status === 'private_beta' ? 'blue' : status === 'requires_documents' ? 'amber' : 'grey';
+  return <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border shrink-0', levelClass(level))}>{label}</span>;
+}
+
+function CoverageList({
+  title,
+  items,
+  status,
+  empty,
+}: {
+  title: string;
+  items: unknown[];
+  status: 'checked' | 'not_checked' | 'private_beta' | 'requires_documents';
+  empty: string;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="space-y-2">
+          {items.map((item, i) => (
+            <li key={`${title}-${i}`} className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-card/30 px-3 py-2">
+              <span className="text-xs text-foreground">{sourceCoverageLabel(item)}</span>
+              <CoveragePill status={status} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function normalizeBackendEvidenceCard(item: unknown, fallbackField: string): AnalysisEvidenceCard {
   if (typeof item === 'string') {
     return {
@@ -396,6 +456,31 @@ function normalizeBackendEvidenceCard(item: unknown, fallbackField: string): Ana
   };
 }
 
+function evidenceStrength(card: AnalysisEvidenceCard): number {
+  const statusScore = card.status === 'verified' ? 4 : card.status === 'claim' ? 3 : card.status === 'caveat' ? 2 : card.status === 'blocking' ? 1 : 0;
+  const confidenceScore = card.confidence === 'High' ? 3 : card.confidence === 'Medium' ? 2 : 1;
+  const sourceScore = hasConcreteSource(card) ? 3 : card.source ? 1 : 0;
+  return statusScore * 10 + confidenceScore + sourceScore;
+}
+
+function dedupeEvidenceCards(cards: AnalysisEvidenceCard[]): AnalysisEvidenceCard[] {
+  const byKey = new Map<string, AnalysisEvidenceCard>();
+  for (const card of cards) {
+    const field = textValue(card.field).toLowerCase().replace(/\s+/g, ' ').trim();
+    const value = textValue(card.value).toLowerCase().replace(/\s+/g, ' ').trim();
+    const source = textValue(card.source_url || card.source).toLowerCase().replace(/\s+/g, ' ').trim();
+    const metric = /\b(revenue|turnover|arr|ebitda|profit|cash|debt)\b/.exec(`${field} ${value}`)?.[1] || field;
+    const key = /\b(revenue|turnover|arr|ebitda|profit|cash|debt)\b/.test(`${field} ${value}`)
+      ? `financial:${metric}:${value}:${source}`
+      : `${field}:${value}:${source}:${card.status}`;
+    const existing = byKey.get(key);
+    if (!existing || evidenceStrength(card) > evidenceStrength(existing)) {
+      byKey.set(key, card);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
 function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string, fallbackWebsite: string): AnalysisResult {
   const r = asRecord(raw);
   const bundle = asRecord(r.evidence_bundle);
@@ -412,7 +497,7 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
       ? asArray(r.diligence_blockers)
       : asArray(bundle.diligence_blockers ?? bundle.blockers);
 
-  const evidenceCards: AnalysisEvidenceCard[] = [
+  const evidenceCards: AnalysisEvidenceCard[] = dedupeEvidenceCards([
     ...cardsRaw.map((item, i) => normalizeBackendEvidenceCard(item, `Evidence ${i + 1}`)),
     ...verifiedRaw.map((item, i) => {
       const card = normalizeBackendEvidenceCard(item, `Verified fact ${i + 1}`);
@@ -430,7 +515,7 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
       const card = normalizeBackendEvidenceCard(item, `Blocker ${i + 1}`);
       return { ...card, status: 'blocking' as EvidenceStatus, source: card.source || 'Diligence blocker' };
     }),
-  ];
+  ]);
 
   const mainBlocker = textValue(r.main_blocker ?? bundle.main_blocker ?? blockersRaw[0], '');
   if (mainBlocker && !evidenceCards.some(c => c.field === mainBlocker)) {
@@ -1373,20 +1458,24 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <div className="p-4 space-y-4">
             {Object.keys(analysisQuality).length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <PositioningList
+                <CoverageList
                   title="Sources checked"
                   items={asArray(analysisQuality.source_checks_attempted)}
+                  status="checked"
                   empty="Submitted website and public-source screen checked where available."
                 />
-                <PositioningList
+                <CoverageList
                   title="Sources not checked in this preview"
                   items={asArray(analysisQuality.source_checks_not_attempted)}
+                  status="not_checked"
                   empty="No additional skipped sources were reported."
                 />
                 <div>
                   <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Confidence basis</p>
                   <p className="text-xs text-muted-foreground leading-snug">
-                    {displayValue(analysisQuality.quality_priority, 'Evidence prioritized over speed. Verified facts require source metadata.')}
+                    {textValue(analysisQuality.quality_priority) === 'evidence_over_speed'
+                      ? 'Evidence coverage and source quality, not speed.'
+                      : displayValue(analysisQuality.quality_priority, 'Evidence coverage and source quality, not speed.')}
                   </p>
                 </div>
                 <div>
@@ -1765,23 +1854,26 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── D. Innovation & operating signals ──────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Innovation &amp; operating signals</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Available in private beta · Innovation signals</p>
           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">
             {textValue(innovationSignals.status, '') === 'not_checked'
               ? 'Roadmap · Not checked'
               : textValue(innovationSignals.status, 'Roadmap · Private beta')}
           </span>
         </div>
-        <div className="px-4 py-4">
-          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-            Future private-beta workflows can review job postings, technology signals and product-launch cadence to understand whether a company is investing in product, AI, engineering or GTM.
+        <div className="px-4 py-3">
+          <p className="text-xs text-foreground mb-1 leading-relaxed">
+            Innovation and operating signals are not checked in this public preview.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+            Private beta can review job postings, technology signals, traffic signals and product-launch cadence.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             {[
-              'Hiring and job-description signals',
-              'Technology and skills signals',
-              'Product launches and release cadence',
+              'Job postings',
+              'Technology / stack signals',
               'Traffic / market attention signals',
+              'Product launch cadence',
             ].map(signal => (
               <div key={signal} className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
@@ -2253,19 +2345,22 @@ function AnalysisResultDisplay({
         return (
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Innovation &amp; operating signals</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Available in private beta · Innovation signals</p>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">Roadmap · Private beta</span>
             </div>
-            <div className="px-4 py-4">
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                Future private-beta workflows can review job postings, technology signals and product-launch cadence to understand whether a company is investing in product, AI, engineering or GTM.
+            <div className="px-4 py-3">
+              <p className="text-xs text-foreground mb-1 leading-relaxed">
+                Innovation and operating signals are not checked in this public preview.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                Private beta can review job postings, technology signals, traffic signals and product-launch cadence.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                 {[
-                  'Hiring and job-description signals',
-                  'Technology and skills signals',
-                  'Product launches and release cadence',
+                  'Job postings',
+                  'Technology / stack signals',
                   'Traffic / market attention signals',
+                  'Product launch cadence',
                 ].map(signal => (
                   <div key={signal} className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />

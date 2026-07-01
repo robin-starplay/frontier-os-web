@@ -367,7 +367,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   <ChevronRight className="w-3.5 h-3.5 text-primary" />
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Next action</p>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{run.next_action}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{cockpitNextAction(run)}</p>
               </div>
               {run.website && (
                 <div>
@@ -678,9 +678,14 @@ function cockpitShortName(company: string): string {
 function cockpitNextAction(run: RunEntry): string {
   const UNAVAIL = 'Unavailable in this preview';
   const isUsable = (s: string | undefined) => s && s.trim() && s !== UNAVAIL;
+  const isGenericFinancialAction = (s: string | undefined) => {
+    const normalised = (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+    return normalised === 'request latest accounts, management accounts and arr bridge.'
+      || normalised === 'request latest accounts, management accounts and arr bridge';
+  };
 
   // 1. Direct next_action from backend or save function
-  if (isUsable(run.next_action)) return run.next_action.trim();
+  if (isUsable(run.next_action) && !isGenericFinancialAction(run.next_action)) return run.next_action.trim();
 
   // 2. First blocking evidence card summary (diligence_blockers[].next_action)
   const blockingCard = run.result?.evidence_cards?.find(c => c.status === 'blocking');
@@ -688,7 +693,7 @@ function cockpitNextAction(run: RunEntry): string {
 
   // 3. First blocker field formatted as a targeted action (high-severity blocker)
   if (run.blockers && run.blockers.length > 0) {
-    return `${run.blockers[0]} — verify before IC use.`;
+    return `${run.company}: ${run.blockers[0]} — verify before IC use.`;
   }
 
   // 4. First unknowns[].next_action — unknown evidence gap
@@ -703,8 +708,12 @@ function cockpitNextAction(run: RunEntry): string {
   const sfq = run.result?.strategic_fit?.diligence_questions;
   if (Array.isArray(sfq) && sfq.length > 0 && isUsable(sfq[0])) return sfq[0];
 
+  if (isGenericFinancialAction(run.next_action)) {
+    return `${run.company}: source-backed financials are incomplete; request management accounts, ARR bridge and customer schedule.`;
+  }
+
   // 6. Generic fallback
-  return 'Review evidence gaps before IC use.';
+  return `${run.company}: review evidence gaps before IC use.`;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -731,9 +740,9 @@ export default function DealCockpitPage() {
       if (!records.length) return;
       const backendRuns: RunEntry[] = records.map((r: CockpitRunRecord) => ({
         id:                  r.run_id,
-        type:                r.type ?? 'url',
-        timestamp:           r.timestamp,
-        company:             r.company,
+        type:                r.type ?? (r.run_type === 'compare' ? 'compare' : r.run_type === 'document_review' ? 'document' : 'url'),
+        timestamp:           r.timestamp ?? r.created_at ?? new Date().toISOString(),
+        company:             r.company ?? r.company_name ?? 'Unknown target',
         website:             r.website ?? '',
         recommendation:      r.recommendation,
         recommendation_level: r.recommendation_level,
@@ -744,7 +753,7 @@ export default function DealCockpitPage() {
         ai_replica_risk:     r.ai_replica_risk,
         blockers:            r.blockers ?? [],
         next_action:         r.next_action,
-        result:              null,
+        result:              (r.result_payload && typeof r.result_payload === 'object') ? r.result_payload as RunEntry['result'] : null,
       }));
       // Merge: backend entries win; localStorage entries fill gaps
       const backendNames = new Set(backendRuns.map(r => r.company));
@@ -1038,7 +1047,7 @@ export default function DealCockpitPage() {
                       <div className="px-4 pb-3 flex items-center justify-between gap-4">
                         <p className="text-xs text-muted-foreground leading-snug">
                           <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/60 mr-1.5">Next action:</span>
-                          {run.next_action}
+                          {cockpitNextAction(run)}
                         </p>
                         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 group-hover:text-muted-foreground transition-colors" />
                       </div>

@@ -354,7 +354,8 @@ export interface CockpitSummary {
 /** Single run entry from GET /api/cockpit/runs */
 export interface CockpitRunRecord {
   run_id: string;
-  company: string;
+  company?: string;
+  company_name?: string;
   website: string;
   recommendation: string;
   recommendation_level: Level;
@@ -365,8 +366,11 @@ export interface CockpitRunRecord {
   ai_replica_risk: string;
   blockers: string[];
   next_action: string;
-  type: 'url' | 'compare';
-  timestamp: string;
+  type?: 'url' | 'compare';
+  run_type?: string;
+  timestamp?: string;
+  created_at?: string;
+  result_payload?: unknown;
 }
 
 async function cockpitFetch(path: string): Promise<unknown> {
@@ -426,8 +430,10 @@ export async function postCockpitDecision(
 //
 // Schema source: https://web-production-0224c.up.railway.app/openapi.json
 
+const DEFAULT_FRONTIER_API_BASE_URL = 'https://web-production-0224c.up.railway.app';
+
 const FRONTIER_API_BASE_URL = (
-  (import.meta.env.VITE_FRONTIER_API_BASE_URL as string | undefined) ?? ''
+  (import.meta.env.VITE_FRONTIER_API_BASE_URL as string | undefined) ?? DEFAULT_FRONTIER_API_BASE_URL
 ).trim().replace(/\/$/, '');
 
 /** True when the external backend URL has been configured. */
