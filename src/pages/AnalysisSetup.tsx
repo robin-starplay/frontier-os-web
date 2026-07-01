@@ -432,6 +432,7 @@ interface Step1Props {
   mode: ModeCode; setMode: (v: ModeCode) => void;
   onScenarioSelect: (s: DemoScenario) => void;
   onRun: () => void;
+  analysisInFlight: boolean;
   backendConfigured: boolean;
   investmentStyle: InvestmentStyle; setInvestmentStyle: (v: InvestmentStyle) => void;
   riskPosture: RiskPosture;         setRiskPosture:     (v: RiskPosture) => void;
@@ -441,7 +442,7 @@ function Step1({
   scenario, company, setCompany, website, setWebsite,
   buyer, setBuyer, buyerThesis, setBuyerThesis,
   jurisdiction, setJurisdiction, mode, setMode,
-  onScenarioSelect, onRun, backendConfigured,
+  onScenarioSelect, onRun, analysisInFlight, backendConfigured,
   investmentStyle, setInvestmentStyle, riskPosture, setRiskPosture,
 }: Step1Props) {
   const [urlError, setUrlError] = React.useState('');
@@ -639,10 +640,18 @@ function Step1({
                 <Button
                   type="submit"
                   className="w-full h-11 text-base"
-                  disabled={!company.trim() || !website.trim()}
+                  disabled={analysisInFlight || !company.trim() || !website.trim()}
                 >
-                  Run analysis{' '}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {analysisInFlight ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Running analysis
+                    </>
+                  ) : (
+                    <>
+                      Run analysis <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </Button>
 
                 <div className="flex items-center justify-center pt-1">
@@ -696,15 +705,18 @@ function Step1({
 
 // ─── Step 2: Analysis timeline ────────────────────────────────────────────────
 
-function Step2({ company, stages, isComplete, error, onContinue }: {
+function Step2({ company, stages, isComplete, error, isFinalising, finalisingElapsedSecs, onContinue }: {
   company: string;
   stages: RunningStage[];
   isComplete: boolean;
   error?: string | null;
+  isFinalising: boolean;
+  finalisingElapsedSecs: number;
   onContinue: () => void;
 }) {
   const completedCount = stages.filter(s => s.status === 'complete').length;
   const total = stages.length;
+  const showFinalising = isFinalising && !isComplete && !error && completedCount === total;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -732,6 +744,8 @@ function Step2({ company, stages, isComplete, error, onContinue }: {
               ? 'Analysis failed.'
               : isComplete
               ? 'Analysis complete.'
+              : showFinalising
+              ? 'Finalising evidence screen…'
               : 'Public-source preview. Evidence checked. Gaps flagged.'}
           </p>
         </div>
@@ -794,6 +808,35 @@ function Step2({ company, stages, isComplete, error, onContinue }: {
           <div>
             <p className="text-xs font-medium text-red-400">Analysis could not complete.</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {showFinalising && (
+        <div className="mt-4 rounded-lg border border-primary/25 bg-primary/5 overflow-hidden">
+          <div className="px-4 py-4 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0">
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">Finalising evidence screen…</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Preparing the IC readiness view and saving the run summary.
+              </p>
+              {finalisingElapsedSecs >= 10 && (
+                <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                  This can take a little longer while public sources are checked. Please keep this tab open.
+                </p>
+              )}
+              {finalisingElapsedSecs >= 30 && (
+                <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                  Still working. Public-source checks can be slow. You can keep waiting or run another target.
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="h-1 bg-primary/10 overflow-hidden">
+            <div className="h-full w-1/3 bg-primary/70 animate-pulse" />
           </div>
         </div>
       )}
@@ -2078,6 +2121,9 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [result, setResult]     = useState<AnalysisResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisInFlight, setAnalysisInFlight] = useState(false);
+  const [isFinalising, setIsFinalising] = useState(false);
+  const [finalisingElapsedSecs, setFinalisingElapsedSecs] = useState(0);
 
   // Form state
   const [company,      setCompany]      = useState(DEFAULT_SCENARIO.company);
@@ -2093,6 +2139,19 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const cancelRef = useRef<{ cancelled: boolean }>({ cancelled: false });
   const startedAtRef = useRef<number | null>(null);
   const [elapsedSecs, setElapsedSecs]       = useState(0);
+
+  useEffect(() => {
+    if (!isFinalising) {
+      setFinalisingElapsedSecs(0);
+      return;
+    }
+    const startedAt = Date.now();
+    setFinalisingElapsedSecs(0);
+    const timer = window.setInterval(() => {
+      setFinalisingElapsedSecs(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isFinalising]);
   const [completionSecs, setCompletionSecs] = useState<number | null>(null);
   const [investmentStyle, setInvestmentStyle] = useState<InvestmentStyle>('strategic_fit');
   const [riskPosture, setRiskPosture]         = useState<RiskPosture>('balanced');
@@ -2181,6 +2240,9 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setIsTimelineComplete(false);
     setResult(null);
     setAnalysisError(null);
+    setAnalysisInFlight(false);
+    setIsFinalising(false);
+    setFinalisingElapsedSecs(0);
     cancelRef.current.cancelled = true;
     setRailwayPhase({ kind: 'idle' });
   }
@@ -2318,41 +2380,55 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
   /** Real URL-analysis path: calls POST /api/analyse/url and never substitutes sample data. */
   async function runUrlAnalysisForForm() {
-    // Provision backend workspace on first run (no-op if already done; silent on failure)
-    await createBackendAccount(buyer, buyerThesis).catch(() => null);
-    const workspaceId = getWorkspaceId();
-    const userId = getUserId();
-    const normalizedWebsite = normaliseUrl(website);
-    const apiPromise = runUrlAnalysis({
-      company_name: company.trim(),
-      website: normalizedWebsite,
-      buyer_name: buyer.trim() || undefined,
-      buyer_thesis: buyerThesis,
-      jurisdiction,
-      ...(workspaceId && userId
-        ? { workspace_id: workspaceId, user_id: userId, save_to_cockpit: true }
-        : {}),
-    });
-
-    // Always use neutral stages for real URL submissions — never scenario-specific
-    // copy that contains fictional company names or hardcoded financial figures.
-    const fresh: RunningStage[] = NEUTRAL_STAGES.map(s => ({ ...s, status: 'queued' as StageStatus }));
-    setStages(fresh);
-    setIsTimelineComplete(false);
-    setResult(null);
-    setAnalysisError(null);
-    setStep(2);
-
-    const updated = [...fresh];
-    for (let i = 0; i < updated.length; i++) {
-      updated[i] = { ...updated[i], status: 'running' };
-      setStages([...updated]);
-      await new Promise<void>(r => setTimeout(r, updated[i].durationMs));
-      updated[i] = { ...updated[i], status: 'complete' };
-      setStages([...updated]);
-    }
-
+    if (analysisInFlight) return;
+    setAnalysisInFlight(true);
+    setIsFinalising(false);
+    setFinalisingElapsedSecs(0);
     try {
+      // Provision backend workspace on first run (no-op if already done; silent on failure)
+      await createBackendAccount(buyer, buyerThesis).catch(() => null);
+      const workspaceId = getWorkspaceId();
+      const userId = getUserId();
+      const normalizedWebsite = normaliseUrl(website);
+      let apiSettled = false;
+      const apiPromise = runUrlAnalysis({
+        company_name: company.trim(),
+        website: normalizedWebsite,
+        buyer_name: buyer.trim() || undefined,
+        buyer_thesis: buyerThesis,
+        jurisdiction,
+        ...(workspaceId && userId
+          ? { workspace_id: workspaceId, user_id: userId, save_to_cockpit: true }
+          : {}),
+      }).finally(() => {
+        apiSettled = true;
+      });
+
+      // Always use neutral stages for real URL submissions — never scenario-specific
+      // copy that contains fictional company names or hardcoded financial figures.
+      const fresh: RunningStage[] = NEUTRAL_STAGES.map(s => ({ ...s, status: 'queued' as StageStatus }));
+      setStages(fresh);
+      setIsTimelineComplete(false);
+      setResult(null);
+      setAnalysisError(null);
+      setStep(2);
+
+      const updated = [...fresh];
+      for (let i = 0; i < updated.length; i++) {
+        updated[i] = { ...updated[i], status: 'running' };
+        setStages([...updated]);
+        const outcome = await Promise.race([
+          new Promise<'stage'>(r => setTimeout(() => r('stage'), updated[i].durationMs)),
+          apiPromise.then(() => 'api' as const),
+        ]);
+        updated[i] = { ...updated[i], status: 'complete' };
+        setStages([...updated]);
+        if (outcome === 'api') break;
+      }
+
+      if (!apiSettled) {
+        setIsFinalising(true);
+      }
       const apiResult = await apiPromise;
       const merged = normalizeUrlAnalysisResult(apiResult, company.trim(), normalizedWebsite);
       setResult(merged);
@@ -2360,13 +2436,17 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       try { saveUrlRun(merged, normalizedWebsite); } catch { /* storage not available */ }
       // Track whether backend confirmed persistence
       setSaveSource(merged.saved_to_cockpit ? 'backend' : 'local');
+      setIsFinalising(false);
       setIsTimelineComplete(true);
     } catch (err) {
+      setIsFinalising(false);
       const detail = err instanceof Error ? err.message : 'Backend analysis failed.';
       const message = detail;
       setAnalysisError(message);
       setResult(null);
       setIsTimelineComplete(false);
+    } finally {
+      setAnalysisInFlight(false);
     }
   }
 
@@ -2380,6 +2460,9 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   function reset() {
     setStep(1);
     setAnalysisError(null);
+    setAnalysisInFlight(false);
+    setIsFinalising(false);
+    setFinalisingElapsedSecs(0);
     handleScenarioSelect(scenario);
   }
 
@@ -2715,6 +2798,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 mode={mode}                 setMode={setMode}
                 onScenarioSelect={handleScenarioSelect}
                 onRun={handleSubmit}
+                analysisInFlight={analysisInFlight}
                 backendConfigured={backendConfigured}
                 investmentStyle={investmentStyle} setInvestmentStyle={setInvestmentStyle}
                 riskPosture={riskPosture}         setRiskPosture={setRiskPosture}
@@ -2734,6 +2818,8 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 stages={stages}
                 isComplete={isTimelineComplete}
                 error={analysisError}
+                isFinalising={isFinalising}
+                finalisingElapsedSecs={finalisingElapsedSecs}
                 onContinue={() => setStep(3)}
               />
             )}

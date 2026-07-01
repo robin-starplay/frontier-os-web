@@ -58,7 +58,7 @@ export interface DemoScenario {
 // the sampleMode homepage loop.
 
 export const NEUTRAL_STAGES: AnalysisStageData[] = [
-  { id: 1, label: 'Preparing quality-first run',   evidenceFound: 0, confidence: 'Medium', finding: 'Preparing a source-backed run and preserving the submitted workspace context.',                                      durationMs: 1800 },
+  { id: 1, label: 'Preparing public-source preview', evidenceFound: 0, confidence: 'Medium', finding: 'Preparing a public-source preview and preserving the submitted workspace context.',                                  durationMs: 1800 },
   { id: 2, label: 'Checking public website',       evidenceFound: 0, confidence: 'Medium', finding: 'Checking the submitted company website for public positioning and claims.',                                           durationMs: 2000 },
   { id: 3, label: 'Attempting registry verification', evidenceFound: 0, confidence: 'Medium', finding: 'Attempting registry and filing checks where available. Financials remain unverified unless source metadata is returned.', durationMs: 2400 },
   { id: 4, label: 'Ranking evidence',              evidenceFound: 0, confidence: 'Medium', finding: 'Separating verified facts, company claims, unknowns and diligence blockers.',                                         durationMs: 2000 },
