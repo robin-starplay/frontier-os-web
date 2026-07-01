@@ -308,7 +308,17 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
       httpStatus: err instanceof UrlAnalysisRequestError ? err.httpStatus : undefined,
     });
     if (err instanceof UrlAnalysisRequestError) throw err;
-    throw new Error('Analysis request failed before a backend response was received. Check API connection.');
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown origin';
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      [
+        'Backend could not be reached from this browser. Check backend status or local dev port/CORS.',
+        `API base URL: ${endpoint.apiBaseUrl || '(not configured)'}`,
+        `Request URL: ${endpoint.targetUrl}`,
+        `Browser origin: ${origin}`,
+        `Network error: ${message}`,
+      ].join('\n'),
+    );
   }
 }
 

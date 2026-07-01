@@ -23,11 +23,19 @@ export interface TrialAccount {
   user_id?: string;
 }
 
+export interface WorkspaceProfile {
+  name?: string;
+  email?: string;
+  org?: string;
+  role?: string;
+}
+
 const TRIAL_KEY    = 'frontier_trial_account';
 const USER_KEY     = 'frontier_user_id';
 const WS_KEY       = 'frontier_workspace_id';
 const ACCOUNT_KEY  = 'frontier_account';
 const SESSION_KEY  = 'frontier_workspace_session';
+const PROFILE_KEY = 'fos_profile';
 
 // ── Read helpers ──────────────────────────────────────────────────────────────
 
@@ -67,6 +75,18 @@ export function getWorkspaceSession(): Record<string, unknown> | null {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+export function getWorkspaceProfile(): WorkspaceProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed as WorkspaceProfile;
   } catch {
     return null;
   }
@@ -201,6 +221,7 @@ export function clearLocalWorkspace(): void {
     WS_KEY,
     ACCOUNT_KEY,
     SESSION_KEY,
+    PROFILE_KEY,
     'fos_run_history',
     'fos_active_run_id',
     'fos_beta_banner_dismissed',

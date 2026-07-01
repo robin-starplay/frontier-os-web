@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { ArrowRight, Loader2, CheckCircle2, ExternalLink } from 'lucide-react';
-import { ensureTrialAccount, createBackendAccount } from '@/lib/trialAccount';
+import { ensureTrialAccount, createBackendAccount, getTrialAccount, getWorkspaceProfile } from '@/lib/trialAccount';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 
 // ── Profile storage ───────────────────────────────────────────────────────────
@@ -77,6 +77,19 @@ export default function WorkspaceCreationPage() {
   const [role,      setRole]      = useState('');
   const [loading,   setLoading]   = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [existingWorkspace, setExistingWorkspace] = useState(false);
+
+  useEffect(() => {
+    const existing = getTrialAccount();
+    const profile = getWorkspaceProfile();
+    if (existing) {
+      setExistingWorkspace(true);
+      setName(profile?.name ?? '');
+      setEmail(profile?.email ?? '');
+      setOrg(profile?.org ?? '');
+      setRole(profile?.role ?? '');
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,8 +114,8 @@ export default function WorkspaceCreationPage() {
     setShowGuide(true);
   }
 
-  // ── Onboarding guide (shown after workspace creation) ───────────────────────
-  if (showGuide) {
+  // ── Onboarding guide (shown after workspace creation or existing session) ───
+  if (showGuide || existingWorkspace) {
     return (
       <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-background px-4 py-12">
         <div className="w-full max-w-md">
@@ -111,22 +124,22 @@ export default function WorkspaceCreationPage() {
               <CheckCircle2 className="w-5 h-5 text-green-400" />
             </div>
             <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">
-              Workspace created
+              {existingWorkspace ? 'Workspace found' : 'Workspace created'}
             </p>
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              Try Frontier OS in 3 minutes
+              {existingWorkspace ? 'Continue your beta workspace' : 'Try Frontier OS in 3 minutes'}
             </h1>
             <p className="text-sm text-muted-foreground">
               {name ? `Welcome, ${name.split(' ')[0]}. ` : ''}
-              Run a sample acquisition screen to see the workflow before using your own target.
+              Your local workspace is stored in this browser.
             </p>
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6 space-y-4 mb-6">
             {[
-              { n: '1', label: 'Run sample screen', desc: 'Review the sample acquisition screen before using your own target.' },
-              { n: '2', label: 'Compare with Checkit', desc: 'Add a second target and rank them side-by-side in the Compare view.' },
-              { n: '3', label: 'Open Deal Cockpit', desc: 'See both targets saved to your private Cockpit with IC readiness scores.' },
+              { n: '1', label: 'Run a URL screen', desc: 'Enter a company website and review the public-source evidence screen.' },
+              { n: '2', label: 'Compare real targets', desc: 'Add two or more known targets and rank them side-by-side in the Compare view.' },
+              { n: '3', label: 'Open Deal Cockpit', desc: 'See saved targets and track IC readiness, blockers and next actions.' },
               { n: '4', label: 'Send feedback', desc: 'Use the Feedback button to tell us what you think.' },
             ].map(step => (
               <div key={step.n} className="flex items-start gap-4">
@@ -146,7 +159,7 @@ export default function WorkspaceCreationPage() {
               href="/app/run"
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors w-full"
             >
-              Run sample screen
+              Open workspace
               <ArrowRight className="w-4 h-4" />
             </Link>
             <div className="flex gap-2">

@@ -15,7 +15,6 @@ interface Tier {
   audience: string;
   cta_label: string;
   cta_url: string;
-  payment_link_missing?: boolean;
   ctaVariant: 'primary' | 'outline';
   showBookIntro?: boolean;
   bookIntroEvent?: string;
@@ -51,9 +50,8 @@ const STATIC_TIERS: Tier[] = [
     badge: 'Private beta',
     price_label: '£99/month',
     audience: 'For founders, searchers, independent sponsors and solo operators.',
-    cta_label: 'Payment link unavailable — request access',
+    cta_label: 'Start beta',
     cta_url: '/request-pilot',
-    payment_link_missing: true,
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_starter',
@@ -181,34 +179,15 @@ function isExternalUrl(value: string | undefined): value is string {
   return Boolean(value && (value.startsWith('https://') || value.startsWith('http://')));
 }
 
-function paymentUrlFromPlan(plan: BackendPlan): string {
-  const candidates = [
-    plan.stripe_payment_link,
-    plan.payment_link,
-    plan.payment_url,
-    plan.checkout_url,
-    plan.cta_url,
-  ];
-  return candidates.find(isExternalUrl) ?? '';
-}
-
 function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
-  const paymentUrl = paymentUrlFromPlan(plan);
-  const isStarterGrowth = plan.plan_id === 'starter_growth';
-  const ctaUrl = isStarterGrowth
-    ? paymentUrl || '/request-pilot'
-    : plan.cta_url || '/request-pilot';
-  const paymentLinkMissing = isStarterGrowth && !paymentUrl;
-
   return {
     plan_id: plan.plan_id,
     name: plan.name,
     badge: tierBadge(plan.plan_id),
     price_label: normalisePriceLabel(plan, currency),
     audience: plan.audience,
-    cta_label: paymentLinkMissing ? 'Payment link unavailable — request access' : plan.cta_label,
-    cta_url: ctaUrl,
-    payment_link_missing: paymentLinkMissing,
+    cta_label: plan.cta_label || (plan.plan_id === 'starter_growth' ? 'Start beta' : 'Request pilot'),
+    cta_url: plan.cta_url || '/request-pilot',
     ctaVariant: tierVariant(plan.plan_id),
     showBookIntro: plan.plan_id !== 'free_preview',
     bookIntroEvent: bookIntroEvent(plan.plan_id),
@@ -301,12 +280,6 @@ function TierCard({
             {tier.manual_activation_note}
           </p>
         )}
-        {tier.payment_link_missing && (
-          <p className="text-[10px] text-amber-400/80 text-center leading-snug px-1">
-            Payment link unavailable. Request access and we will send the beta link manually.
-          </p>
-        )}
-
         {tier.showBookIntro && (
           <BookIntroButton
             eventName={tier.bookIntroEvent ?? 'clicked_book_intro_pricing'}

@@ -57,6 +57,33 @@ interface RunningStage extends AnalysisStageData {
   status: StageStatus;
 }
 
+const DEFAULT_NEXT_DILIGENCE_QUESTIONS = [
+  'What is current ARR and ARR growth over the last 24 months?',
+  'What share of revenue is recurring software vs services?',
+  'What are GRR, NRR and logo churn?',
+  'Who are the top 10 customers and what percentage of revenue do they represent?',
+  'What is implementation effort and average time to go live?',
+  'Which product modules are mission-critical?',
+  'Which AI capabilities are live in production versus roadmap?',
+  'What integrations are critical to customer workflows?',
+  'What is gross margin by product/service line?',
+  'What would cause customer churn?',
+];
+
+const DEFAULT_DOCUMENTS_TO_REQUEST = [
+  'Latest management accounts',
+  'ARR bridge',
+  'Revenue by customer',
+  'Top-10 customer concentration',
+  'GRR/NRR/churn report',
+  'Revenue split: software, services, maintenance, implementation',
+  'Sales pipeline',
+  'Product roadmap',
+  'Customer contracts / SOWs',
+  'Implementation backlog',
+  'AI/product architecture note if AI claims exist',
+];
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function levelClass(level: Level | string) {
@@ -189,11 +216,35 @@ function isFinancialEvidenceCard(card: AnalysisEvidenceCard): boolean {
   return /\b(revenue|arr|financial|ebitda|turnover)\b/.test(haystack);
 }
 
+function hasConcreteSource(card: AnalysisEvidenceCard): boolean {
+  const source = textValue(card.source_url ?? card.source_label ?? card.source, '').toLowerCase();
+  return Boolean(source) && ![
+    'not verified in this run',
+    'public annual report/results source',
+    'annual report/results source',
+    'public source',
+    'source',
+  ].includes(source);
+}
+
+function isVerifiedMetric(card: AnalysisEvidenceCard, pattern: RegExp): boolean {
+  const haystack = `${card.field} ${card.summary} ${card.value}`.toLowerCase();
+  return pattern.test(haystack)
+    && safeEvidenceStatus(card.status, card.source, card.confidence) === 'verified'
+    && hasConcreteSource(card);
+}
+
 function financialStatusCard(cards: AnalysisEvidenceCard[]): { value: string; level: Level } {
   const financialCards = cards.filter(isFinancialEvidenceCard);
-  const hasVerified = financialCards.some(card => safeEvidenceStatus(card.status, card.source, card.confidence) === 'verified');
-  if (hasVerified) {
-    return { value: 'Financials verified from public source', level: 'green' };
+  const hasVerifiedRevenue = financialCards.some(card => isVerifiedMetric(card, /\b(revenue|turnover)\b/));
+  const hasVerifiedArr = financialCards.some(card => isVerifiedMetric(card, /\barr\b|annual recurring revenue/));
+  const hasVerifiedRetentionOrConcentration = cards.some(card => isVerifiedMetric(card, /\b(retention|churn|customer concentration|top[- ]?10)\b/));
+
+  if (hasVerifiedRevenue && hasVerifiedArr && hasVerifiedRetentionOrConcentration) {
+    return { value: 'Financials substantially verified', level: 'green' };
+  }
+  if (hasVerifiedRevenue && !hasVerifiedArr) {
+    return { value: 'Revenue verified; ARR not verified', level: 'amber' };
   }
   const hasRevenueSignal = financialCards.some(card => {
     const haystack = `${card.field} ${card.value} ${card.summary}`.toLowerCase();
@@ -222,10 +273,12 @@ function PackSection({
   title,
   children,
   empty,
+  emptyMessage,
 }: {
   title: string;
   children: React.ReactNode;
   empty?: boolean;
+  emptyMessage?: string;
 }) {
   return (
     <div className="rounded-lg border border-border overflow-hidden">
@@ -234,7 +287,7 @@ function PackSection({
       </div>
       {empty ? (
         <div className="px-4 py-4 text-xs text-muted-foreground">
-          Not found in public-source preview. Request management accounts / ARR bridge.
+          {emptyMessage ?? 'Not found in public-source preview. Request management accounts / ARR bridge.'}
         </div>
       ) : (
         <div className="p-4">{children}</div>
@@ -350,9 +403,14 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
   const verifiedRaw = asArray(r.verified_facts).length > 0 ? asArray(r.verified_facts) : asArray(bundle.verified_facts);
   const claimsRaw = asArray(r.claims).length > 0 ? asArray(r.claims) : asArray(bundle.claims);
   const unknownsRaw = asArray(r.unknowns).length > 0 ? asArray(r.unknowns) : asArray(bundle.unknowns);
-  const blockersRaw = asArray(r.diligence_blockers).length > 0
-    ? asArray(r.diligence_blockers)
-    : asArray(bundle.diligence_blockers ?? bundle.blockers);
+  const actionableBlockers = asArray(r.actionable_diligence_blockers).length > 0
+    ? asArray(r.actionable_diligence_blockers)
+    : asArray(bundle.actionable_diligence_blockers);
+  const blockersRaw = actionableBlockers.length > 0
+    ? actionableBlockers
+    : asArray(r.diligence_blockers).length > 0
+      ? asArray(r.diligence_blockers)
+      : asArray(bundle.diligence_blockers ?? bundle.blockers);
 
   const evidenceCards: AnalysisEvidenceCard[] = [
     ...cardsRaw.map((item, i) => normalizeBackendEvidenceCard(item, `Evidence ${i + 1}`)),
@@ -955,7 +1013,24 @@ function Step2({ company, stages, isComplete, error, isFinalising, finalisingEla
           <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-medium text-red-400">Analysis could not complete.</p>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{error}</p>
+            {(() => {
+              const lines = String(error).split('\n').filter(Boolean);
+              const summary = lines[0] || String(error);
+              const details = lines.slice(1);
+              return (
+                <>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{summary}</p>
+                  {details.length > 0 && (
+                    <details className="mt-2 text-xs text-muted-foreground">
+                      <summary className="cursor-pointer text-red-400/80">Connection diagnostics</summary>
+                      <div className="mt-2 rounded-md border border-red-500/15 bg-background/60 px-3 py-2 font-mono text-[10px] leading-relaxed whitespace-pre-wrap">
+                        {details.join('\n')}
+                      </div>
+                    </details>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -1053,8 +1128,10 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
   const publicSignals = asArray(rawResult.public_signals);
   const financialSignals = asRecord(rawResult.financial_signals);
   const structuredUnknowns = asArray(rawResult.structured_unknowns);
-  const nextQuestions = asArray(rawResult.next_questions);
-  const recommendedDocuments = asArray(rawResult.recommended_documents);
+  const nextQuestionsRaw = asArray(rawResult.next_questions);
+  const recommendedDocumentsRaw = asArray(rawResult.recommended_documents);
+  const nextQuestions = nextQuestionsRaw.length > 0 ? nextQuestionsRaw : DEFAULT_NEXT_DILIGENCE_QUESTIONS;
+  const recommendedDocuments = recommendedDocumentsRaw.length > 0 ? recommendedDocumentsRaw : DEFAULT_DOCUMENTS_TO_REQUEST;
   const readinessSummary = asRecord(rawResult.acquisition_readiness_summary);
   const isSampleFallback = result.__sample_fallback === true || result.fallback_used === true;
 
@@ -1213,7 +1290,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
         </PackSection>
       )}
 
-      <PackSection title="Public Signals" empty={publicSignals.length === 0}>
+      <PackSection
+        title="Public Signals"
+        empty={publicSignals.length === 0}
+        emptyMessage="Limited public operating signals found. Run document-assisted review or request job-posting/product/news checks in private beta."
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {publicSignals.map((item, i) => {
             const signal = asRecord(item);
@@ -1287,37 +1368,64 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {(Object.keys(analysisQuality).length > 0 || runLog.length > 0) && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Run quality</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Evidence coverage</p>
           </div>
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 space-y-4">
             {Object.keys(analysisQuality).length > 0 && (
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Analysis quality</p>
-                <div className="space-y-1">
-                  {Object.entries(analysisQuality).slice(0, 5).map(([key, value]) => (
-                    <p key={key} className="text-xs text-muted-foreground">
-                      <span className="text-foreground">{formatLabel(key)}:</span> {displayValue(value)}
-                    </p>
-                  ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <PositioningList
+                  title="Sources checked"
+                  items={asArray(analysisQuality.source_checks_attempted)}
+                  empty="Submitted website and public-source screen checked where available."
+                />
+                <PositioningList
+                  title="Sources not checked in this preview"
+                  items={asArray(analysisQuality.source_checks_not_attempted)}
+                  empty="No additional skipped sources were reported."
+                />
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Confidence basis</p>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    {displayValue(analysisQuality.quality_priority, 'Evidence prioritized over speed. Verified facts require source metadata.')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Preview limitation</p>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    Public-source preview does not replace management accounts, ARR bridge, retention, churn or customer concentration diligence.
+                  </p>
                 </div>
               </div>
             )}
             {runLog.length > 0 && (
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Run log</p>
-                <ul className="space-y-1.5">
-                  {runLog.slice(-4).map((entry, i) => {
-                    const rec = asRecord(entry);
-                    const message = textValue(rec.message ?? rec.step ?? rec.status ?? entry, '');
-                    return message ? (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
-                        {message}
-                      </li>
-                    ) : null;
-                  })}
-                </ul>
-              </div>
+              <details className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+                <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                  Technical run details
+                </summary>
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.keys(analysisQuality).length > 0 && (
+                    <div className="space-y-1">
+                      {Object.entries(analysisQuality).slice(0, 6).map(([key, value]) => (
+                        <p key={key} className="text-xs text-muted-foreground">
+                          <span className="text-foreground">{formatLabel(key)}:</span> {displayValue(value)}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  <ul className="space-y-1.5">
+                    {runLog.slice(-4).map((entry, i) => {
+                      const rec = asRecord(entry);
+                      const message = textValue(rec.message ?? rec.step ?? rec.status ?? entry, '');
+                      return message ? (
+                        <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
+                          {message}
+                        </li>
+                      ) : null;
+                    })}
+                  </ul>
+                </div>
+              </details>
             )}
           </div>
         </div>
