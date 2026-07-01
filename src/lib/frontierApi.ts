@@ -65,6 +65,9 @@ export interface AnalysisEvidenceCard {
   value: string;
   status: EvidenceStatus;
   source: string;
+  source_url?: string;
+  source_label?: string;
+  source_metadata?: unknown;
   summary: string;
   confidence: Confidence;
 }
@@ -120,6 +123,14 @@ export interface AnalysisResult {
   analysis_quality?: unknown;
   run_log?: unknown[];
   innovation_operating_signals?: unknown;
+  company_snapshot?: unknown;
+  public_positioning?: unknown;
+  public_signals?: unknown[];
+  financial_signals?: unknown;
+  structured_unknowns?: unknown[];
+  next_questions?: unknown[];
+  recommended_documents?: unknown[];
+  acquisition_readiness_summary?: unknown;
   main_blocker?: string;
 }
 
@@ -150,89 +161,6 @@ export interface CompareResult {
   saved_to_cockpit?: boolean;
   comparison_id?: string;
   fallback_used?: boolean;
-}
-
-// ─── Static fallback display scaffolding ─────────────────────────────────────
-//
-// Shown only when the backend is unreachable or times out.
-// Contains NO investment logic, NO scoring, NO jurisdiction rules.
-// Every analytical value is a neutral placeholder.
-// Company names / URLs from the user's input are used for display only.
-
-const UNAVAILABLE = 'Unavailable in this preview' as const;
-
-/** Five neutral evidence-card slots — no underwriting content. */
-const FALLBACK_EVIDENCE_CARDS: AnalysisEvidenceCard[] = [
-  { field: 'Revenue',               value: UNAVAILABLE, status: 'unknown', source: UNAVAILABLE, summary: UNAVAILABLE, confidence: 'Low' },
-  { field: 'ARR',                   value: UNAVAILABLE, status: 'unknown', source: UNAVAILABLE, summary: UNAVAILABLE, confidence: 'Low' },
-  { field: 'Adjusted EBITDA',       value: UNAVAILABLE, status: 'unknown', source: UNAVAILABLE, summary: UNAVAILABLE, confidence: 'Low' },
-  { field: 'AI capability',         value: UNAVAILABLE, status: 'unknown', source: UNAVAILABLE, summary: UNAVAILABLE, confidence: 'Low' },
-  { field: 'Customer concentration',value: UNAVAILABLE, status: 'unknown', source: UNAVAILABLE, summary: UNAVAILABLE, confidence: 'Low' },
-];
-
-function buildAnalysisFallback(company: string): AnalysisResult {
-  return {
-    status: 'partial',
-    data_mode: 'Private beta · public-source screen',
-    limitation: 'Backend unavailable. This is a private-beta public-source screen — not an analysis of this company.',
-    company,
-    recommendation:        UNAVAILABLE,
-    recommendation_level:  'grey',
-    ic_readiness:          UNAVAILABLE,
-    valuation_readiness:   UNAVAILABLE,
-    strategic_fit_label:   UNAVAILABLE,
-    evidence_confidence:   UNAVAILABLE,
-    ai_replica_risk:       UNAVAILABLE,
-    ai_moat:               UNAVAILABLE,
-    next_action:           UNAVAILABLE,
-    strategic_fit: {
-      score:                UNAVAILABLE,
-      why_fits:             [UNAVAILABLE],
-      why_not:              [UNAVAILABLE],
-      assumptions:          [UNAVAILABLE],
-      risks:                [UNAVAILABLE],
-      diligence_questions:  [UNAVAILABLE],
-    },
-    evidence_cards: FALLBACK_EVIDENCE_CARDS,
-    ai_disruption: {
-      replica_risk:         UNAVAILABLE,
-      replica_risk_level:   'grey',
-      moat_evidence:        UNAVAILABLE,
-      inference_economics:  UNAVAILABLE,
-      product_expansion:    UNAVAILABLE,
-      opex_improvement:     UNAVAILABLE,
-      diligence_questions:  [UNAVAILABLE],
-    },
-  };
-}
-
-function buildCompareFallback(companies: CompareCompany[]): CompareResult {
-  // Input order preserved (no ranking). All analytical fields are neutral placeholders.
-  const targets: CompareTargetResult[] = companies.map((co, i) => ({
-    rank:                  i + 1,
-    company:               co.name?.trim() || `Company ${i + 1}`,
-    url:                   co.url ?? '',
-    recommendation:        UNAVAILABLE,
-    recommendation_level:  'grey' as Level,
-    strategic_fit:         UNAVAILABLE,
-    evidence_confidence:   UNAVAILABLE,
-    ai_replica_risk:       UNAVAILABLE,
-    blockers:              [UNAVAILABLE],
-    next_action:           UNAVAILABLE,
-    rank_reason:           UNAVAILABLE,
-  }));
-
-  return {
-    status:             'partial',
-    data_mode:          'Private beta · public-source screen',
-    limitation:         'Backend unavailable. This is a private-beta public-source screen — ranking and analysis require the backend.',
-    targets,
-    most_ic_ready:      UNAVAILABLE,
-    highest_ai_risk:    UNAVAILABLE,
-    most_evidence_gaps: UNAVAILABLE,
-    best_next_action:   UNAVAILABLE,
-    fallback_used:      true,
-  };
 }
 
 // ─── Fetch with timeout ───────────────────────────────────────────────────────
@@ -387,21 +315,16 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
 /**
  * POST /api/analyse/compare
  * Returns backend JSON unchanged.
- * Falls back to a static private-beta sample screen on failure.
+ * Real compare runs do not fall back to sample data.
  */
 export async function compareCompanies(payload: ComparePayload): Promise<CompareResult> {
-  try {
-    const res = await fetchWithTimeout(apiUrl('/api/analyse/compare'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Backend returned ${res.status}`);
-    return await res.json() as CompareResult;
-  } catch {
-    console.log('[frontierApi] compareCompanies: backend unavailable — showing fallback comparison screen');
-    return buildCompareFallback(payload.companies ?? []);
-  }
+  const res = await fetchWithTimeout(apiUrl('/api/analyse/compare'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+  return await res.json() as CompareResult;
 }
 
 // ─── Cockpit API ─────────────────────────────────────────────────────────────

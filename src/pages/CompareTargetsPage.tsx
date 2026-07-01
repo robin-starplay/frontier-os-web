@@ -18,7 +18,7 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
-type Phase = 'form' | 'loading' | 'result';
+type Phase = 'form' | 'loading' | 'result' | 'error';
 type Jurisdiction = 'uk' | 'us' | 'de' | 'fr' | 'it' | 'other';
 
 interface CompanyRow {
@@ -307,7 +307,7 @@ function CompareResultView({ result, onReset, saveSource }: {
       {result.fallback_used && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
-          Example comparison screen only. Run live targets to use backend analysis.
+          Backend marked this comparison as partial. Treat ranking as provisional until each target has a full evidence screen.
         </div>
       )}
 
@@ -571,20 +571,22 @@ export default function CompareTargetsPage() {
   const [buyer, setBuyer]             = useState('');
   const [buyerThesis, setBuyerThesis] = useState('');
   const [companies, setCompanies]     = useState<CompanyRow[]>([
-    { name: 'Cerillion plc', url: 'https://cerillion.com', jurisdiction: 'uk' },
-    { name: 'Checkit plc',   url: 'https://checkit.net',   jurisdiction: 'uk' },
+    EMPTY_COMPANY(),
+    EMPTY_COMPANY(),
   ]);
   const [progress, setProgress] = useState<ProgressStage[]>(
     PROGRESS_STEPS.map(label => ({ label, status: 'queued' })),
   );
   const [result, setResult] = useState<CompareResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
     // Reset progress
     const fresh: ProgressStage[] = PROGRESS_STEPS.map(label => ({ label, status: 'queued' }));
     setProgress(fresh);
     setResult(null);
+    setError(null);
     setPhase('loading');
 
     // Provision backend workspace on first run (no-op if already done; silent on failure)
@@ -603,7 +605,10 @@ export default function CompareTargetsPage() {
       ...(workspaceId && userId
         ? { workspace_id: workspaceId, user_id: userId, save_to_cockpit: true }
         : {}),
-    });
+    }).then(
+      data => ({ data, error: null as Error | null }),
+      err => ({ data: null as CompareResult | null, error: err instanceof Error ? err : new Error('Compare request failed.') }),
+    );
 
     // Animate progress steps (~1400ms each)
     const updated = [...fresh];
@@ -616,17 +621,24 @@ export default function CompareTargetsPage() {
     }
 
     // Await API result (should already be resolved)
-    const apiResult = await apiPromise;
-    setResult(apiResult);
-    // Save each target to local run history so the Deal Cockpit shows them
-    try { saveCompareRun(apiResult); } catch { /* storage not available */ }
-    setSaveSource(apiResult.saved_to_cockpit ? 'backend' : 'local');
-    setPhase('result');
+    try {
+      const { data: apiResult, error: apiError } = await apiPromise;
+      if (apiError || !apiResult) throw apiError ?? new Error('Compare request failed.');
+      setResult(apiResult);
+      // Save each target to local run history so the Deal Cockpit shows them
+      try { saveCompareRun(apiResult); } catch { /* storage not available */ }
+      setSaveSource(apiResult.saved_to_cockpit ? 'backend' : 'local');
+      setPhase('result');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Compare request failed.');
+      setPhase('error');
+    }
   }
 
   function reset() {
     setPhase('form');
     setResult(null);
+    setError(null);
     setProgress(PROGRESS_STEPS.map(label => ({ label, status: 'queued' })));
   }
 
@@ -658,38 +670,11 @@ export default function CompareTargetsPage() {
 
         {phase === 'form' && (
           <>
-            {/* Example comparison preview */}
-            <div className="mb-8 rounded-lg border border-border bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Example comparison · private beta preview</p>
-                <span className="text-[10px] font-mono text-muted-foreground">Cerillion vs Checkit</span>
-              </div>
-              <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-green-400 mb-1">Best IC-ready</p>
-                  <p className="text-sm font-semibold text-foreground">Cerillion</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-snug">Stronger evidence confidence and fewer blockers in the preview screen.</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-amber-400 mb-1">Highest evidence gap</p>
-                  <p className="text-sm font-semibold text-foreground">Checkit</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-snug">ARR quality, revenue mix and AI defensibility need further verification.</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Most urgent diligence ask</p>
-                  <p className="text-xs text-foreground leading-snug">Revenue split and customer concentration for both targets before IC.</p>
-                </div>
-              </div>
-              <div className="px-5 py-3 border-t border-border bg-muted/10">
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={companies.filter(c => c.name.trim()).length < 2}
-                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  Run this example comparison →
-                </button>
-              </div>
+            <div className="mb-8 rounded-lg border border-border bg-card/60 px-5 py-4">
+              <p className="text-sm font-semibold text-foreground mb-1">Compare two or more real screened targets.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Enter known company websites below. Frontier OS will call the backend compare endpoint and render only returned evidence, claims, blockers and next actions.
+              </p>
             </div>
 
             <CompareForm
@@ -711,6 +696,27 @@ export default function CompareTargetsPage() {
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
             <p className="text-sm">Building recommendation…</p>
+          </div>
+        )}
+
+        {phase === 'error' && (
+          <div className="w-full max-w-xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 p-5">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Compare request could not complete.</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  {error || 'The backend compare endpoint did not return a usable response.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+                >
+                  Edit targets
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

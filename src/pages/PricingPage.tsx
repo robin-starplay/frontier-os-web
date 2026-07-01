@@ -15,6 +15,7 @@ interface Tier {
   audience: string;
   cta_label: string;
   cta_url: string;
+  payment_link_missing?: boolean;
   ctaVariant: 'primary' | 'outline';
   showBookIntro?: boolean;
   bookIntroEvent?: string;
@@ -50,8 +51,9 @@ const STATIC_TIERS: Tier[] = [
     badge: 'Private beta',
     price_label: '£99/month',
     audience: 'For founders, searchers, independent sponsors and solo operators.',
-    cta_label: 'Start beta',
+    cta_label: 'Payment link unavailable — request access',
     cta_url: '/request-pilot',
+    payment_link_missing: true,
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_starter',
@@ -136,6 +138,11 @@ interface BackendPlan {
   features: string[];
   cta_label: string;
   cta_url?: string;
+  stripe_payment_link?: string;
+  payment_link?: string;
+  payment_url?: string;
+  checkout_url?: string;
+  payment_mode?: string;
   manual_activation_note?: string;
 }
 
@@ -170,15 +177,38 @@ function normalisePriceLabel(plan: BackendPlan, currency?: string): string {
   return label || (plan.plan_id === 'free_preview' ? 'Free' : 'Pricing on request');
 }
 
+function isExternalUrl(value: string | undefined): value is string {
+  return Boolean(value && (value.startsWith('https://') || value.startsWith('http://')));
+}
+
+function paymentUrlFromPlan(plan: BackendPlan): string {
+  const candidates = [
+    plan.stripe_payment_link,
+    plan.payment_link,
+    plan.payment_url,
+    plan.checkout_url,
+    plan.cta_url,
+  ];
+  return candidates.find(isExternalUrl) ?? '';
+}
+
 function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
+  const paymentUrl = paymentUrlFromPlan(plan);
+  const isStarterGrowth = plan.plan_id === 'starter_growth';
+  const ctaUrl = isStarterGrowth
+    ? paymentUrl || '/request-pilot'
+    : plan.cta_url || '/request-pilot';
+  const paymentLinkMissing = isStarterGrowth && !paymentUrl;
+
   return {
     plan_id: plan.plan_id,
     name: plan.name,
     badge: tierBadge(plan.plan_id),
     price_label: normalisePriceLabel(plan, currency),
     audience: plan.audience,
-    cta_label: plan.cta_label,
-    cta_url: plan.cta_url || '/request-pilot',
+    cta_label: paymentLinkMissing ? 'Payment link unavailable — request access' : plan.cta_label,
+    cta_url: ctaUrl,
+    payment_link_missing: paymentLinkMissing,
     ctaVariant: tierVariant(plan.plan_id),
     showBookIntro: plan.plan_id !== 'free_preview',
     bookIntroEvent: bookIntroEvent(plan.plan_id),
@@ -188,7 +218,7 @@ function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
 }
 
 function resolveCtaHref(ctaUrl: string): { href: string; external: boolean } {
-  if (ctaUrl && (ctaUrl.startsWith('https://') || ctaUrl.startsWith('http://'))) {
+  if (isExternalUrl(ctaUrl)) {
     return { href: ctaUrl, external: true };
   }
   if (ctaUrl && ctaUrl.startsWith('/')) {
@@ -271,6 +301,11 @@ function TierCard({
             {tier.manual_activation_note}
           </p>
         )}
+        {tier.payment_link_missing && (
+          <p className="text-[10px] text-amber-400/80 text-center leading-snug px-1">
+            Payment link unavailable. Request access and we will send the beta link manually.
+          </p>
+        )}
 
         {tier.showBookIntro && (
           <BookIntroButton
@@ -296,6 +331,10 @@ export default function PricingPage() {
     if (tier.plan_id === 'starter_growth' && pricingState === 'loading') return;
 
     const { href, external } = resolveCtaHref(tier.cta_url);
+    if (tier.plan_id === 'starter_growth' && external) {
+      window.location.href = href;
+      return;
+    }
     if (external) {
       window.open(href, '_self');
       return;

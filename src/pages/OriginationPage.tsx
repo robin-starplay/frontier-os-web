@@ -1,58 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'wouter';
 import {
-  ArrowRight, Search, Target, ChevronRight, CheckCircle2,
+  ArrowRight, Search, Target, ChevronRight,
   Loader2, AlertCircle, Info,
 } from 'lucide-react';
 import { BetaCTA } from '@/components/BetaCTA';
-import { saveUrlRun } from '@/lib/runHistory';
 import { getBackendBaseUrl } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
-
-// ─── Illustrative example output (shown above form as reference only) ──────────
-// These are hardcoded example targets used ONLY to illustrate what origination
-// output looks like. They are never shown as the result of a live run.
-
-const EXAMPLE_TARGETS = [
-  {
-    rank: 1, company: 'Cerillion plc', sector: 'Telecoms BSS/OSS', arr: '£18M',
-    verdict: 'Screen now', level: 'green', website: 'cerillion.com',
-    fit_score: '8/10',
-    why_fits: 'Mission-critical BSS/OSS; high switching costs; recurring revenue in public filings',
-    missing_evidence: 'ARR bridge, SaaS vs services split',
-    ai_risk: 'Low',
-    next_action: 'Run URL screen',
-  },
-  {
-    rank: 2, company: 'Checkit plc', sector: 'Workforce workflow', arr: '£14M',
-    verdict: 'Request financials', level: 'amber', website: 'checkit.net',
-    fit_score: '6/10',
-    why_fits: 'Recurring workflow SaaS; field-service automation with low churn narrative',
-    missing_evidence: 'ARR quality, revenue mix, AI defensibility not established',
-    ai_risk: 'Medium',
-    next_action: 'Request Financials',
-  },
-  {
-    rank: 3, company: 'LedgerWorks Billing', sector: 'Finance automation', arr: '£9M',
-    verdict: 'Request financials', level: 'amber', website: 'ledgerworks.io',
-    fit_score: '5/10',
-    why_fits: 'Finance automation SaaS with B2B billing focus; EBITDA expansion potential',
-    missing_evidence: 'Customer concentration, ARR reconciliation, AI moat unclear',
-    ai_risk: 'Medium-high',
-    next_action: 'Request Financials',
-  },
-];
-
-const EXAMPLE_REJECTED = [
-  {
-    company: 'VerticalOps CRM GmbH',
-    reason: 'Registry block — insufficient public filing data available for this jurisdiction to support UK/DACH buyer thesis assessment.',
-  },
-  {
-    company: 'Illustrative Target Co.',
-    reason: 'AI risk hold — high replica risk with no moat evidence identified. Would require significant AI diligence before progressing.',
-  },
-];
 
 const LEVEL_CLASSES: Record<string, string> = {
   green: 'bg-green-500/10 text-green-400 border-green-500/20',
@@ -63,24 +17,31 @@ const LEVEL_CLASSES: Record<string, string> = {
 // ─── Origination API call ─────────────────────────────────────────────────────
 
 interface OriginationRequest {
-  sector:     string;
-  geography:  string;
-  arr_range:  string;
-  rationale:  string;
+  buyer_thesis: string;
+  sector: string;
+  geography: string;
+  size_criteria: string;
+  strategic_rationale: string;
 }
 
 type OriginationResult = Record<string, unknown>;
 
 async function runOrigination(req: OriginationRequest): Promise<OriginationResult> {
   const base = getBackendBaseUrl();
-  const url  = base ? `${base}/api/origination/run` : '/api/origination/run';
+  const url  = base ? `${base}/api/origination/thesis` : '/api/origination/thesis';
   const res  = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(req),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json() as Promise<OriginationResult>;
+  const body = await res.json().catch(() => null) as OriginationResult | null;
+  if (!res.ok) {
+    const message = typeof body?.message === 'string'
+      ? body.message
+      : `Backend returned status ${res.status}.`;
+    throw new Error(message);
+  }
+  return body ?? {};
 }
 
 // ─── Result renderer ──────────────────────────────────────────────────────────
@@ -96,33 +57,56 @@ function OriginationResultView({
 
   // Normalise candidate list — backend may call this field anything
   const candidates = (
-    (data.candidates as unknown[] | undefined) ??
-    (data.target_ideas as unknown[] | undefined) ??
     (data.targets as unknown[] | undefined) ??
+    (data.ranked_targets as unknown[] | undefined) ??
+    (data.candidates as unknown[] | undefined) ??
     []
   ) as Record<string, unknown>[];
 
-  const isPreview  = !!data.preview || !!data.is_preview || candidates.length === 0;
-  const summary    = data.thesis_summary    as string | undefined;
-  const rationale  = data.match_rationale   as string | undefined;
+  const isUnavailable = data.status === 'unavailable';
+  const isReferenceUniverse = data.universe_mode === 'private_beta_reference_universe';
+  const summary    = (data.summary ?? data.thesis_summary) as string | undefined;
+  const rationale  = (data.match_rationale ?? data.buyer_thesis) as string | undefined;
   const nextActArr = data.next_actions      as unknown[] | undefined;
   const evidGaps   = data.evidence_gaps     as unknown[] | undefined;
-  const limitations= data.limitations      as string | undefined;
-  const rejected   = (data.rejected_targets as Record<string, unknown>[] | undefined) ?? [];
+  const limitations= (Array.isArray(data.limitations) ? data.limitations : data.limitations ? [data.limitations] : []) as unknown[];
+  const warnings   = (Array.isArray(data.warnings) ? data.warnings : data.warnings ? [data.warnings] : []) as unknown[];
+  const rejected   = (
+    (data.excluded_targets as Record<string, unknown>[] | undefined) ??
+    (data.rejected_targets as Record<string, unknown>[] | undefined) ??
+    []
+  );
 
   function safeStr(v: unknown): string {
-    return v != null ? String(v) : '';
+    if (v == null) return '';
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
+    if (Array.isArray(v)) return v.map(safeStr).filter(Boolean).join(', ');
+    return '';
+  }
+
+  if (isUnavailable) {
+    return <OriginationUnavailable onReset={onReset} message={safeStr(data.message)} />;
   }
 
   return (
     <div className="space-y-4">
-      {/* Preview notice when backend returns limited/placeholder result */}
-      {isPreview && (
+      {isReferenceUniverse && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-primary/80">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>
-            Origination preview generated. Validate targets and evidence before outreach.
+            Generated from private-beta reference universe; validate before outreach.
           </span>
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Warnings</p>
+          <ul className="space-y-1">
+            {warnings.map((warning, i) => (
+              <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(warning)}</li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -145,16 +129,18 @@ function OriginationResultView({
           </div>
           <div className="divide-y divide-border">
             {candidates.map((c, i) => {
-              const name    = safeStr(c.company ?? c.name ?? c.company_name ?? `Target ${i + 1}`);
+              const name    = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
               const sector  = safeStr(c.sector ?? c.vertical ?? '');
-              const arr     = safeStr(c.arr ?? c.revenue ?? c.arr_range ?? '');
               const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
               const fit     = safeStr(c.fit_score ?? c.score ?? '');
-              const risk    = safeStr(c.ai_risk ?? c.risk ?? '');
-              const fits    = safeStr(c.why_fits ?? c.rationale ?? c.match_rationale ?? '');
+              const risk    = safeStr(c.ai_risk ?? c.ai_risk_view ?? c.risk ?? '');
+              const fits    = safeStr(c.why_it_fits ?? c.why_fits ?? c.rationale ?? c.match_rationale ?? '');
+              const description = safeStr(c.one_line_description ?? c.description ?? '');
               const missing = safeStr(c.missing_evidence ?? c.evidence_gaps ?? '');
               const action  = safeStr(c.next_action ?? '');
               const website = safeStr(c.website ?? '');
+              const sourceLabel = safeStr(c.source_label) || 'Public-source candidate signal';
+              const sourceUrls = Array.isArray(c.source_urls) ? c.source_urls.map(safeStr).filter(Boolean) : [];
               const lvlRaw  = safeStr(c.level ?? c.recommendation_level ?? 'amber').toLowerCase();
               const lvl     = lvlRaw in LEVEL_CLASSES ? lvlRaw : 'amber';
               return (
@@ -168,9 +154,9 @@ function OriginationResultView({
                       </span>
                     )}
                   </div>
-                  {(sector || arr) && (
+                  {(sector || description) && (
                     <p className="text-xs text-muted-foreground mb-2">
-                      {[sector, arr ? `ARR ${arr}` : ''].filter(Boolean).join(' · ')}
+                      {[sector, description].filter(Boolean).join(' · ')}
                     </p>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2 text-xs">
@@ -220,13 +206,26 @@ function OriginationResultView({
                     )}
                   </div>
                   <p className="text-[10px] font-mono text-muted-foreground/40 mt-2">
-                    Source: Public signals only · Status: Signal, not verified
+                    Source: {sourceLabel} · Status: Signal, not verified
                   </p>
+                  {sourceUrls.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {sourceUrls.map(url => (
+                        <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline">
+                          {url}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
+      )}
+
+      {candidates.length === 0 && (
+        <OriginationUnavailable onReset={onReset} />
       )}
 
       {/* Match rationale */}
@@ -287,7 +286,7 @@ function OriginationResultView({
               {rejected.map((r, i) => (
                 <div key={i} className="px-4 py-3">
                   <p className="text-xs font-semibold text-foreground/60 mb-0.5">
-                    {safeStr(r.company ?? r.name ?? `Target ${i + 1}`)}
+                    {safeStr(r.company_name ?? r.company ?? r.name) || 'Excluded candidate'}
                   </p>
                   <p className="text-xs text-muted-foreground/60 leading-snug">
                     {safeStr(r.reason ?? r.exclusion_reason ?? '')}
@@ -300,10 +299,15 @@ function OriginationResultView({
       )}
 
       {/* Limitations */}
-      {limitations && (
-        <p className="text-[11px] text-muted-foreground/60 italic leading-relaxed px-1">
-          {limitations}
-        </p>
+      {limitations.length > 0 && (
+        <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Limitations</p>
+          <ul className="space-y-1">
+            {limitations.map((limitation, i) => (
+              <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(limitation)}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Always-present caveat footer */}
@@ -340,6 +344,51 @@ function OriginationResultView({
   );
 }
 
+function OriginationUnavailable({
+  onReset,
+  message,
+}: {
+  onReset: () => void;
+  message?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            Origination preview is not available in this hosted workspace yet.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {message || 'Run a URL screen for a known target, or request private beta access for thesis-led target discovery.'}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/run"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+            >
+              Run URL screen <ArrowRight className="w-3 h-3" />
+            </Link>
+            <Link
+              href="/request-pilot"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Request private beta access
+            </Link>
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+            >
+              Edit thesis
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Origination form ─────────────────────────────────────────────────────────
 
 type FormState =
@@ -351,8 +400,9 @@ type FormState =
 function OriginationForm() {
   const [sector,    setSector   ] = useState('');
   const [geo,       setGeo      ] = useState('');
-  const [arr,       setArr      ] = useState('');
+  const [sizeCriteria, setSizeCriteria] = useState('');
   const [rationale, setRationale] = useState('');
+  const [buyerThesis, setBuyerThesis] = useState('');
   const [state,     setState    ] = useState<FormState>({ kind: 'idle' });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -360,10 +410,11 @@ function OriginationForm() {
     setState({ kind: 'submitting' });
     try {
       const data = await runOrigination({
+        buyer_thesis: buyerThesis,
         sector,
         geography: geo,
-        arr_range: arr,
-        rationale,
+        size_criteria: sizeCriteria,
+        strategic_rationale: rationale,
       });
       setState({ kind: 'result', data });
     } catch (err) {
@@ -389,9 +440,12 @@ function OriginationForm() {
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>
-            Origination preview is temporarily unavailable. Try Run screen or book an intro.
+            Origination preview is not available in this hosted workspace yet.
           </span>
         </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Run a URL screen for a known target, or request private beta access for thesis-led target discovery.
+        </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -421,6 +475,18 @@ function OriginationForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-xs font-medium text-foreground mb-1.5">
+          Buyer thesis
+        </label>
+        <textarea
+          value={buyerThesis}
+          onChange={e => setBuyerThesis(e.target.value)}
+          rows={3}
+          placeholder="e.g. Founder-owned UK vertical software with recurring revenue, low implementation complexity and low AI replica risk."
+          className="w-full px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors resize-none"
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-foreground mb-1.5">
@@ -449,13 +515,13 @@ function OriginationForm() {
       </div>
       <div>
         <label className="block text-xs font-medium text-foreground mb-1.5">
-          ARR / revenue range
+          Size criteria
         </label>
         <input
           type="text"
-          value={arr}
-          onChange={e => setArr(e.target.value)}
-          placeholder="e.g. £2M–£20M ARR"
+          value={sizeCriteria}
+          onChange={e => setSizeCriteria(e.target.value)}
+          placeholder="e.g. UK lower mid-market, profitable bootstrapped software"
           className="w-full h-9 px-3 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
         />
       </div>
@@ -474,7 +540,7 @@ function OriginationForm() {
 
       {/* Caveat */}
       <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-        Private beta preview · Public-source signals only · Results require manual review before outreach or IC use.
+        Origination is available in private beta. Public preview currently supports URL-based acquisition screens.
       </p>
 
       <button
@@ -483,208 +549,24 @@ function OriginationForm() {
         className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {state.kind === 'submitting' ? (
-          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Running origination screen…</>
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Running origination preview…</>
         ) : (
-          <>Run origination screen <ArrowRight className="w-3.5 h-3.5" /></>
+          <>Run origination preview <ArrowRight className="w-3.5 h-3.5" /></>
         )}
       </button>
+
+      {state.kind === 'submitting' && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-start gap-3">
+          <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-foreground">Finding public-source candidates…</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Ranking reference-universe matches, evidence confidence, missing proof and next action.
+            </p>
+          </div>
+        </div>
+      )}
     </form>
-  );
-}
-
-// ─── Illustrative example targets (above form — clearly labelled) ─────────────
-
-function IllustrativeExampleTable() {
-  const [saved, setSaved]           = useState<Record<number, boolean>>({});
-  const [selected, setSelected]     = useState<number[]>([]);
-  const [showRejected, setShowRejected] = useState(false);
-
-  function toggleSelect(rank: number) {
-    setSelected(prev =>
-      prev.includes(rank) ? prev.filter(r => r !== rank) : [...prev, rank],
-    );
-  }
-
-  function handleSave(t: typeof EXAMPLE_TARGETS[number]) {
-    try {
-      saveUrlRun(
-        {
-          status:               'partial',
-          data_mode:            'Origination · illustrative example',
-          company:              t.company,
-          recommendation:       t.verdict,
-          recommendation_level: t.level === 'green' ? 'green' : t.level === 'amber' ? 'amber' : 'red',
-          ic_readiness:         t.level === 'green' ? 'Ready' : 'Partial',
-          valuation_readiness:  `ARR ~${t.arr}`,
-          strategic_fit_label:  t.sector,
-          evidence_confidence:  'Low',
-          ai_replica_risk:      t.ai_risk,
-          ai_moat:              '',
-          next_action:          t.next_action,
-          strategic_fit:        { score: String(t.fit_score), why_fits: [t.why_fits], why_not: [], assumptions: [], risks: [], diligence_questions: [] },
-          evidence_cards:       [],
-          ai_disruption:        { replica_risk: t.ai_risk, replica_risk_level: t.level === 'green' ? 'green' : t.level === 'amber' ? 'amber' : 'red', moat_evidence: '', inference_economics: '', product_expansion: '', opex_improvement: '', diligence_questions: [] },
-        },
-        t.website,
-      );
-    } catch { /* storage not available */ }
-    setSaved(prev => ({ ...prev, [t.rank]: true }));
-  }
-
-  const compareUrl = selected.length > 0
-    ? `/compare?companies=${encodeURIComponent(
-        selected
-          .map(r => EXAMPLE_TARGETS.find(t => t.rank === r)?.company ?? '')
-          .filter(Boolean)
-          .join(','),
-      )}`
-    : '/compare';
-
-  return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-            Illustrative example output · not live results
-          </p>
-          <span className="text-[10px] font-mono text-muted-foreground">UK vertical SaaS / £5M–£25M ARR</span>
-        </div>
-
-        <div className="divide-y divide-border">
-          {EXAMPLE_TARGETS.map(t => (
-            <div key={t.rank} className="p-4 sm:p-5">
-              <div className="flex items-start gap-3 mb-3">
-                <input
-                  type="checkbox"
-                  aria-label={`Select ${t.company}`}
-                  className="shrink-0 accent-primary mt-0.5"
-                  checked={selected.includes(t.rank)}
-                  onChange={() => toggleSelect(t.rank)}
-                />
-                <span className="text-[11px] font-mono text-muted-foreground/60 shrink-0 mt-0.5 w-5">#{t.rank}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <p className="text-sm font-semibold text-foreground leading-snug">{t.company}</p>
-                    <span className={`inline-flex items-center text-[10px] font-mono font-medium px-2 py-0.5 rounded border ${LEVEL_CLASSES[t.level]}`}>
-                      {t.verdict}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{t.sector} · ARR {t.arr}</p>
-                </div>
-              </div>
-
-              <div className="ml-8 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Fit score</p>
-                  <p className="text-xs font-semibold text-foreground">{t.fit_score}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">AI risk</p>
-                  <p className={`text-xs font-medium ${
-                    t.ai_risk === 'Low' ? 'text-green-400'
-                    : t.ai_risk === 'Medium' ? 'text-blue-400'
-                    : 'text-amber-400'
-                  }`}>{t.ai_risk}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Why it fits</p>
-                  <p className="text-xs text-muted-foreground leading-snug">{t.why_fits}</p>
-                </div>
-              </div>
-
-              {t.missing_evidence && (
-                <div className="ml-8 mb-3">
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-amber-400/70 mb-0.5">Missing evidence</p>
-                  <p className="text-xs text-muted-foreground">{t.missing_evidence}</p>
-                </div>
-              )}
-
-              <div className="ml-8 flex flex-wrap items-center gap-2">
-                <Link
-                  href="/run"
-                  className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
-                >
-                  Run screen →
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => toggleSelect(t.rank)}
-                  className={`inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border transition-colors whitespace-nowrap ${
-                    selected.includes(t.rank)
-                      ? 'border-blue-500/30 bg-blue-500/10 text-blue-400'
-                      : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {selected.includes(t.rank) ? '✓ In compare' : 'Add to Compare'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSave(t)}
-                  disabled={saved[t.rank]}
-                  className={`inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border transition-colors whitespace-nowrap ${
-                    saved[t.rank]
-                      ? 'border-green-500/20 bg-green-500/5 text-green-400 cursor-default'
-                      : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {saved[t.rank]
-                    ? <><CheckCircle2 className="w-3 h-3" /> Saved</>
-                    : 'Save to Cockpit'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="px-5 py-3 border-t border-border bg-muted/10 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[10px] text-muted-foreground/50 font-mono italic">
-            Illustrative example only · not live origination output
-          </p>
-          <div className="flex items-center gap-2">
-            {selected.length > 0 && (
-              <Link
-                href={compareUrl}
-                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-7 px-3 rounded-md transition-colors text-foreground"
-              >
-                Compare {selected.length} selected <ArrowRight className="w-3 h-3" />
-              </Link>
-            )}
-            <Link
-              href="/cockpit"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              Open Cockpit →
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Excluded example targets — collapsible */}
-      <div className="rounded-lg border border-border/60 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowRejected(prev => !prev)}
-          className="w-full flex items-center justify-between px-5 py-3 bg-card/40 text-left hover:bg-card/60 transition-colors"
-        >
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
-            Excluded example targets ({EXAMPLE_REJECTED.length}) — why they were excluded
-          </p>
-          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/40 transition-transform ${showRejected ? 'rotate-90' : ''}`} />
-        </button>
-        {showRejected && (
-          <div className="divide-y divide-border/40">
-            {EXAMPLE_REJECTED.map((r, i) => (
-              <div key={i} className="px-5 py-3 flex items-start gap-3">
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-foreground/60 mb-0.5">{r.company}</p>
-                  <p className="text-xs text-muted-foreground/60 leading-snug">{r.reason}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -704,7 +586,7 @@ const AVAILABLE_NOW = [
   {
     href:  '/origination',
     title: 'Origination thesis',
-    desc:  'Run a public-source target-discovery screen from a buyer thesis.',
+    desc:  'Private-beta thesis-led target discovery from a reference universe.',
   },
   {
     href:  '/cockpit',
@@ -735,9 +617,9 @@ export default function OriginationPage() {
             Find acquisition targets from a buyer thesis.
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl">
-            Describe your sector, geography, size criteria and strategic rationale. Frontier OS
-            searches its registry and evidence network to surface ranked candidates — with evidence
-            confidence and AI risk pre-scored for each.
+            Describe your buyer thesis. Frontier OS returns ranked public-source target candidates,
+            evidence confidence, missing proof and next action when the private-beta backend workflow
+            is enabled.
           </p>
         </div>
       </div>
@@ -748,8 +630,8 @@ export default function OriginationPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { icon: <Search className="w-4 h-4" />, step: '1', title: 'Enter buyer thesis', desc: 'Sector, geography, revenue range and strategic rationale.' },
-            { icon: <Target className="w-4 h-4" />, step: '2', title: 'Frontier OS searches', desc: 'Registry scan + evidence pre-screen of matching candidates.' },
-            { icon: <ChevronRight className="w-4 h-4" />, step: '3', title: 'Ranked target list', desc: 'Evidence confidence, AI risk and recommended next action for each.' },
+            { icon: <Target className="w-4 h-4" />, step: '2', title: 'Backend screen', desc: 'If enabled, the backend returns public-source candidate signals.' },
+            { icon: <ChevronRight className="w-4 h-4" />, step: '3', title: 'Review candidates', desc: 'Treat all output as signals until each target is screened directly.' },
           ].map(({ icon, step, title, desc }) => (
             <div key={step} className="rounded-lg border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-3">
@@ -764,8 +646,12 @@ export default function OriginationPage() {
           ))}
         </div>
 
-        {/* Illustrative example output */}
-        <IllustrativeExampleTable />
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
+          <p className="text-sm font-semibold text-foreground mb-1">Private-beta origination workflow</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This page calls the backend origination endpoint when available. It does not show static target lists or save illustrative candidates to Cockpit.
+          </p>
+        </div>
 
         {/* Live origination thesis form */}
         <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -774,7 +660,7 @@ export default function OriginationPage() {
               Origination thesis
             </p>
             <p className="text-xs text-muted-foreground">
-              Describe your buyer thesis and run a public-source target-discovery screen.
+              Describe your buyer thesis and run the private-beta origination workflow.
             </p>
           </div>
           <div className="p-5">
@@ -808,7 +694,7 @@ export default function OriginationPage() {
         title="Ready to screen specific targets now?"
         body="Run a URL-only screen on any company website and get a recommendation in under 2 minutes."
         primaryLabel="Run screen"
-        primaryHref="/run?mode=sample"
+        primaryHref="/run"
         secondaryLabel="Compare targets"
         secondaryHref="/compare"
         eventName="origination_bottom"

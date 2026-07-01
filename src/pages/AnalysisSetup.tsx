@@ -160,6 +160,16 @@ function evidenceStatusValue(value: unknown): EvidenceStatus {
   return safeEvidenceStatus(textValue(value), undefined, undefined);
 }
 
+function sourceAttribution(c: Record<string, unknown>): string {
+  const sourceUrl = textValue(c.source_url, '');
+  const sourceLabel = textValue(c.source_label ?? c.source_name, '');
+  const source = textValue(c.source ?? c.source_type ?? c.evidence_source, '');
+  if (sourceLabel && sourceUrl) return `${sourceLabel} · ${sourceUrl}`;
+  if (sourceUrl) return sourceUrl;
+  if (sourceLabel) return sourceLabel;
+  return source || 'Not verified in this run';
+}
+
 function recommendationLevel(value: unknown): Level {
   const s = textValue(value).toLowerCase();
   if (!s) return 'grey';
@@ -172,6 +182,132 @@ function recommendationLevel(value: unknown): Level {
 function readinessText(value: unknown, fallback = 'Not verified in this run'): string {
   const s = textValue(value);
   return s ? formatLabel(s) : fallback;
+}
+
+function isFinancialEvidenceCard(card: AnalysisEvidenceCard): boolean {
+  const haystack = `${card.field} ${card.summary} ${card.value}`.toLowerCase();
+  return /\b(revenue|arr|financial|ebitda|turnover)\b/.test(haystack);
+}
+
+function financialStatusCard(cards: AnalysisEvidenceCard[]): { value: string; level: Level } {
+  const financialCards = cards.filter(isFinancialEvidenceCard);
+  const hasVerified = financialCards.some(card => safeEvidenceStatus(card.status, card.source, card.confidence) === 'verified');
+  if (hasVerified) {
+    return { value: 'Financials verified from public source', level: 'green' };
+  }
+  const hasRevenueSignal = financialCards.some(card => {
+    const haystack = `${card.field} ${card.value} ${card.summary}`.toLowerCase();
+    return haystack.includes('revenue') && textValue(card.value, '') !== '';
+  });
+  if (hasRevenueSignal) {
+    return { value: 'Revenue signal found; source verification incomplete', level: 'amber' };
+  }
+  return { value: 'Financials not verified', level: 'red' };
+}
+
+function sourceLine(item: Record<string, unknown>): string {
+  const label = textValue(item.source_label ?? item.source, '');
+  const url = textValue(item.source_url, '');
+  if (label && url && label !== url) return `${label} · ${url}`;
+  return label || url;
+}
+
+function valueRecord(value: unknown): Record<string, unknown> {
+  const rec = asRecord(value);
+  const nested = asRecord(rec.value);
+  return Object.keys(nested).length > 0 ? nested : rec;
+}
+
+function PackSection({
+  title,
+  children,
+  empty,
+}: {
+  title: string;
+  children: React.ReactNode;
+  empty?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-border overflow-hidden">
+      <div className="px-4 py-3 border-b border-border bg-card/50">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-primary">{title}</p>
+      </div>
+      {empty ? (
+        <div className="px-4 py-4 text-xs text-muted-foreground">
+          Not found in public-source preview. Request management accounts / ARR bridge.
+        </div>
+      ) : (
+        <div className="p-4">{children}</div>
+      )}
+    </div>
+  );
+}
+
+function StatusPill({ label }: { label: string }) {
+  const normalised = label.toLowerCase();
+  const status: EvidenceStatus =
+    normalised.includes('verified') || normalised.includes('source-backed') ? 'verified' :
+    normalised.includes('blocking') ? 'blocking' :
+    normalised.includes('unknown') || normalised.includes('not source-backed') ? 'unknown' :
+    normalised.includes('signal') ? 'caveat' :
+    'claim';
+  return (
+    <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border shrink-0', evidenceChipClass(status))}>
+      {label}
+    </span>
+  );
+}
+
+function SnapshotGrid({ snapshot }: { snapshot: Record<string, unknown> }) {
+  const entries = Object.entries(snapshot).filter(([, value]) => {
+    const rec = valueRecord(value);
+    return textValue(rec.value ?? value, '') !== '';
+  });
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {entries.map(([key, value]) => {
+        const rec = valueRecord(value);
+        const source = sourceLine(rec);
+        return (
+          <div key={key} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{formatLabel(key)}</p>
+            <p className="text-xs text-foreground leading-snug">{displayValue(rec.value ?? value, 'Not found in public-source preview')}</p>
+            {source && <p className="text-[10px] text-muted-foreground/50 mt-1">Source: {source}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PositioningList({ title, items, empty }: { title: string; items: unknown[]; empty: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="space-y-2">
+          {items.slice(0, 5).map((item, i) => {
+            const rec = asRecord(item);
+            const source = sourceLine(rec);
+            return (
+              <li key={i} className="text-xs text-muted-foreground leading-snug">
+                <div className="flex items-start gap-2">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="text-foreground">{displayValue(rec.text ?? item)}</span>
+                    <span className="ml-2"><StatusPill label={formatLabel(textValue(rec.classification, 'claim'))} /></span>
+                    {source && <span className="block text-[10px] text-muted-foreground/50 mt-0.5">Source: {source}</span>}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function normalizeBackendEvidenceCard(item: unknown, fallbackField: string): AnalysisEvidenceCard {
@@ -192,12 +328,16 @@ function normalizeBackendEvidenceCard(item: unknown, fallbackField: string): Ana
     c.summary ?? c.why_it_matters ?? c.ic_impact ?? c.evidence_needed ?? c.next_action ?? c.claim_text,
     '',
   );
-  const source = textValue(c.source ?? c.source_url ?? c.source_type ?? c.evidence_source, 'Not verified in this run');
+  const source = sourceAttribution(c);
+  const status = safeEvidenceStatus(textValue(c.status ?? c.evidence_status), source, textValue(c.confidence, ''));
   return {
     field,
     value,
-    status: evidenceStatusValue(c.status ?? c.evidence_status),
+    status,
     source,
+    source_url: textValue(c.source_url, ''),
+    source_label: textValue(c.source_label ?? c.source_name, ''),
+    source_metadata: c.source_metadata,
     summary,
     confidence: confidenceValue(c.confidence),
   };
@@ -218,7 +358,7 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
     ...cardsRaw.map((item, i) => normalizeBackendEvidenceCard(item, `Evidence ${i + 1}`)),
     ...verifiedRaw.map((item, i) => {
       const card = normalizeBackendEvidenceCard(item, `Verified fact ${i + 1}`);
-      return { ...card, status: 'verified' as EvidenceStatus };
+      return { ...card, status: safeEvidenceStatus(card.status, card.source, card.confidence) };
     }),
     ...claimsRaw.map((item, i) => {
       const card = normalizeBackendEvidenceCard(item, `Claim ${i + 1}`);
@@ -294,6 +434,14 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
     analysis_quality: r.analysis_quality,
     run_log: asArray(r.run_log),
     innovation_operating_signals: innovation,
+    company_snapshot: r.company_snapshot ?? bundle.company_snapshot,
+    public_positioning: r.public_positioning ?? bundle.public_positioning,
+    public_signals: asArray(r.public_signals).length > 0 ? asArray(r.public_signals) : asArray(bundle.public_signals),
+    financial_signals: r.financial_signals ?? bundle.financial_signals,
+    structured_unknowns: asArray(r.structured_unknowns).length > 0 ? asArray(r.structured_unknowns) : asArray(bundle.structured_unknowns),
+    next_questions: asArray(r.next_questions).length > 0 ? asArray(r.next_questions) : asArray(bundle.next_questions),
+    recommended_documents: asArray(r.recommended_documents).length > 0 ? asArray(r.recommended_documents) : asArray(bundle.recommended_documents),
+    acquisition_readiness_summary: r.acquisition_readiness_summary ?? bundle.acquisition_readiness_summary,
     __sample_fallback: false,
     fallback_used: false,
   };
@@ -900,13 +1048,23 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
   const analysisQuality = asRecord(rawResult.analysis_quality);
   const runLog = asArray(rawResult.run_log);
   const innovationSignals = asRecord(rawResult.innovation_operating_signals);
+  const companySnapshot = asRecord(rawResult.company_snapshot);
+  const publicPositioning = asRecord(rawResult.public_positioning);
+  const publicSignals = asArray(rawResult.public_signals);
+  const financialSignals = asRecord(rawResult.financial_signals);
+  const structuredUnknowns = asArray(rawResult.structured_unknowns);
+  const nextQuestions = asArray(rawResult.next_questions);
+  const recommendedDocuments = asArray(rawResult.recommended_documents);
+  const readinessSummary = asRecord(rawResult.acquisition_readiness_summary);
   const isSampleFallback = result.__sample_fallback === true || result.fallback_used === true;
 
   // Hero metric cards — 5 key acquisition signals
+  const financialStatus = financialStatusCard(result.evidence_cards);
   const topCards = [
     { label: 'Recommendation',     value: result.recommendation,       level: result.recommendation_level },
     { label: 'IC readiness',        value: result.ic_readiness,         level: result.ic_readiness === 'Not ready' ? 'red' : result.ic_readiness === 'Ready' ? 'green' : 'amber' },
     { label: 'Valuation readiness', value: result.valuation_readiness,  level: result.valuation_readiness.startsWith('Block') ? 'red' : result.valuation_readiness.startsWith('Unknown') ? 'grey' : 'amber' },
+    { label: 'Financial status',    value: financialStatus.value,       level: financialStatus.level },
     { label: 'Evidence confidence', value: result.evidence_confidence,  level: result.evidence_confidence === 'High' ? 'green' : result.evidence_confidence === 'Low' ? 'red' : 'amber' },
     { label: 'AI replica risk',     value: result.ai_replica_risk,      level: result.ai_replica_risk === 'High' ? 'red' : result.ai_replica_risk.startsWith('Low') ? 'green' : 'amber' },
   ] as const;
@@ -989,6 +1147,142 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <p className="text-xs text-foreground leading-snug">{result.next_action}</p>
         </div>
       </div>
+
+      {Object.keys(readinessSummary).length > 0 && (
+        <PackSection title="Public Evidence Pack">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              ['What we found', asArray(readinessSummary.what_we_found)],
+              ['What looks interesting', asArray(readinessSummary.what_looks_interesting)],
+              ['What blocks IC', asArray(readinessSummary.not_yet_ic_ready)],
+              ['What would change the recommendation', asArray(readinessSummary.what_would_change_the_recommendation)],
+            ].map(([title, values]) => (
+              <div key={title as string}>
+                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">{title as string}</p>
+                <ul className="space-y-1.5">
+                  {(values as unknown[]).slice(0, 4).map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0" />
+                      {displayValue(item)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Recommended next action</p>
+            <p className="text-xs text-foreground leading-snug">{displayValue(readinessSummary.recommended_next_action, result.next_action)}</p>
+          </div>
+        </PackSection>
+      )}
+
+      {Object.keys(companySnapshot).length > 0 && (
+        <PackSection title="Company Snapshot">
+          <SnapshotGrid snapshot={companySnapshot} />
+        </PackSection>
+      )}
+
+      {Object.keys(publicPositioning).length > 0 && (
+        <PackSection title="Public Positioning">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <PositioningList
+              title="What the company says it does"
+              items={asArray(publicPositioning.what_the_company_says_it_does)}
+              empty="Not found in public-source preview. Check company website and product pages."
+            />
+            <PositioningList
+              title="Core products"
+              items={asArray(publicPositioning.core_products)}
+              empty="Core products not clearly found in public-source preview."
+            />
+            <PositioningList
+              title="Target customers"
+              items={asArray(publicPositioning.target_customers)}
+              empty="Target customers not clearly found in public-source preview."
+            />
+            <PositioningList
+              title="Mission-critical / AI / automation claims"
+              items={[
+                ...asArray(publicPositioning.mission_critical_claims),
+                ...asArray(publicPositioning.ai_or_automation_claims),
+              ]}
+              empty="Mission-critical or AI claims not found in public-source preview."
+            />
+          </div>
+        </PackSection>
+      )}
+
+      <PackSection title="Public Signals" empty={publicSignals.length === 0}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {publicSignals.map((item, i) => {
+            const signal = asRecord(item);
+            const source = sourceLine(signal);
+            return (
+              <div key={i} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-semibold text-foreground">{displayValue(signal.signal ?? `Signal ${i + 1}`)}</p>
+                  <StatusPill label={formatLabel(textValue(signal.classification, 'signal'))} />
+                </div>
+                <p className="text-xs text-muted-foreground leading-snug">{displayValue(signal.summary, 'Not found in public-source preview.')}</p>
+                {source && <p className="text-[10px] text-muted-foreground/50 mt-1">Source: {source}</p>}
+              </div>
+            );
+          })}
+        </div>
+      </PackSection>
+
+      {Object.keys(financialSignals).length > 0 && (
+        <PackSection title="Financial Evidence">
+          <div className="space-y-4">
+            <PositioningList
+              title="Verified financials"
+              items={asArray(financialSignals.verified_financials)}
+              empty="No financial metric was verified from a concrete public source in this run."
+            />
+            <PositioningList
+              title="Unverified financial signals"
+              items={asArray(financialSignals.unverified_financial_signals)}
+              empty="No weak financial signals were retained."
+            />
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Missing financials</p>
+              <ul className="space-y-1.5">
+                {asArray(financialSignals.missing_financials).map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+                    {displayValue(item)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </PackSection>
+      )}
+
+      <PackSection title="Next Questions" empty={nextQuestions.length === 0}>
+        <ol className="space-y-2">
+          {nextQuestions.slice(0, 12).map((question, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 shrink-0">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span>{displayValue(question)}</span>
+            </li>
+          ))}
+        </ol>
+      </PackSection>
+
+      <PackSection title="Documents to Request" empty={recommendedDocuments.length === 0}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {recommendedDocuments.map((document, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-md border border-border/70 bg-card/30 px-3 py-2 text-xs text-muted-foreground">
+              <FileOutput className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+              {displayValue(document)}
+            </div>
+          ))}
+        </div>
+      </PackSection>
 
       {(Object.keys(analysisQuality).length > 0 || runLog.length > 0) && (
         <div className="rounded-lg border border-border overflow-hidden">

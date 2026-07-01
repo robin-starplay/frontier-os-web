@@ -12,13 +12,8 @@
  *   'verified' is downgraded to 'unknown' if source is missing, a dash, or a generic
  *   placeholder ('', '—', '-', 'n/a', 'none', 'not filed', 'not disclosed', 'unknown').
  *
- * Gate 3 — Confidence level:
- *   'verified' is downgraded to 'claim' if confidence is anything other than 'high'
- *   (case-insensitive). Medium or low confidence means the data point has not been
- *   sufficiently corroborated to show as a green Verified fact.
- *
- * Net result: green "Verified" only appears when ALL THREE gates pass:
- *   status === 'verified' AND source is substantive AND confidence === 'high'.
+ * Net result: green "Verified" only appears when both gates pass:
+ *   status === 'verified' AND source is substantive.
  *
  * Strict boundary: frontend-only, no backend imports.
  */
@@ -27,7 +22,7 @@ import type { EvidenceStatus } from './frontierApi';
 
 const CANONICAL: Record<string, EvidenceStatus> = {
   verified:        'verified',
-  confirmed:       'verified',
+  confirmed:       'claim',
   claim:           'claim',
   caveat:          'caveat',
   caveated:        'caveat',
@@ -51,6 +46,13 @@ const CANONICAL: Record<string, EvidenceStatus> = {
 const WEAK_SOURCES = new Set([
   '', '—', '-', '--', 'n/a', 'none',
   'not filed', 'not disclosed', 'unknown',
+  'not verified', 'not verified in this run',
+  'public annual report/results source',
+  'annual report/results source',
+  'source',
+  'url-only analysis',
+  'source not retained in this run',
+  'public financial source not retained',
 ]);
 
 /**
@@ -61,12 +63,12 @@ const WEAK_SOURCES = new Set([
  * @param confidence  Confidence level string, e.g. 'High', 'Medium', 'Low' (may be null/undefined).
  *
  * Returns the canonical EvidenceStatus, guaranteed never to be 'verified' unless
- * all three gates pass.
+ * the backend status is exactly verified and the source attribution is concrete.
  */
 export function safeEvidenceStatus(
   status: string | null | undefined,
   source?: string | null,
-  confidence?: string | null,
+  _confidence?: string | null,
 ): EvidenceStatus {
   const raw = (status ?? '').toLowerCase().trim();
   let resolved: EvidenceStatus = CANONICAL[raw] ?? 'unknown';
@@ -75,12 +77,6 @@ export function safeEvidenceStatus(
     // Gate 2: source quality check
     const src = (source ?? '').trim().toLowerCase();
     if (WEAK_SOURCES.has(src)) return 'unknown';
-
-    // Gate 3: confidence level — only 'high' keeps verified status
-    if (confidence !== undefined && confidence !== null) {
-      const conf = confidence.trim().toLowerCase();
-      if (conf && conf !== 'high') return 'claim';
-    }
   }
 
   return resolved;
