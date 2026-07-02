@@ -340,6 +340,15 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
   // ── Result state ──────────────────────────────────────────────────────────
 
   function resultView(data: DocumentReviewResult, fileName: string, saved: boolean) {
+    const tabCount = (id: ResultTab) => {
+      if (id === 'claims') return data.claims.length;
+      if (id === 'metrics') return data.metrics.length;
+      if (id === 'unknowns') return data.unknowns.length;
+      if (id === 'questions') return data.diligence_questions.length;
+      if (id === 'evidence') return data.evidence_cards.length;
+      return data.limitations.length;
+    };
+
     return (
       <div className="space-y-4">
         {/* Confidentiality warning — shown for flag OR warning string */}
@@ -406,7 +415,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                     : 'border-transparent text-muted-foreground hover:text-foreground',
                 )}
               >
-                {tab.label}
+                {tab.label} <span className="text-muted-foreground/70">({tabCount(tab.id)})</span>
               </button>
             ))}
           </div>
@@ -416,10 +425,20 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
             {/* Claims */}
             {activeTab === 'claims' && (
               data.claims.length === 0
-                ? <p className="text-xs text-muted-foreground py-4 text-center">No claims extracted.</p>
+                ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center">
+                    {data.metrics.length > 0
+                      ? 'No non-metric claims extracted. Metric claims are shown under Metrics.'
+                      : 'No claims extracted.'}
+                  </p>
+                )
                 : data.claims.map((c, i) => (
                   <div key={i} className="rounded-lg border border-border bg-card/30 px-4 py-3">
                     <p className="text-xs text-foreground leading-snug">{c.text}</p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <SectionBadge label={c.type || c.category || 'company claim'} count={1} />
+                      <SectionBadge label={c.verification_status || 'not independently verified'} count={1} />
+                    </div>
                     {c.page !== undefined && (
                       <p className="text-[10px] text-muted-foreground/60 mt-1">Page {c.page}</p>
                     )}
@@ -436,6 +455,9 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                   <div key={i} className="rounded-lg border border-border bg-card/30 px-4 py-3 flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-medium text-foreground">{m.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Company claim · Not independently verified
+                      </p>
                       {m.page !== undefined && (
                         <p className="text-[10px] text-muted-foreground/60">Page {m.page}</p>
                       )}

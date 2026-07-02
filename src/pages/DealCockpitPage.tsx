@@ -3,27 +3,20 @@ import { Link } from 'wouter';
 import { BetaCTA } from '@/components/BetaCTA';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
 import {
-  GitCompare, Clock, ChevronRight, X, FileText,
-  BookMarked, TrendingUp, AlertTriangle, CheckCircle2,
-  PlusCircle, Download, Bell, Lock, ArrowRight,
+  GitCompare, Clock, ChevronRight, X,
+  BookMarked, TrendingUp, AlertTriangle,
+  Lock, ArrowRight,
   ExternalLink, Filter,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EvidenceCard } from '@/components/EvidenceCard';
-import { useAccess } from '@/contexts/AccessContext';
 import { getRuns, type RunEntry } from '@/lib/runHistory';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { getWorkspaceId } from '@/lib/trialAccount';
 import { getCockpitRuns, type CockpitRunRecord } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { useOptionalUser } from '@/lib/optionalClerk';
-import {
-  DEAL_COCKPIT_TARGETS,
-  DECISION_HISTORY,
-  type RecommendationLevel,
-  type CockpitTarget,
-  type DiligenceGap,
-} from '@/data/mockData';
+import type { RecommendationLevel } from '@/data/mockData';
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -82,6 +75,7 @@ function riskChip(risk: string) {
 function confidenceChip(conf: string) {
   if (conf === 'High')   return chip('green', conf);
   if (conf === 'Medium') return chip('amber', conf);
+  if (!isDisplayText(conf)) return chip('grey', 'Not scored');
   return chip('grey', conf);
 }
 
@@ -90,199 +84,60 @@ function safeLevel(level: string): RecommendationLevel {
   return valid.includes(level as RecommendationLevel) ? (level as RecommendationLevel) : 'grey';
 }
 
-function severityColor(s: DiligenceGap['severity']) {
-  if (s === 'blocking') return 'text-red-400';
-  if (s === 'high')     return 'text-amber-400';
-  return 'text-blue-400';
-}
-function severityLabel(s: DiligenceGap['severity']) {
-  if (s === 'blocking') return 'Blocking';
-  if (s === 'high')     return 'High';
-  return 'Medium';
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-
-function Toast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onDismiss, 3500);
-    return () => clearTimeout(t);
-  }, [onDismiss]);
-  return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-lg border border-green-500/30 bg-card px-4 py-3 shadow-lg">
-      <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
-      <span className="text-sm text-foreground">{message}</span>
-      <button onClick={onDismiss} className="ml-2 text-muted-foreground hover:text-foreground">
-        <X className="w-3.5 h-3.5" />
-      </button>
-    </div>
-  );
+function isDisplayText(value: string | undefined | null): value is string {
+  if (!value) return false;
+  const text = value.trim();
+  if (!text) return false;
+  const lowered = text.toLowerCase();
+  return lowered !== 'unavailable in this preview'
+    && lowered !== 'unknown'
+    && lowered !== 'n/a'
+    && lowered !== 'na'
+    && text !== '—'
+    && text !== '-';
 }
 
-// ─── Add Decision Modal ───────────────────────────────────────────────────────
-
-function AddDecisionModal({
-  targetName, onClose, onConfirm,
-}: { targetName: string; onClose: () => void; onConfirm: (note: string) => void }) {
-  const [note, setNote] = useState('');
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card shadow-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-0.5">Add decision</p>
-            <p className="text-sm font-semibold text-foreground">{targetName}</p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
-        </div>
-        <div className="px-5 py-4">
-          <span className="text-xs text-muted-foreground block mb-1.5">Decision note</span>
-          <textarea
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-            rows={3}
-            placeholder="e.g. Requested financials from CFO. Awaiting response by 30 Jun."
-            value={note}
-            onChange={e => setNote(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
-          <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md transition-colors">Cancel</button>
-          <button
-            onClick={() => { if (note.trim()) onConfirm(note); }}
-            disabled={!note.trim()}
-            className="text-sm font-medium bg-primary text-primary-foreground px-4 py-1.5 rounded-md disabled:opacity-40 transition-opacity"
-          >Confirm</button>
-        </div>
-      </div>
-    </div>
-  );
+function displayText(value: string | undefined | null): string | null {
+  return isDisplayText(value) ? value.trim() : null;
 }
 
-// ─── Sample Detail Panel (CockpitTarget) ──────────────────────────────────────
+function sourceTypeLabel(type: RunEntry['type']): string {
+  if (type === 'compare') return 'Compare';
+  if (type === 'document') return 'Document-assisted';
+  return 'URL screen';
+}
 
-function DetailPanel({ target, onClose }: { target: CockpitTarget; onClose: () => void }) {
-  return (
-    <>
-      <div className="fixed inset-0 z-30 bg-background/60 backdrop-blur-sm lg:hidden" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-40 w-full max-w-sm sm:max-w-md lg:static lg:z-auto lg:inset-auto flex flex-col bg-card border-l border-border shadow-2xl lg:shadow-none lg:rounded-lg lg:border overflow-y-auto">
-        {/* header */}
-        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-border shrink-0 sticky top-0 bg-card z-10">
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Target detail</p>
-            <p className="text-sm font-semibold text-foreground leading-snug">{target.company}</p>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="text-[10px] font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">{target.jurisdiction}</span>
-              {chip(target.recommendationLevel, target.recommendation)}
-            </div>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5"><X className="w-4 h-4" /></button>
-        </div>
+function companyDedupeKey(company: string): string {
+  return company
+    .toLowerCase()
+    .replace(/^the\s+/i, '')
+    .replace(/\b(plc|limited|ltd|inc|corp|corporation|company|co)\b\.?/gi, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-center justify-center w-14 h-14 rounded-full border-2 border-primary/30 bg-primary/5 shrink-0">
-              <span className="text-xl font-bold text-primary leading-none">{target.score}</span>
-              <span className="text-[9px] font-mono text-muted-foreground mt-0.5">/100</span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground mb-1">Strategic fit</p>
-              <p className="text-sm text-foreground font-medium">{target.strategicFit}</p>
-            </div>
-          </div>
+function dedupeTargetRuns(runs: RunEntry[]): RunEntry[] {
+  const seen = new Set<string>();
+  return runs.filter((run) => {
+    const key = `${run.type}:${companyDedupeKey(run.company) || run.company.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <FileText className="w-3.5 h-3.5 text-primary" />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Decision summary</p>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">{target.decisionSummary}</p>
-          </div>
+function mainBlocker(run: RunEntry): string | null {
+  const blocker = run.blockers.find(isDisplayText);
+  if (blocker) return blocker;
+  const blockingCard = run.result?.evidence_cards?.find(c => c.status === 'blocking');
+  return displayText(blockingCard?.field) ?? displayText(blockingCard?.summary);
+}
 
-          <div>
-            <div className="flex items-center gap-1.5 mb-3">
-              <BookMarked className="w-3.5 h-3.5 text-primary" />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Top evidence</p>
-            </div>
-            <div className="space-y-2">
-              {target.topEvidenceCards.map((ev, i) => (
-                <EvidenceCard key={i} field={ev.field} value={ev.value} source={ev.source} confidence={ev.confidence} status={ev.status} />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1.5 mb-3">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Top diligence gaps</p>
-            </div>
-            <div className="space-y-2">
-              {target.topDiligenceGaps.map((gap, i) => (
-                <div key={i} className="rounded-md border border-border bg-background p-3 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className={cn('text-[10px] font-mono font-semibold', severityColor(gap.severity))}>{severityLabel(gap.severity)}</span>
-                    <span className="text-xs font-medium text-foreground">{gap.label}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-snug">{gap.note}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <TrendingUp className="w-3.5 h-3.5 text-primary" />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">AI disruption summary</p>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">{target.aiDisruptionSummary}</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-[10px] font-mono text-muted-foreground">AI replica risk:</span>
-              {riskChip(target.aiReplicaRisk)}
-            </div>
-          </div>
-
-          <div className="rounded-md border border-border bg-muted/20 p-3 space-y-2">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Readiness</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-[10px] text-muted-foreground/60 mb-0.5">IC readiness</p>
-                <p className="text-xs text-foreground font-medium">{target.icReadiness}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground/60 mb-0.5">Valuation readiness</p>
-                <p className="text-xs text-foreground font-medium">{target.valuationReadiness}</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1.5 mb-3">
-              <Clock className="w-3.5 h-3.5 text-primary" />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Decision history</p>
-            </div>
-            <div className="space-y-2">
-              {target.detailDecisionHistory.map((h, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="text-[10px] text-muted-foreground/60 shrink-0 mt-0.5 w-14">{h.date.slice(5)}</span>
-                  <div>
-                    <p className="text-[11px] font-mono text-primary">{h.action}</p>
-                    <p className="text-xs text-muted-foreground leading-snug">{h.note}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-2">
-            <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors">
-              Request private beta access
-            </Link>
-          </div>
-        </div>
-        <div className="shrink-0 px-5 py-3 border-t border-border bg-card">
-          <p className="text-[10px] font-mono text-muted-foreground/50 text-center">Private beta · example preview</p>
-        </div>
-      </div>
-    </>
+function runRecommendation(run: RunEntry): string {
+  return displayText(run.recommendation) ?? (
+    run.type === 'document' ? 'Document reviewed' :
+    run.type === 'compare' ? 'Compared target' :
+    'Saved screen'
   );
 }
 
@@ -347,21 +202,23 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
             <div className="px-5 py-4 space-y-5">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'IC readiness',        value: run.ic_readiness },
-                  { label: 'Evidence confidence', value: run.evidence_confidence },
-                  { label: 'Strategic fit',       value: run.strategic_fit_label },
-                  { label: 'Valuation readiness', value: run.valuation_readiness || (run.result?.valuation_readiness ?? '—') },
-                ].map(({ label, value }) => (
+                  { label: 'IC readiness',        value: displayText(run.ic_readiness) },
+                  { label: 'Evidence confidence', value: displayText(run.evidence_confidence) },
+                  { label: 'Strategic fit',       value: displayText(run.strategic_fit_label) },
+                  { label: 'Valuation readiness', value: displayText(run.valuation_readiness) ?? displayText(run.result?.valuation_readiness) },
+                ].filter(({ value }) => value).map(({ label, value }) => (
                   <div key={label} className="rounded-md border border-border bg-background p-3">
                     <p className="text-[10px] text-muted-foreground/60 mb-1">{label}</p>
-                    <p className="text-sm font-medium text-foreground leading-snug">{value || '—'}</p>
+                    <p className="text-sm font-medium text-foreground leading-snug">{value}</p>
                   </div>
                 ))}
               </div>
-              <div className="rounded-md border border-border bg-background p-3 flex items-center justify-between">
-                <p className="text-[10px] text-muted-foreground/60">AI replica risk</p>
-                {riskChip(run.ai_replica_risk)}
-              </div>
+              {displayText(run.ai_replica_risk) && (
+                <div className="rounded-md border border-border bg-background p-3 flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground/60">AI replica risk</p>
+                  {riskChip(run.ai_replica_risk)}
+                </div>
+              )}
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
                   <ChevronRight className="w-3.5 h-3.5 text-primary" />
@@ -444,10 +301,12 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
           {/* ── AI Risk ── */}
           {activeTab === 'ai-risk' && (
             <div className="px-5 py-4 space-y-4">
-              <div className="rounded-md border border-border bg-background p-3 flex items-center justify-between">
-                <p className="text-[10px] text-muted-foreground/60">AI replica risk</p>
-                {riskChip(run.ai_replica_risk)}
-              </div>
+              {displayText(run.ai_replica_risk) && (
+                <div className="rounded-md border border-border bg-background p-3 flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground/60">AI replica risk</p>
+                  {riskChip(run.ai_replica_risk)}
+                </div>
+              )}
               {run.result?.ai_disruption ? (
                 <>
                   <div className="grid grid-cols-2 gap-3">
@@ -456,7 +315,10 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                       { label: 'Inference economics', value: run.result.ai_disruption.inference_economics },
                       { label: 'Product expansion',   value: run.result.ai_disruption.product_expansion },
                       { label: 'OPEX improvement',    value: run.result.ai_disruption.opex_improvement },
-                    ] as { label: string; value: string | undefined }[]).filter(r => r.value).map(row => (
+                    ] as { label: string; value: string | undefined }[])
+                      .map(row => ({ ...row, value: displayText(row.value) }))
+                      .filter(r => r.value)
+                      .map(row => (
                       <div key={row.label} className="rounded-md border border-border bg-background p-3">
                         <p className="text-[10px] text-muted-foreground/60 mb-1">{row.label}</p>
                         <p className="text-xs text-foreground leading-snug">{row.value}</p>
@@ -716,11 +578,97 @@ function cockpitNextAction(run: RunEntry): string {
   return `${run.company}: review evidence gaps before IC use.`;
 }
 
+function SavedRunCard({
+  run,
+  active,
+  onSelect,
+  compact = false,
+}: {
+  run: RunEntry;
+  active: boolean;
+  onSelect: () => void;
+  compact?: boolean;
+}) {
+  const blocker = mainBlocker(run);
+  const icReadiness = displayText(run.ic_readiness);
+  const confidence = displayText(run.evidence_confidence);
+  const nextAction = cockpitNextAction(run);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'w-full text-left rounded-lg border bg-card p-4 transition-colors',
+        active ? 'border-primary/50 bg-primary/5' : 'border-border hover:bg-muted/20',
+      )}
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              <span className={cn(
+                'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-mono',
+                run.type === 'compare' ? 'text-blue-400' : run.type === 'document' ? 'text-violet-400' : 'text-primary',
+              )}>
+                {sourceTypeLabel(run.type)}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Clock className="w-3 h-3" /> {formatTs(run.timestamp)}
+              </span>
+            </div>
+            <p className="text-base font-semibold text-foreground leading-snug break-words">{run.company}</p>
+            {displayText(run.website) && (
+              <p className="text-xs text-muted-foreground mt-0.5 break-all">{run.website}</p>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {chip(safeLevel(run.recommendation_level), runRecommendation(run))}
+            {run.blockers.length > 0 && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 whitespace-nowrap">
+                {run.blockers.length} blocker{run.blockers.length === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {icReadiness && (
+            <div className="rounded-md border border-border/70 bg-background/60 p-3">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-1">IC readiness</p>
+              <p className="text-sm text-foreground leading-snug">{icReadiness}</p>
+            </div>
+          )}
+          {confidence && (
+            <div className="rounded-md border border-border/70 bg-background/60 p-3">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-1">Evidence confidence</p>
+              <div>{confidenceChip(confidence)}</div>
+            </div>
+          )}
+          {blocker && (
+            <div className="rounded-md border border-border/70 bg-background/60 p-3 sm:col-span-2 xl:col-span-1">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-1">Main blocker</p>
+              <p className="text-sm text-foreground leading-snug">{blocker}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-md border border-primary/15 bg-primary/5 p-3 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Next action</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{nextAction}</p>
+          </div>
+          {!compact && <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0 mt-0.5" />}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DealCockpitPage() {
   const { isLoaded, isSignedIn } = useOptionalUser();
-  const { openGate } = useAccess();
 
   // ── Run history ──
   // Lazy initializer: reads localStorage synchronously on first render so
@@ -763,15 +711,11 @@ export default function DealCockpitPage() {
   }, []);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
-  // ── Sample-mode state (used when no real runs) ──
-  const [activeTarget, setActiveTarget] = useState<CockpitTarget | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const [addDecisionTarget, setAddDecisionTarget] = useState<CockpitTarget | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [monitorOverrides, setMonitorOverrides] = useState<Record<string, boolean>>({});
-
   const hasRealRuns = runs.length > 0;
-  const filteredRuns = applyFilter(runs, activeFilter);
+  const targetRuns = dedupeTargetRuns(runs.filter(r => r.type !== 'compare'));
+  const comparisonRuns = runs.filter(r => r.type === 'compare');
+  const filteredRuns = applyFilter(targetRuns, activeFilter);
+  const filteredComparisons = applyFilter(comparisonRuns, activeFilter);
   const activeRun = runs.find(r => r.id === activeRunId) ?? null;
 
   // ── Summary stats from real runs ──
@@ -782,44 +726,6 @@ export default function DealCockpitPage() {
     blockers: runs.reduce((acc, r) => acc + r.blockers.length, 0),
     compared: runs.filter(r => r.type === 'compare').length,
   };
-
-  // ── Sample-mode helpers ──
-  function showToast(msg: string) { setToast(msg); }
-
-  function toggleSelect(company: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    setSelected(prev => prev.includes(company) ? prev.filter(c => c !== company) : [...prev, company]);
-  }
-
-  function effectiveStatus(t: CockpitTarget) {
-    return monitorOverrides[t.company] ? 'Monitor' : t.pipelineStatus;
-  }
-  function effectiveLevel(t: CockpitTarget): RecommendationLevel {
-    return monitorOverrides[t.company] ? 'blue' : t.recommendationLevel;
-  }
-
-  function handleMarkMonitor() {
-    if (selected.length === 0) { showToast('Select at least one target to mark as monitor.'); return; }
-    const upd = { ...monitorOverrides };
-    selected.forEach(c => { upd[c] = true; });
-    setMonitorOverrides(upd);
-    showToast(`${selected.length} target${selected.length > 1 ? 's' : ''} marked as monitor.`);
-    setSelected([]);
-  }
-  function handleRequestFinancials() {
-    if (selected.length === 0) { showToast('Select at least one target first.'); return; }
-    showToast(`Financial request queued for ${selected.length} target${selected.length > 1 ? 's' : ''}. (Private beta — no email sent.)`);
-  }
-  function handleExportIC() { openGate('export'); }
-  function handleAddDecision() {
-    if (selected.length !== 1) { showToast('Select exactly one target to add a decision.'); return; }
-    const t = DEAL_COCKPIT_TARGETS.find(t => t.company === selected[0]);
-    if (t) setAddDecisionTarget(t);
-  }
-  function handleDecisionConfirm() {
-    showToast(`Decision recorded for ${addDecisionTarget?.company?.split(' ')[0]}. (Private beta — not persisted.)`);
-    setAddDecisionTarget(null);
-  }
 
   return (
     <div className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 md:px-8 py-10">
@@ -911,7 +817,7 @@ export default function DealCockpitPage() {
             // Deduplicate by normalized company name — strip leading article so
             // "The X Ltd" and "X Ltd" collapse to the same key (newest-first wins)
             const seen = new Set<string>();
-            const deduped = runs.filter(r => {
+            const deduped = targetRuns.filter(r => {
               const key = r.company.trim().toLowerCase().replace(/^the\s+/i, '');
               if (seen.has(key)) return false;
               seen.add(key);
@@ -958,103 +864,47 @@ export default function DealCockpitPage() {
             ))}
           </div>
 
-          {/* Main layout: table + detail panel */}
+          {/* Main layout: saved-run cards + detail panel */}
           <div className="flex flex-col lg:flex-row gap-6">
             <div className={cn('flex-1 min-w-0', activeRun ? 'lg:max-w-[calc(100%-22rem-1.5rem)]' : '')}>
-              <div className="rounded-lg border border-border overflow-hidden">
-                {/* Column headers */}
-                <div
-                  className="hidden md:grid px-4 py-2.5 bg-muted/30 border-b border-border text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
-                  style={{ gridTemplateColumns: '1fr 130px 80px 90px 110px 80px 60px' }}
-                >
-                  <span>Company</span>
-                  <span>Recommendation</span>
-                  <span>IC ready</span>
-                  <span>Valuation</span>
-                  <span>AI replica risk</span>
-                  <span>Confidence</span>
-                  <span>Blockers</span>
-                </div>
-
-                {filteredRuns.length === 0 ? (
-                  <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    No runs match this filter.
+              <div className="space-y-3">
+                {filteredRuns.length === 0 && filteredComparisons.length === 0 ? (
+                  <div className="rounded-lg border border-border bg-card/40 px-4 py-10 text-center text-sm text-muted-foreground">
+                    No saved runs match this filter.
                   </div>
-                ) : (
+                ) : filteredRuns.length > 0 ? (
                   filteredRuns.map((run) => (
-                    <div
+                    <SavedRunCard
                       key={run.id}
-                      className={cn(
-                        'group border-b border-border last:border-0 cursor-pointer transition-colors',
-                        activeRunId === run.id
-                          ? 'bg-primary/8 border-l-2 border-l-primary'
-                          : 'hover:bg-muted/20',
-                      )}
-                      onClick={() => setActiveRunId(prev => prev === run.id ? null : run.id)}
-                    >
-                      {/* Mobile */}
-                      <div className="md:hidden px-4 py-4 flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1.5">
-                            <p className="text-sm font-semibold text-foreground leading-snug">{run.company}</p>
-                            {chip(safeLevel(run.recommendation_level), run.recommendation)}
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-2">
-                            <span className={cn('px-1.5 py-0.5 rounded bg-muted/40 font-mono', run.type === 'compare' ? 'text-blue-400' : run.type === 'document' ? 'text-violet-400' : 'text-primary')}>
-                              {run.type === 'compare' ? 'Compare' : run.type === 'document' ? 'Doc review' : 'URL screen'}
-                            </span>
-                            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" /> {formatTs(run.timestamp)}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <div><p className="text-[10px] text-muted-foreground/60">{run.type === 'document' ? 'Extraction' : 'IC readiness'}</p><p className="text-xs text-foreground">{run.ic_readiness}</p></div>
-                            <div><p className="text-[10px] text-muted-foreground/60">AI replica risk</p>{riskChip(run.ai_replica_risk)}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Desktop */}
-                      <div
-                        className="hidden md:grid items-start gap-4 px-4 py-4 w-full"
-                        style={{ gridTemplateColumns: '1fr 130px 80px 90px 110px 80px 60px' }}
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-foreground leading-snug">{run.company}</p>
-                          <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                            <span className={cn('px-1.5 py-0.5 rounded bg-muted/40 font-mono', run.type === 'compare' ? 'text-blue-400' : run.type === 'document' ? 'text-violet-400' : 'text-primary')}>
-                              {run.type === 'compare' ? 'Compare' : run.type === 'document' ? 'Doc review' : 'URL screen'}
-                            </span>
-                            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" /> {formatTs(run.timestamp)}</span>
-                          </div>
-                        </div>
-                        <div className="pt-0.5">{chip(safeLevel(run.recommendation_level), run.recommendation)}</div>
-                        <div className="pt-0.5"><span className="text-xs text-foreground">{run.ic_readiness}</span></div>
-                        <div className="pt-0.5">
-                          <span className="text-[11px] text-muted-foreground leading-snug">
-                            {run.valuation_readiness ? run.valuation_readiness.split(' — ')[0] : '—'}
-                          </span>
-                        </div>
-                        <div className="pt-0.5">{riskChip(run.ai_replica_risk)}</div>
-                        <div className="pt-0.5">{confidenceChip(run.evidence_confidence)}</div>
-                        <div className="pt-0.5">
-                          {run.blockers.length > 0
-                            ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">{run.blockers.length}</span>
-                            : <span className="text-xs text-muted-foreground/40">—</span>
-                          }
-                        </div>
-                      </div>
-
-                      {/* Next action row */}
-                      <div className="px-4 pb-3 flex items-center justify-between gap-4">
-                        <p className="text-xs text-muted-foreground leading-snug">
-                          <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/60 mr-1.5">Next action:</span>
-                          {cockpitNextAction(run)}
-                        </p>
-                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 group-hover:text-muted-foreground transition-colors" />
-                      </div>
-                    </div>
+                      run={run}
+                      active={activeRunId === run.id}
+                      onSelect={() => setActiveRunId(prev => prev === run.id ? null : run.id)}
+                    />
                   ))
-                )}
+                ) : null}
               </div>
+
+              {filteredComparisons.length > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <GitCompare className="w-3.5 h-3.5 text-blue-400" />
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                      Comparisons ({filteredComparisons.length})
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {filteredComparisons.map((run) => (
+                      <SavedRunCard
+                        key={run.id}
+                        run={run}
+                        active={activeRunId === run.id}
+                        onSelect={() => setActiveRunId(prev => prev === run.id ? null : run.id)}
+                        compact
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Bottom CTAs */}
               <div className="mt-4 flex flex-wrap gap-2">
@@ -1101,9 +951,9 @@ export default function DealCockpitPage() {
           {/* ── 1. Empty state — always first ── */}
           <div className="flex flex-col items-center justify-center py-12 gap-5 text-center rounded-lg border border-border bg-card/30 mb-6">
             <div>
-              <p className="text-base font-semibold text-foreground mb-1">No saved targets yet.</p>
+              <p className="text-base font-semibold text-foreground mb-1">No saved runs yet.</p>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Run your first acquisition screen or compare targets to populate the Cockpit.
+                Run a screen to start building your Deal Cockpit.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -1131,190 +981,8 @@ export default function DealCockpitPage() {
             </div>
           )}
 
-          {/* ── 3. Example cockpit preview — always below empty state ── */}
-          <div className="mb-4">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-4">
-              Example cockpit preview
-            </p>
-          </div>
-
-          {/* Priority next actions (example) */}
-          <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-5">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">Priority next actions · example</p>
-            <div className="space-y-3">
-              {[
-                { target: 'LedgerWorks Billing Ltd.', action: 'Request ARR bridge and SaaS/services split before IC.' },
-                { target: 'Illustrative Target Co.', action: 'Verify live AI usage, model costs and customer adoption — technical diligence session required.' },
-                { target: 'VerticalOps CRM GmbH', action: 'Confirm German Handelsregister filings — registry data blocking IC readiness.' },
-              ].map(({ target, action }) => (
-                <div key={target} className="flex items-start gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                  <div>
-                    <span className="text-sm font-medium text-foreground">{cockpitShortName(target)} — </span>
-                    <span className="text-sm text-muted-foreground">{action}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions bar (locked) */}
-          <div className="flex flex-wrap items-center gap-2 mb-6 p-3 rounded-lg border border-border bg-muted/20">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mr-1 hidden sm:inline">Actions:</span>
-            {['Compare selected', 'Add decision', 'Export IC screen', 'Mark as monitor', 'Request financials'].map(label => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background px-3 py-1.5 rounded-md text-muted-foreground/50 select-none"
-                aria-disabled="true"
-                title="Run a screen to unlock these actions"
-              >
-                <Lock className="w-3 h-3" /> {label}
-              </span>
-            ))}
-          </div>
-
-          {/* Example target list */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            <div className={cn('flex-1 min-w-0', activeTarget ? 'lg:max-w-[calc(100%-22rem-1.5rem)]' : '')}>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div className="hidden md:grid px-4 py-2.5 bg-muted/30 border-b border-border text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
-                  style={{ gridTemplateColumns: '1fr 130px 80px 90px 110px 80px' }}>
-                  <span>Company</span>
-                  <span>Recommendation</span>
-                  <span>IC ready</span>
-                  <span>Valuation</span>
-                  <span>AI replica risk</span>
-                  <span>Confidence</span>
-                </div>
-
-                {DEAL_COCKPIT_TARGETS.map((t) => (
-                  <div
-                    key={t.company}
-                    className={cn(
-                      'group border-b border-border last:border-0 cursor-pointer transition-colors',
-                      activeTarget?.company === t.company
-                        ? 'bg-primary/8 border-l-2 border-l-primary'
-                        : selected.includes(t.company)
-                          ? 'bg-primary/5'
-                          : 'hover:bg-muted/20'
-                    )}
-                    onClick={() => setActiveTarget(t)}
-                  >
-                    {/* Mobile */}
-                    <div className="md:hidden flex items-start gap-3 px-4 py-4">
-                      <input type="checkbox" aria-label={`Select ${t.company}`} className="mt-0.5 shrink-0 accent-primary" checked={selected.includes(t.company)} onChange={() => {}} onClick={e => toggleSelect(t.company, e)} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground leading-snug">{t.company}</p>
-                          {chip(effectiveLevel(t), effectiveStatus(t))}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">{t.jurisdiction}</span>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{t.lastRun.slice(5)}</span>
-                        </div>
-                        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
-                          <div><p className="text-[10px] text-muted-foreground/60">IC readiness</p><p className="text-xs text-foreground">{t.icReadiness}</p></div>
-                          <div><p className="text-[10px] text-muted-foreground/60">AI replica risk</p>{riskChip(t.aiReplicaRisk)}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Desktop */}
-                    <div className="hidden md:grid items-start gap-4 px-4 py-4 w-full" style={{ gridTemplateColumns: '1fr 130px 80px 90px 110px 80px' }}>
-                      <div className="flex items-start gap-3">
-                        <input type="checkbox" aria-label={`Select ${t.company}`} className="mt-0.5 shrink-0 accent-primary" checked={selected.includes(t.company)} onChange={() => {}} onClick={e => toggleSelect(t.company, e)} />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground leading-snug">{t.company}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">{t.jurisdiction}</span>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{t.lastRun.slice(5)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="pt-0.5">{chip(effectiveLevel(t), effectiveStatus(t))}</div>
-                      <div className="pt-0.5"><span className="text-xs text-foreground">{t.icReadiness}</span></div>
-                      <div className="pt-0.5"><span className="text-[11px] text-muted-foreground leading-snug">{t.valuationReadiness.split(' — ')[0]}</span></div>
-                      <div className="pt-0.5">{riskChip(t.aiReplicaRisk)}</div>
-                      <div className="pt-0.5">{confidenceChip(t.evidenceConfidence)}</div>
-                    </div>
-
-                    <div className="px-4 pb-3 pl-11 flex items-center justify-between gap-4">
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/60 mr-1.5">Next action:</span>
-                        {t.nextAction}
-                      </p>
-                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 group-hover:text-muted-foreground transition-colors" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Decision history */}
-              <div className="hidden lg:block mt-6 rounded-lg border border-border bg-card/50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-border">
-                  <p className="text-sm font-semibold text-foreground">Decision history · example</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Example actions across this cohort.</p>
-                </div>
-                <div className="divide-y divide-border">
-                  {DECISION_HISTORY.map((h, i) => (
-                    <div key={i} className="px-4 py-3 grid grid-cols-[1fr_auto] gap-3 items-start">
-                      <div className="space-y-0.5">
-                        <p className="text-[11px] font-mono text-primary">{h.action}</p>
-                        <p className="text-xs text-muted-foreground leading-snug">{h.company.split(' ')[0]} — {h.note}</p>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{h.date.slice(5)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Detail panel — example */}
-            {activeTarget && !window.matchMedia('(min-width: 1024px)').matches && (
-              <DetailPanel target={activeTarget} onClose={() => setActiveTarget(null)} />
-            )}
-            {activeTarget && (
-              <div className="hidden lg:flex flex-col w-96 shrink-0">
-                <DetailPanel target={activeTarget} onClose={() => setActiveTarget(null)} />
-              </div>
-            )}
-
-            {/* Right sidebar — no detail open */}
-            {!activeTarget && (
-              <div className="w-full lg:w-72 shrink-0">
-                <div className="rounded-lg border border-border bg-card/50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border">
-                    <p className="text-sm font-semibold text-foreground">Decision history · example</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Example actions across this cohort.</p>
-                  </div>
-                  <div className="divide-y divide-border">
-                    {DECISION_HISTORY.map((h, i) => (
-                      <div key={i} className="px-4 py-3 space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-foreground truncate">{h.company.split(' ')[0]}</span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">{h.date.slice(5)}</span>
-                        </div>
-                        <p className="text-[11px] font-mono text-primary">{h.action}</p>
-                        <p className="text-xs text-muted-foreground leading-snug">{h.note}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </>
       )}
-
-      {/* ── Modals & toasts ── */}
-      {addDecisionTarget && (
-        <AddDecisionModal
-          targetName={addDecisionTarget.company}
-          onClose={() => setAddDecisionTarget(null)}
-          onConfirm={handleDecisionConfirm}
-        />
-      )}
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
 
       {/* Feedback CTA */}
       <div className="mt-10 py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">

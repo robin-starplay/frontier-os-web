@@ -106,19 +106,25 @@ export default function RequestPilotPage() {
       setFallbackEmail(contactEmail);
       setBookIntroUrl(bookingUrl);
 
-      if (res.ok && (data?.sent === true || data?.status === 'ok')) {
-        setResponseMessage(typeof data?.message === 'string' ? data.message : 'Request received');
-        setSubmitState('success');
-        return;
-      }
-
-      if (res.ok && data?.sent === false && data?.reason === 'email_not_configured') {
+      if (
+        res.ok &&
+        (
+          (data?.sent === false && data?.reason === 'email_not_configured') ||
+          data?.delivery_mode === 'email_not_configured'
+        )
+      ) {
         setResponseMessage(
           typeof data?.message === 'string'
             ? data.message
             : `Please email ${contactEmail} or book a 30-minute intro.`,
         );
         setSubmitState('fallback');
+        return;
+      }
+
+      if (res.ok && (data?.sent === true || data?.status === 'ok')) {
+        setResponseMessage(typeof data?.message === 'string' ? data.message : 'Request received');
+        setSubmitState('success');
         return;
       }
 

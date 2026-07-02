@@ -24,7 +24,7 @@ const APP_NAV = [
 // Secondary informational links (trust, pricing, faq) are intentionally included
 // so signed-in users can access them without leaving the app shell.
 const APP_MORE = [
-  { label: 'Settings', href: '/app/settings' },
+  { label: 'Workspace', href: '/app/settings' },
   { label: 'Trust',    href: '/trust' },
   { label: 'Pricing',  href: '/pricing' },
   { label: 'FAQ',      href: '/faq' },

@@ -19,6 +19,11 @@ import { getBackendBaseUrl } from './frontierApi';
 
 export interface DocClaim {
   text: string;
+  category?: string;
+  type?: string;
+  classification?: string;
+  verification_status?: string;
+  source?: string;
   page?: number;
   confidence?: string;
 }
@@ -26,6 +31,11 @@ export interface DocClaim {
 export interface DocMetric {
   label: string;
   value: string;
+  text?: string;
+  type?: string;
+  classification?: string;
+  verification_status?: string;
+  source?: string;
   page?: number;
 }
 
@@ -111,20 +121,32 @@ function normalizeDocumentReviewResult(raw: unknown): DocumentReviewResult {
   const claims: DocClaim[] = rawClaims.map(c => {
     const o = asObj(c);
     return {
-      text: asStr(o.text ?? o.claim ?? o.content ?? (typeof c === 'string' ? c : '')),
+      text: asStr(o.text ?? o.claim_text ?? o.claim ?? o.content ?? (typeof c === 'string' ? c : '')),
+      category: asStr(o.category ?? o.claim_type ?? o.type, 'claim'),
+      type: asStr(o.type ?? o.claim_type ?? o.category, 'claim'),
+      classification: asStr(o.classification, 'company_claim'),
+      verification_status: asStr(o.verification_status ?? o.evidence_status, 'not_independently_verified'),
+      source: asStr(o.source ?? o.source_label, 'uploaded_document'),
       page: typeof o.page === 'number' ? o.page : undefined,
       confidence: typeof o.confidence === 'string' ? o.confidence : undefined,
     };
   }).filter(c => c.text.length > 0);
 
   // ── Metrics ───────────────────────────────────────────────────────────────
-  // Backend may use: metrics | metric_list | key_metrics
-  const rawMetrics = asArr<unknown>(r.metrics ?? r.metric_list ?? r.key_metrics);
+  // Backend may use: metrics | extracted_metrics | metric_claims | financial_claims | metric_list | key_metrics
+  const rawMetrics = asArr<unknown>(
+    r.metrics ?? r.extracted_metrics ?? r.metric_claims ?? r.financial_claims ?? r.metric_list ?? r.key_metrics,
+  );
   const metrics: DocMetric[] = rawMetrics.map(m => {
     const o = asObj(m);
     return {
-      label: asStr(o.label ?? o.name ?? o.metric ?? o.key),
+      label: asStr(o.label ?? o.metric_name ?? o.name ?? o.metric ?? o.key),
       value: asStr(o.value ?? o.amount ?? o.figure ?? ''),
+      text: asStr(o.text ?? ''),
+      type: asStr(o.type, 'metric'),
+      classification: asStr(o.classification, 'company_claim'),
+      verification_status: asStr(o.verification_status ?? o.evidence_status, 'not_independently_verified'),
+      source: asStr(o.source ?? o.source_label, 'uploaded_document'),
       page: typeof o.page === 'number' ? o.page : undefined,
     };
   }).filter(m => m.label.length > 0 || m.value.length > 0);
@@ -195,8 +217,8 @@ function normalizeDocumentReviewResult(raw: unknown): DocumentReviewResult {
     pages_processed:  asNum(r.pages_processed ?? r.pages ?? r.page_count),
     confidentiality_flag,
     confidentiality_warning,
-    claims_extracted:        asNum(r.claims_extracted ?? r.claim_count ?? claims.length),
-    metrics_extracted:       asNum(r.metrics_extracted ?? r.metric_count ?? metrics.length),
+    claims_extracted:        claims.length,
+    metrics_extracted:       metrics.length,
     recommended_next_action: asStr(r.recommended_next_action ?? r.next_action ?? r.recommendation),
     company_name: typeof r.company_name === 'string' ? r.company_name : undefined,
     claims,

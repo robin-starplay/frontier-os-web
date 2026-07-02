@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ArrowRight, LogOut, Trash2, RotateCcw, Activity, Loader2, WifiOff } from 'lucide-react';
+import { ArrowRight, LogOut, Trash2, RotateCcw, Activity, Loader2, WifiOff, ChevronDown } from 'lucide-react';
 import {
   getTrialAccount,
   getWorkspaceId,
@@ -104,8 +104,11 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-3xl mx-auto px-4 md:px-8 py-10">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Settings</p>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Account settings</h1>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Workspace</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Workspace</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Manage your reviewer workspace, saved screens and private beta usage.
+          </p>
         </div>
       </div>
 
@@ -130,76 +133,8 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground">
               {clerkEnabled && isSignedIn
                 ? 'Profile details are managed through your Clerk account. Use the avatar menu in the top nav to update your profile or change your password.'
-                : 'This reviewer workspace is stored locally in this browser and connected to the Frontier OS backend workspace IDs below.'}
+                : 'This reviewer workspace is stored locally in this browser. Create a workspace or run a screen to keep building your saved acquisition screens.'}
             </p>
-          </div>
-        </section>
-
-        {/* Backend connection */}
-        <section className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Backend connection</p>
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium border ${
-              isBackendConfigured()
-                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                : 'bg-muted/20 text-muted-foreground border-border'
-            }`}>
-              {isBackendConfigured() ? 'CONFIGURED' : 'NOT SET'}
-            </span>
-          </div>
-          <div className="px-5 py-5 space-y-4">
-            {/* Local API server */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${
-                localApi.status === 'ok' ? 'bg-green-400' :
-                localApi.status === 'error' ? 'bg-red-400' : 'bg-muted-foreground/40'
-              }`} />
-              {localApi.status === 'checking'
-                ? <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-                : localApi.status === 'ok'
-                  ? <Activity className="w-3 h-3 text-green-400" />
-                  : <WifiOff className="w-3 h-3 text-red-400" />}
-              <span className={`font-medium ${
-                localApi.status === 'ok' ? 'text-green-400' :
-                localApi.status === 'error' ? 'text-red-400' : 'text-muted-foreground'
-              }`}>
-                {localApi.status === 'ok' ? 'Local API server healthy' :
-                 localApi.status === 'error' ? 'Local API server unreachable' : 'Checking local API…'}
-              </span>
-              <span className="text-muted-foreground/50 font-mono text-[10px]">/api/healthz</span>
-              <button
-                type="button"
-                onClick={localApi.recheck}
-                className="ml-1 text-[10px] font-mono text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-2 transition-colors"
-              >
-                recheck
-              </button>
-            </div>
-            {localApi.checkedAt && (
-              <p className="text-[10px] text-muted-foreground/40 pl-5">
-                Local API last checked {localApi.checkedAt.toLocaleTimeString()}
-              </p>
-            )}
-
-            {/* Railway backend */}
-            <div className="pt-1 border-t border-border">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Railway backend</p>
-              <BackendStatusBadge showUrl showCheckTime />
-            </div>
-
-            {apiBaseUrl ? (
-              <div className="rounded-md bg-muted/10 border border-border px-4 py-3 space-y-1">
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">API base URL</p>
-                <p className="text-xs font-mono text-foreground break-all">{apiBaseUrl}</p>
-              </div>
-            ) : (
-              <div className="rounded-md bg-muted/10 border border-border/50 px-4 py-3">
-                <p className="text-xs text-muted-foreground">
-                  Set <span className="font-mono text-foreground/80">VITE_FRONTIER_API_BASE_URL</span> in your environment to connect to the Railway backend.
-                  Local analysis will use the preview path via the API server.
-                </p>
-              </div>
-            )}
           </div>
         </section>
 
@@ -218,22 +153,26 @@ export default function SettingsPage() {
           <div className="px-5 py-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Workspace ID</p>
-                <p className="text-xs font-mono text-foreground/80 break-all">{workspaceId ?? '—'}</p>
+                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Workspace name</p>
+                <p className="text-sm text-foreground">
+                  {trial?.workspace_name ?? user?.fullName ?? 'Private beta workspace'}
+                </p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">User ID</p>
-                <p className="text-xs font-mono text-foreground/80 break-all">{userId ?? '—'}</p>
+                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Account</p>
+                <p className="text-sm text-foreground">
+                  {user?.primaryEmailAddress?.emailAddress ?? trial?.email ?? 'Local reviewer workspace'}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Account mode</p>
-                <p className="text-xs text-foreground/80">
-                  {workspaceId ? 'Backend workspace · data synced' : 'Local browser storage only'}
+                <p className="text-sm text-foreground">
+                  {workspaceId ? 'Backend workspace available' : 'Local browser workspace'}
                 </p>
               </div>
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Plan</p>
-                <p className="text-xs text-foreground/80">Free trial · private beta</p>
+                <p className="text-sm text-foreground">Free Preview</p>
               </div>
             </div>
 
@@ -350,6 +289,89 @@ export default function SettingsPage() {
             />
           </div>
         </section>
+
+        {/* Developer diagnostics */}
+        <details className="group rounded-lg border border-border bg-card overflow-hidden">
+          <summary className="px-5 py-3.5 bg-muted/20 cursor-pointer list-none flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Developer diagnostics</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                API connection details and local identifiers for debugging.
+              </p>
+            </div>
+            <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180 shrink-0" />
+          </summary>
+          <div className="px-5 py-5 space-y-5 border-t border-border">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Backend connection</p>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium border ${
+                isBackendConfigured()
+                  ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                  : 'bg-muted/20 text-muted-foreground border-border'
+              }`}>
+                {isBackendConfigured() ? 'CONFIGURED' : 'NOT SET'}
+              </span>
+            </div>
+
+            <div className="rounded-md border border-border bg-background/60 px-4 py-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                  localApi.status === 'ok' ? 'bg-green-400' :
+                  localApi.status === 'error' ? 'bg-muted-foreground/40' : 'bg-muted-foreground/40'
+                }`} />
+                {localApi.status === 'checking'
+                  ? <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                  : localApi.status === 'ok'
+                    ? <Activity className="w-3 h-3 text-green-400" />
+                    : <WifiOff className="w-3 h-3 text-muted-foreground" />}
+                <span className={`font-medium ${
+                  localApi.status === 'ok' ? 'text-green-400' : 'text-muted-foreground'
+                }`}>
+                  {localApi.status === 'ok' ? 'Local API server healthy' :
+                   localApi.status === 'error' ? 'Local API health endpoint not reachable' : 'Checking local API…'}
+                </span>
+                <span className="text-muted-foreground/50 font-mono text-[10px]">/api/healthz</span>
+                <button
+                  type="button"
+                  onClick={localApi.recheck}
+                  className="text-[10px] font-mono text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-2 transition-colors"
+                >
+                  recheck
+                </button>
+              </div>
+              {localApi.checkedAt && (
+                <p className="text-[10px] text-muted-foreground/40 pl-5">
+                  Local API last checked {localApi.checkedAt.toLocaleTimeString()}
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground/70">
+                Local API health is optional for the reviewer workspace. The product uses the configured Frontier OS backend when available.
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Configured backend</p>
+              <BackendStatusBadge showUrl={import.meta.env.DEV} showCheckTime />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {apiBaseUrl && (
+                <div className="rounded-md bg-muted/10 border border-border px-4 py-3 space-y-1">
+                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">API base URL</p>
+                  <p className="text-xs font-mono text-foreground break-all">{apiBaseUrl}</p>
+                </div>
+              )}
+              <div className="rounded-md bg-muted/10 border border-border px-4 py-3 space-y-1">
+                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">Workspace ID</p>
+                <p className="text-xs font-mono text-foreground/80 break-all">{workspaceId ?? 'Not provisioned'}</p>
+              </div>
+              <div className="rounded-md bg-muted/10 border border-border px-4 py-3 space-y-1">
+                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">User ID</p>
+                <p className="text-xs font-mono text-foreground/80 break-all">{userId ?? 'Local browser user'}</p>
+              </div>
+            </div>
+          </div>
+        </details>
 
         {/* Data & legal */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">

@@ -14,8 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { DEMO_SCENARIOS, DEFAULT_SCENARIO, NEUTRAL_STAGES, type DemoScenario, type AnalysisStageData } from '@/data/scenarios';
 import { useAccess } from '@/contexts/AccessContext';
-import { saveUrlRun } from '@/lib/runHistory';
-import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAccount';
+import { saveUrlRun, getRuns } from '@/lib/runHistory';
+import { getWorkspaceId, getUserId, createBackendAccount, getTrialAccount } from '@/lib/trialAccount';
 import {
   runUrlAnalysis,
   startAnalysis,
@@ -51,6 +51,29 @@ type RailwayPhase =
   | { kind: 'fetching_result'; runId: string }
   | { kind: 'success';         result: AnalysisResultResponse }
   | { kind: 'error';           message: string; runId?: string };
+
+async function openStarterGrowthCta() {
+  const pricingUrl = '/pricing';
+  try {
+    const base = getBackendBaseUrl();
+    const endpoint = base ? `${base}/api/pricing/plans` : '/api/pricing/plans';
+    const res = await fetch(endpoint);
+    if (!res.ok) {
+      window.location.assign(pricingUrl);
+      return;
+    }
+    const data = await res.json() as { plans?: Array<Record<string, unknown>> };
+    const plan = data.plans?.find(p => p.plan_id === 'starter_growth');
+    const ctaUrl = typeof plan?.cta_url === 'string' ? plan.cta_url : '';
+    if (ctaUrl.startsWith('http://') || ctaUrl.startsWith('https://')) {
+      window.location.assign(ctaUrl);
+      return;
+    }
+  } catch {
+    /* fall through to pricing */
+  }
+  window.location.assign(pricingUrl);
+}
 
 
 interface RunningStage extends AnalysisStageData {
@@ -737,6 +760,26 @@ function Step1({
   investmentStyle, setInvestmentStyle, riskPosture, setRiskPosture,
 }: Step1Props) {
   const [urlError, setUrlError] = React.useState('');
+  const [urlScreensUsed, setUrlScreensUsed] = React.useState(() => {
+    try { return getRuns().filter(r => r.type === 'url').length; } catch { return 0; }
+  });
+
+  React.useEffect(() => {
+    function refreshUsage() {
+      try { setUrlScreensUsed(getRuns().filter(r => r.type === 'url').length); }
+      catch { setUrlScreensUsed(0); }
+    }
+    window.addEventListener('storage', refreshUsage);
+    window.addEventListener('focus', refreshUsage);
+    return () => {
+      window.removeEventListener('storage', refreshUsage);
+      window.removeEventListener('focus', refreshUsage);
+    };
+  }, []);
+
+  const urlScreensLimit = getTrialAccount()?.url_screens_limit ?? 5;
+  const screensLeft = Math.max(0, urlScreensLimit - urlScreensUsed);
+  const quotaReached = screensLeft <= 0;
 
   const CHECK_LIST = [
     'Entity and registry sources',
@@ -764,6 +807,7 @@ function Step1({
                 className="space-y-5"
                 onSubmit={e => {
                   e.preventDefault();
+                  if (quotaReached) return;
                   const normalised = normaliseUrl(website);
                   if (!isValidUrl(normalised)) {
                     setUrlError('Please enter a valid company website URL.');
@@ -931,19 +975,55 @@ function Step1({
                 <Button
                   type="submit"
                   className="w-full h-11 text-base"
-                  disabled={analysisInFlight || !company.trim() || !website.trim()}
+                  disabled={analysisInFlight || quotaReached || !company.trim() || !website.trim()}
                 >
                   {analysisInFlight ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Running analysis
                     </>
+                  ) : quotaReached ? (
+                    'Free preview limit reached'
                   ) : (
                     <>
                       Run analysis <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
+
+                {quotaReached && (
+                  <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-3 space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-amber-300">Free preview limit reached.</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Start beta to continue, or reset local workspace for local testing.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={openStarterGrowthCta}
+                        className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        Start beta <ExternalLink className="w-3 h-3" />
+                      </button>
+                      <Link
+                        href="/pricing"
+                        className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+                      >
+                        Open pricing
+                      </Link>
+                      {import.meta.env.DEV && (
+                        <Link
+                          href="/app/settings"
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Reset local workspace in Workspace
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-center pt-1">
                   <a
@@ -2948,7 +3028,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   }
 
   function handleSubmit() {
-    // Always use the local API (POST /api/analyse/url) as the primary path.
+    // Always use the configured Frontier OS API base URL for public preview runs.
     // The Railway async backend (handleRailwaySubmit) is a separate optional flow
     // activated only via the localStorage resume on mount.
     runUrlAnalysisForForm();

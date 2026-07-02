@@ -179,20 +179,14 @@ function apiUrl(path: string): string {
   return FRONTIER_API_BASE_URL ? `${FRONTIER_API_BASE_URL}${path}` : path;
 }
 
-function isLocalDevBrowser(): boolean {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
-  return ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
-}
-
 function apiRequestUrl(path: string): { requestUrl: string; targetUrl: string; apiBaseUrl: string; usesDevProxy: boolean } {
   const apiBaseUrl = FRONTIER_API_BASE_URL;
   const targetUrl = apiBaseUrl ? `${apiBaseUrl}${path}` : path;
-  const usesDevProxy = Boolean(apiBaseUrl && isLocalDevBrowser() && path.startsWith('/api/'));
   return {
-    requestUrl: usesDevProxy ? path : targetUrl,
+    requestUrl: targetUrl,
     targetUrl,
     apiBaseUrl,
-    usesDevProxy,
+    usesDevProxy: false,
   };
 }
 
@@ -244,6 +238,20 @@ function backendErrorMessage(body: unknown, httpStatus: number): string {
   return parts.length > 0 ? `Backend returned status ${httpStatus}. ${parts.join(' ')}` : `Backend returned status ${httpStatus}.`;
 }
 
+function requestDiagnostics(endpoint: ReturnType<typeof apiRequestUrl>, failureType: string, extras: Record<string, unknown> = {}): string[] {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown origin';
+  return [
+    `Resolved API base URL: ${endpoint.apiBaseUrl || '(not configured)'}`,
+    `Endpoint URL: ${endpoint.targetUrl}`,
+    `Request URL: ${endpoint.requestUrl}`,
+    `Failure type: ${failureType}`,
+    `Browser origin: ${origin}`,
+    ...Object.entries(extras)
+      .filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => `${key}: ${String(value)}`),
+  ];
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -282,7 +290,14 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
     });
     const body = parseJsonText(responseText);
     if (!res.ok) {
-      throw new UrlAnalysisRequestError(backendErrorMessage(body, res.status), res.status, body);
+      throw new UrlAnalysisRequestError(
+        [
+          backendErrorMessage(body, res.status),
+          ...requestDiagnostics(endpoint, 'backend_response', { 'HTTP status': res.status }),
+        ].join('\n'),
+        res.status,
+        body,
+      );
     }
     debugFrontendApi('runUrlAnalysis payload keys', {
       apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
@@ -308,15 +323,11 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
       httpStatus: err instanceof UrlAnalysisRequestError ? err.httpStatus : undefined,
     });
     if (err instanceof UrlAnalysisRequestError) throw err;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown origin';
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(
       [
         'Backend could not be reached from this browser. Check backend status or local dev port/CORS.',
-        `API base URL: ${endpoint.apiBaseUrl || '(not configured)'}`,
-        `Request URL: ${endpoint.targetUrl}`,
-        `Browser origin: ${origin}`,
-        `Network error: ${message}`,
+        ...requestDiagnostics(endpoint, 'network_or_cors', { 'Network error': message }),
       ].join('\n'),
     );
   }
