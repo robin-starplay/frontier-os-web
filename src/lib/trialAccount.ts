@@ -39,23 +39,61 @@ const PROFILE_KEY = 'fos_profile';
 
 // ── Read helpers ──────────────────────────────────────────────────────────────
 
-export function getTrialAccount(): TrialAccount | null {
+export function safeJsonParse<T = unknown>(raw: string | null): T | null {
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(TRIAL_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed !== 'object' || !parsed.plan_id) return null;
-    return parsed as TrialAccount;
+    return JSON.parse(raw) as T;
   } catch {
     return null;
   }
+}
+
+function safeLocalStorageGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeLocalStorageRemove(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* unavailable */
+  }
+}
+
+function readJsonStorage<T = unknown>(key: string): T | null {
+  const raw = safeLocalStorageGet(key);
+  if (!raw) return null;
+  const parsed = safeJsonParse<T>(raw);
+  if (parsed === null) safeLocalStorageRemove(key);
+  return parsed;
+}
+
+export function getTrialAccount(): TrialAccount | null {
+  const parsed = readJsonStorage<Partial<TrialAccount>>(TRIAL_KEY);
+  if (!parsed || typeof parsed !== 'object') return null;
+  if (parsed.plan_id !== 'free_trial') {
+    safeLocalStorageRemove(TRIAL_KEY);
+    return null;
+  }
+  return {
+    plan_id: 'free_trial',
+    url_screens_limit: typeof parsed.url_screens_limit === 'number' ? parsed.url_screens_limit : 5,
+    document_trials_limit: typeof parsed.document_trials_limit === 'number' ? parsed.document_trials_limit : 2,
+    created_at: typeof parsed.created_at === 'string' ? parsed.created_at : new Date().toISOString(),
+    workspace_id: typeof parsed.workspace_id === 'string' ? parsed.workspace_id : undefined,
+    user_id: typeof parsed.user_id === 'string' ? parsed.user_id : undefined,
+  };
 }
 
 /** Returns the stored workspace_id, or null if not yet provisioned. */
 export function getWorkspaceId(): string | null {
   return (
     getTrialAccount()?.workspace_id ??
-    localStorage.getItem(WS_KEY) ??
+    safeLocalStorageGet(WS_KEY) ??
     null
   );
 }
@@ -64,32 +102,24 @@ export function getWorkspaceId(): string | null {
 export function getUserId(): string | null {
   return (
     getTrialAccount()?.user_id ??
-    localStorage.getItem(USER_KEY) ??
+    safeLocalStorageGet(USER_KEY) ??
     null
   );
 }
 
 /** Returns the cached workspace session data, or null if not available. */
 export function getWorkspaceSession(): Record<string, unknown> | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
+  const parsed = readJsonStorage<Record<string, unknown>>(SESSION_KEY);
+  return parsed && typeof parsed === 'object' ? parsed : null;
 }
 
 export function getWorkspaceProfile(): WorkspaceProfile | null {
-  try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    return parsed as WorkspaceProfile;
-  } catch {
-    return null;
-  }
+  const parsed = readJsonStorage<WorkspaceProfile>(PROFILE_KEY);
+  return parsed && typeof parsed === 'object' ? parsed : null;
+}
+
+export function hasLocalWorkspaceSession(): boolean {
+  return Boolean(getTrialAccount() || getWorkspaceId());
 }
 
 // ── Write helpers ─────────────────────────────────────────────────────────────
@@ -98,11 +128,15 @@ export function getWorkspaceProfile(): WorkspaceProfile | null {
 export function ensureTrialAccount(): TrialAccount {
   const existing = getTrialAccount();
   if (existing) return existing;
+  const workspaceId = safeLocalStorageGet(WS_KEY) ?? undefined;
+  const userId = safeLocalStorageGet(USER_KEY) ?? undefined;
   const account: TrialAccount = {
     plan_id:                'free_trial',
     url_screens_limit:      5,
     document_trials_limit:  2,
     created_at:             new Date().toISOString(),
+    workspace_id:           workspaceId,
+    user_id:                userId,
   };
   try { localStorage.setItem(TRIAL_KEY, JSON.stringify(account)); } catch { /* quota */ }
   // Write account summary key

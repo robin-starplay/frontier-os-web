@@ -35,7 +35,11 @@ const APP_MORE = [
 function TrialBadge() {
   const [used, setUsed] = useState(0);
   useEffect(() => {
-    setUsed(getRuns().filter(r => r.type === 'url').length);
+    try {
+      setUsed(getRuns().filter(r => r.type === 'url').length);
+    } catch {
+      setUsed(0);
+    }
   }, []);
   const limit = 5;
   const remaining = Math.max(0, limit - used);

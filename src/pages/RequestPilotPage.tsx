@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle2, AlertTriangle, Calendar } from 'lucide-react';
-import { BookIntroButton } from '@/components/BookIntroButton';
+import { BookIntroButton, BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { DocumentReviewPanel } from '@/components/DocumentReviewPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'wouter';
 import { cn } from '@/lib/utils';
+import { getBackendBaseUrl } from '@/lib/frontierApi';
 
 const PILOT_FEATURES = [
   { label: 'UK company screening', note: 'Companies House, audited accounts, HMRC references' },
@@ -35,7 +36,11 @@ const TEAM_SIZES = ['1–3 people', '4–10 people', '11–30 people', '30+ peop
 const DEAL_VOLUMES = ['1–5 screens per month', '6–20 screens', '21–50 screens', '50+ screens'];
 
 export default function RequestPilotPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const [submitState, setSubmitState] = useState<'idle' | 'success' | 'fallback' | 'error'>('idle');
+  const [submitting, setSubmitting] = useState(false);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [fallbackEmail, setFallbackEmail] = useState('contact@getfrontieros.com');
+  const [bookIntroUrl, setBookIntroUrl] = useState(BOOK_INTRO_URL);
   const [form, setForm] = useState({
     name: '', email: '', organisation: '', role: '',
     teamSize: '', dealVolume: '', targetJurisdictions: '',
@@ -56,10 +61,81 @@ export default function RequestPilotPage() {
     }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitState('idle');
+    setResponseMessage('');
+
+    const workflow = [
+      form.uploadPref && `Upload preference: ${form.uploadPref}`,
+      form.docTypes.length > 0 && `Document types: ${form.docTypes.join(', ')}`,
+      form.dataConcerns.length > 0 && `Data concerns: ${form.dataConcerns.join(', ')}`,
+    ].filter(Boolean).join('\n');
+
+    const payload = {
+      name: form.name,
+      email: form.email,
+      organisation: form.organisation,
+      role: form.role,
+      team_size: form.teamSize,
+      screens_per_month: form.dealVolume,
+      target_jurisdictions: form.targetJurisdictions,
+      workflow,
+      message: form.notes,
+      source: 'request_pilot',
+    };
+
+    try {
+      const base = getBackendBaseUrl();
+      const res = await fetch(`${base}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (import.meta.env.DEV) {
+        console.debug('[contact] request pilot submitted', data);
+      }
+      const contactEmail = typeof data?.contact_email === 'string'
+        ? data.contact_email
+        : typeof data?.fallback_email === 'string'
+          ? data.fallback_email
+          : 'contact@getfrontieros.com';
+      const bookingUrl = typeof data?.book_intro_url === 'string' ? data.book_intro_url : BOOK_INTRO_URL;
+      setFallbackEmail(contactEmail);
+      setBookIntroUrl(bookingUrl);
+
+      if (res.ok && (data?.sent === true || data?.status === 'ok')) {
+        setResponseMessage(typeof data?.message === 'string' ? data.message : 'Request received');
+        setSubmitState('success');
+        return;
+      }
+
+      if (res.ok && data?.sent === false && data?.reason === 'email_not_configured') {
+        setResponseMessage(
+          typeof data?.message === 'string'
+            ? data.message
+            : `Please email ${contactEmail} or book a 30-minute intro.`,
+        );
+        setSubmitState('fallback');
+        return;
+      }
+
+      if (!res.ok || data?.status !== 'ok') {
+        throw new Error(typeof data?.message === 'string' ? data.message : 'Request failed');
+      }
+    } catch {
+      setFallbackEmail('contact@getfrontieros.com');
+      setBookIntroUrl(BOOK_INTRO_URL);
+      setResponseMessage('Please email contact@getfrontieros.com or book a 30-minute intro.');
+      setSubmitState('error');
+    } finally {
+      setSubmitting(false);
+    }
   }
+
+  const showFallback = submitState === 'fallback' || submitState === 'error';
 
   return (
     <div className="flex-1 w-full">
@@ -102,7 +178,7 @@ export default function RequestPilotPage() {
           </a>.
         </div>
 
-        {submitted ? (
+        {submitState === 'success' ? (
           <div className="rounded-lg border border-border bg-card p-8 text-center space-y-4">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
               <Send className="w-5 h-5 text-primary" />
@@ -124,7 +200,7 @@ export default function RequestPilotPage() {
                 className="mx-auto"
               />
             </div>
-            <button onClick={() => setSubmitted(false)} className="text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
+            <button onClick={() => { setSubmitState('idle'); setResponseMessage(''); }} className="text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
               Reset form
             </button>
           </div>
@@ -152,6 +228,38 @@ export default function RequestPilotPage() {
             {/* form */}
             <div className="lg:col-span-2 lg:order-1">
           <form onSubmit={handleSubmit} className="space-y-8">
+            {showFallback && (
+              <div className={cn(
+                'rounded-lg border px-4 py-3 text-sm',
+                submitState === 'error'
+                  ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                  : 'border-amber-500/25 bg-amber-500/10 text-amber-300',
+              )}>
+                <p className="font-semibold text-foreground mb-1">
+                  {submitState === 'error' ? 'Request could not be sent' : 'Email delivery is not configured yet'}
+                </p>
+                <p className="text-muted-foreground">
+                  {responseMessage || `Please email ${fallbackEmail} or book a 30-minute intro.`}
+                </p>
+                <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                  <a
+                    href={`mailto:${fallbackEmail}`}
+                    className="inline-flex items-center justify-center text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+                  >
+                    Email {fallbackEmail}
+                  </a>
+                  <a
+                    href={bookIntroUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    Book intro
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* contact details */}
             <div>
@@ -303,8 +411,9 @@ export default function RequestPilotPage() {
               <Link href="/data-processing" className="text-primary/80 hover:text-primary underline underline-offset-2">Data Processing</Link>
             </p>
 
-            <Button type="submit" className="w-full h-11 text-base">
-              Request pilot <Send className="w-4 h-4 ml-2" />
+            <Button type="submit" className="w-full h-11 text-base" disabled={submitting}>
+              {submitting ? 'Sending request...' : showFallback ? 'Retry request' : 'Request pilot'}
+              <Send className="w-4 h-4 ml-2" />
             </Button>
           </form>
             </div>

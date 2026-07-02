@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useClerk, useUser, UserButton } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { Link } from 'wouter';
-import { getRuns } from './runHistory';
 import {
   clearLocalWorkspace,
   fetchWorkspaceSession,
@@ -14,9 +13,19 @@ import {
 
 const rawClerkKey = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined)?.trim();
 
-export const clerkPublishableKey = rawClerkKey
-  ? publishableKeyFromHost(window.location.hostname, rawClerkKey)
-  : '';
+function resolveClerkPublishableKey(value: string | undefined): string {
+  if (!value) return '';
+  try {
+    return publishableKeyFromHost(window.location.hostname, value);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('[auth] Ignoring invalid Clerk publishable key', error);
+    }
+    return '';
+  }
+}
+
+export const clerkPublishableKey = resolveClerkPublishableKey(rawClerkKey);
 
 export const clerkEnabled = Boolean(clerkPublishableKey);
 
@@ -53,9 +62,22 @@ function shortId(value: string | null): string {
   return value.length > 10 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
 }
 
+function getLocalUrlRunCount(): number {
+  try {
+    const raw = localStorage.getItem('fos_run_history');
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return 0;
+    return parsed.filter(run => run && typeof run === 'object' && run.type === 'url').length;
+  } catch {
+    return 0;
+  }
+}
+
 function LocalWorkspaceMenu() {
   const [open, setOpen] = useState(false);
   const [version, setVersion] = useState(0);
+  const [runsUsed, setRunsUsed] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,8 +88,10 @@ function LocalWorkspaceMenu() {
       if (e.key === 'Escape') setOpen(false);
     }
     function onStorage() {
+      setRunsUsed(getLocalUrlRunCount());
       setVersion(v => v + 1);
     }
+    setRunsUsed(getLocalUrlRunCount());
     document.addEventListener('mousedown', onClickOutside);
     document.addEventListener('keydown', onEscape);
     window.addEventListener('storage', onStorage);
@@ -94,7 +118,6 @@ function LocalWorkspaceMenu() {
     };
   }, [workspaceId]);
 
-  const runsUsed = getRuns().filter(r => r.type === 'url').length;
   const urlLimit = account?.url_screens_limit ?? 5;
   const screensRemaining = Math.max(0, urlLimit - runsUsed);
   const displayName = profile?.org || profile?.name || 'Beta workspace';

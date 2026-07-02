@@ -3,7 +3,7 @@ import { Switch, Route, Link } from 'wouter';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { AppNavbar } from './AppNavbar';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
-import { getTrialAccount, ensureTrialAccount } from '@/lib/trialAccount';
+import { ensureTrialAccount, hasLocalWorkspaceSession } from '@/lib/trialAccount';
 import { useOptionalUser } from '@/lib/optionalClerk';
 
 // Pages served inside the app shell
@@ -91,18 +91,18 @@ function WorkspaceGate() {
 export function AppShell() {
   const { isLoaded, isSignedIn } = useOptionalUser();
   // Read trial account synchronously — updated via useEffect after sign-in
-  const [trialAccount, setTrialAccount] = useState(() => getTrialAccount());
+  const [hasLocalWorkspace, setHasLocalWorkspace] = useState(() => hasLocalWorkspaceSession());
 
   // Idempotently provision trial account on every sign-in
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       const account = ensureTrialAccount();
-      setTrialAccount(account);
+      setHasLocalWorkspace(Boolean(account));
     }
   }, [isLoaded, isSignedIn]);
 
-  // A "workspace" exists if the user is signed in OR has a local trial account
-  const hasWorkspace = !!isSignedIn || !!trialAccount;
+  // A workspace exists if the user is signed in or any local workspace identity is present.
+  const hasWorkspace = !!isSignedIn || hasLocalWorkspace;
 
   // ── Clerk still loading — show spinner to avoid flash of gate ───────────────
   if (!isLoaded) {

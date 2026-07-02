@@ -132,6 +132,69 @@ const clerkAppearance = {
 
 const queryClient = new QueryClient();
 
+// ── Render safety ────────────────────────────────────────────────────────────
+
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; message?: string }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    this.setState({
+      message: error instanceof Error ? error.message : String(error),
+    });
+    if (import.meta.env.DEV) {
+      console.error('[app] Render failed', error);
+    }
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+
+    return (
+      <div className="min-h-screen flex flex-col bg-background text-foreground font-sans">
+        <main className="flex-1 flex items-center justify-center px-4 py-16">
+          <div className="max-w-md text-center">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">
+              Private beta workspace
+            </p>
+            <h1 className="text-2xl font-bold text-foreground mb-3">
+              Frontier OS could not load this workspace view.
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+              Open the public home page or create a fresh local workspace. Existing backend data is not changed.
+            </p>
+            {import.meta.env.DEV && this.state.message && (
+              <pre className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-left text-xs text-destructive whitespace-pre-wrap">
+                {this.state.message}
+              </pre>
+            )}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a
+                href="/"
+                className="inline-flex items-center justify-center text-sm font-medium border border-input bg-background hover:bg-accent h-10 px-5 rounded-md transition-colors text-foreground"
+              >
+                Home
+              </a>
+              <a
+                href="/create-workspace"
+                className="inline-flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-5 rounded-md transition-colors"
+              >
+                Create workspace
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+}
+
 // ── React-Query cache invalidation when Clerk user changes ───────────────────
 
 function ClerkQueryClientCacheInvalidator() {
@@ -256,7 +319,12 @@ function PostSignInRedirector() {
       ensureTrialAccount(); // idempotent — only creates if not already present
       if (prevSignedIn.current === false) {
         // Transitioned from signed-out → signed-in: choose app destination
-        const dest = getRuns().length > 0 ? '/app/cockpit' : '/app/run';
+        let dest = '/app/run';
+        try {
+          dest = getRuns().length > 0 ? '/app/cockpit' : '/app/run';
+        } catch {
+          dest = '/app/run';
+        }
         setLocation(dest);
       }
     }
@@ -503,9 +571,11 @@ function LocalWorkspaceProviderWithRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      {clerkEnabled ? <ClerkProviderWithRoutes /> : <LocalWorkspaceProviderWithRoutes />}
-    </WouterRouter>
+    <AppErrorBoundary>
+      <WouterRouter base={basePath}>
+        {clerkEnabled ? <ClerkProviderWithRoutes /> : <LocalWorkspaceProviderWithRoutes />}
+      </WouterRouter>
+    </AppErrorBoundary>
   );
 }
 

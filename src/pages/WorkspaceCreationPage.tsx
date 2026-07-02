@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { ArrowRight, Loader2, CheckCircle2, ExternalLink } from 'lucide-react';
-import { ensureTrialAccount, createBackendAccount, getTrialAccount, getWorkspaceProfile } from '@/lib/trialAccount';
+import {
+  createBackendAccount,
+  ensureTrialAccount,
+  getWorkspaceProfile,
+  hasLocalWorkspaceSession,
+} from '@/lib/trialAccount';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 
 // ── Profile storage ───────────────────────────────────────────────────────────
@@ -80,7 +85,7 @@ export default function WorkspaceCreationPage() {
   const [existingWorkspace, setExistingWorkspace] = useState(false);
 
   useEffect(() => {
-    const existing = getTrialAccount();
+    const existing = hasLocalWorkspaceSession();
     const profile = getWorkspaceProfile();
     if (existing) {
       setExistingWorkspace(true);

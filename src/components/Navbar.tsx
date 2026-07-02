@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { FeedbackModal } from './FeedbackModal';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { clerkEnabled, OptionalUserButton, useOptionalUser } from '@/lib/optionalClerk';
-import { getTrialAccount } from '@/lib/trialAccount';
+import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
 
 // ── Public nav ────────────────────────────────────────────────────────────────
 // Always shown on public pages regardless of auth state.
@@ -25,6 +25,17 @@ const PUBLIC_MORE = [
   { label: 'Request private beta', href: '/request-pilot' },
   { label: 'FAQ',                  href: '/faq' },
 ];
+
+function getLocalRunCount(): number {
+  try {
+    const raw = localStorage.getItem('fos_run_history');
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
+}
 
 // "Use cases" dropdown — the 6 buyer landing pages
 const USE_CASES_NAV = [
@@ -182,11 +193,17 @@ export function Navbar() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const { isLoaded, isSignedIn } = useOptionalUser();
-  const [hasLocalWorkspace, setHasLocalWorkspace] = useState(() => Boolean(getTrialAccount()));
+  const [hasLocalWorkspace, setHasLocalWorkspace] = useState(() => hasLocalWorkspaceSession());
+  const [runCount, setRunCount] = useState(0);
 
   useEffect(() => {
     function refreshWorkspaceState() {
-      setHasLocalWorkspace(Boolean(getTrialAccount()));
+      setHasLocalWorkspace(hasLocalWorkspaceSession());
+      try {
+        setRunCount(getLocalRunCount());
+      } catch {
+        setRunCount(0);
+      }
     }
     refreshWorkspaceState();
     window.addEventListener('storage', refreshWorkspaceState);
@@ -198,7 +215,7 @@ export function Navbar() {
   }, []);
 
   const hasWorkspace = isSignedIn || hasLocalWorkspace;
-  const workspaceHref = getRuns().length > 0 ? '/app/cockpit' : '/app/run';
+  const workspaceHref = runCount > 0 ? '/app/cockpit' : '/app/run';
 
   const isActive = (href: string) =>
     href === '/' ? location === '/' : location.startsWith(href);

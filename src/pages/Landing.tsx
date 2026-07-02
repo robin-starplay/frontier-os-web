@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import { ArrowRight, Search, GitCompare, Layers, MessageSquare } from 'lucide-react';
 import { BookIntroButton } from '@/components/BookIntroButton';
 import { BetaCTA } from '@/components/BetaCTA';
-import { getTrialAccount } from '@/lib/trialAccount';
+import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
 import { getFeedbackMailto } from '@/components/SendFeedbackButton';
 import { useOptionalUser } from '@/lib/optionalClerk';
 
@@ -39,8 +39,7 @@ const SCREEN_ROWS: { label: string; value?: string; chip?: { label: string; vari
 /** "Run your own →" link in the hero card — auth-aware. */
 function RunYourOwnLink() {
   const { isLoaded, isSignedIn } = useOptionalUser();
-  const trialAccount = getTrialAccount();
-  const hasWorkspace = (isLoaded && isSignedIn) || !!trialAccount;
+  const hasWorkspace = (isLoaded && isSignedIn) || hasLocalWorkspaceSession();
   const href = hasWorkspace ? '/app/run' : '/create-workspace';
   return (
     <Link
@@ -55,8 +54,7 @@ function RunYourOwnLink() {
 /** "Run sample screen" — sends to workspace creation or /app/run if already set up. */
 function ReviewerStartButton() {
   const { isLoaded, isSignedIn } = useOptionalUser();
-  const trialAccount = getTrialAccount();
-  const hasWorkspace = (isLoaded && isSignedIn) || !!trialAccount;
+  const hasWorkspace = (isLoaded && isSignedIn) || hasLocalWorkspaceSession();
   const href = hasWorkspace ? '/app/run' : '/create-workspace';
   return (
     <Link
