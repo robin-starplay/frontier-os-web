@@ -248,6 +248,8 @@ function debugFrontendApi(message: string, data?: Record<string, unknown>) {
   else console.debug(`[frontierApi] ${message}`);
 }
 
+type ApiFailureType = 'network_or_cors' | 'backend_response';
+
 class UrlAnalysisRequestError extends Error {
   httpStatus?: number;
   backendStatus?: string;
@@ -266,6 +268,27 @@ class UrlAnalysisRequestError extends Error {
       this.backendReason = typeof b.reason === 'string' ? b.reason : undefined;
       this.backendAnalysisMode = typeof b.analysis_mode === 'string' ? b.analysis_mode : undefined;
     }
+  }
+}
+
+export class ApiConnectionError extends Error {
+  error_type: ApiFailureType;
+  resolved_api_base: string;
+  endpoint_url: string;
+  request_url: string;
+  browser_message: string;
+
+  constructor(endpoint: ReturnType<typeof apiRequestUrl>, browserMessage: string) {
+    super([
+      'Analysis request failed before a backend response was received. Check API connection.',
+      ...requestDiagnostics(endpoint, 'network_or_cors', { browser_message: browserMessage }),
+    ].join('\n'));
+    this.name = 'ApiConnectionError';
+    this.error_type = 'network_or_cors';
+    this.resolved_api_base = endpoint.apiBaseUrl || '(not configured)';
+    this.endpoint_url = endpoint.targetUrl;
+    this.request_url = endpoint.requestUrl;
+    this.browser_message = browserMessage;
   }
 }
 
@@ -290,14 +313,38 @@ function backendErrorMessage(body: unknown, httpStatus: number): string {
   return parts.length > 0 ? `Backend returned status ${httpStatus}. ${parts.join(' ')}` : `Backend returned status ${httpStatus}.`;
 }
 
+function hasUsableBackendResult(body: unknown): boolean {
+  if (!body || typeof body !== 'object') return false;
+  const record = body as Record<string, unknown>;
+  const status = String(record.status || '').toLowerCase();
+  if (status === 'error' || status === 'unavailable') return false;
+  if (status === 'ok') return true;
+  const resultKeys = [
+    'verified_facts',
+    'claims',
+    'unknowns',
+    'diligence_blockers',
+    'acquisition_readiness_summary',
+    'evidence_cards',
+    'financial_signals',
+    'company_snapshot',
+  ];
+  return resultKeys.some((key) => {
+    const value = record[key];
+    return Array.isArray(value)
+      ? value.length > 0
+      : Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, unknown>).length > 0);
+  });
+}
+
 function requestDiagnostics(endpoint: ReturnType<typeof apiRequestUrl>, failureType: string, extras: Record<string, unknown> = {}): string[] {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown origin';
   return [
-    `Resolved API base URL: ${endpoint.apiBaseUrl || '(not configured)'}`,
-    `Endpoint URL: ${endpoint.targetUrl}`,
-    `Request URL: ${endpoint.requestUrl}`,
-    `Failure type: ${failureType}`,
-    `Browser origin: ${origin}`,
+    `error_type: ${failureType}`,
+    `resolved_api_base: ${endpoint.apiBaseUrl || '(not configured)'}`,
+    `endpoint_url: ${endpoint.targetUrl}`,
+    `request_url: ${endpoint.requestUrl}`,
+    `browser_origin: ${origin}`,
     ...Object.entries(extras)
       .filter(([, value]) => value !== undefined && value !== null && value !== '')
       .map(([key, value]) => `${key}: ${String(value)}`),
@@ -314,12 +361,11 @@ function requestDiagnostics(endpoint: ReturnType<typeof apiRequestUrl>, failureT
 export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<AnalysisResult> {
   const endpoint = apiRequestUrl('/api/analyse/url');
   debugFrontendApi('runUrlAnalysis request', {
-    apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
+    resolvedApiBase: endpoint.apiBaseUrl || '(not configured)',
+    endpointUrl: endpoint.targetUrl,
     requestUrl: endpoint.requestUrl,
-    targetUrl: endpoint.targetUrl,
-    usesDevProxy: endpoint.usesDevProxy,
-    payload,
-    payloadAnalysisMode: payload.analysis_mode,
+    analysisMode: payload.analysis_mode ?? 'public_source_preview',
+    payloadKeys: Object.keys(payload),
     sampleFallbackUsed: false,
   });
 
@@ -342,6 +388,9 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
     });
     const body = parseJsonText(responseText);
     if (!res.ok) {
+      if (hasUsableBackendResult(body)) {
+        return body as AnalysisResult;
+      }
       throw new UrlAnalysisRequestError(
         [
           backendErrorMessage(body, res.status),
@@ -376,12 +425,7 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
     });
     if (err instanceof UrlAnalysisRequestError) throw err;
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error(
-      [
-        'Backend could not be reached from this browser. Check backend status or local dev port/CORS.',
-        ...requestDiagnostics(endpoint, 'network_or_cors', { 'Network error': message }),
-      ].join('\n'),
-    );
+    throw new ApiConnectionError(endpoint, message);
   }
 }
 
@@ -399,8 +443,21 @@ export async function runDocumentAssistedAnalysis(payload: DocumentAssistedPaylo
   if (payload.user_id) body.append('user_id', payload.user_id);
 
   debugFrontendApi('runDocumentAssistedAnalysis request', {
-    apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
+    resolvedApiBase: endpoint.apiBaseUrl || '(not configured)',
+    endpointUrl: endpoint.targetUrl,
     requestUrl: endpoint.requestUrl,
+    analysisMode: 'document_assisted_preview',
+    payloadKeys: [
+      'file',
+      ...(payload.company_name ? ['company_name'] : []),
+      ...(payload.company_url ? ['company_url'] : []),
+      ...(payload.buyer_thesis ? ['buyer_thesis'] : []),
+      ...(payload.document_type ? ['document_type'] : []),
+      'confidentiality_acknowledged',
+      'save_to_cockpit',
+      ...(payload.workspace_id ? ['workspace_id'] : []),
+      ...(payload.user_id ? ['user_id'] : []),
+    ],
     documentType: payload.document_type,
     fileName: payload.file.name,
     fileSize: payload.file.size,
@@ -427,10 +484,7 @@ export async function runDocumentAssistedAnalysis(payload: DocumentAssistedPaylo
     }
     if (err instanceof UrlAnalysisRequestError) throw err;
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error([
-      'Backend could not be reached from this browser. Check backend status or local dev port/CORS.',
-      ...requestDiagnostics(endpoint, 'network_or_cors', { 'Network error': message }),
-    ].join('\n'));
+    throw new ApiConnectionError(endpoint, message);
   }
 }
 

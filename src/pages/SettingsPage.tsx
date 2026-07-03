@@ -327,8 +327,8 @@ export default function SettingsPage() {
                 <span className={`font-medium ${
                   localApi.status === 'ok' ? 'text-green-400' : 'text-muted-foreground'
                 }`}>
-                  {localApi.status === 'ok' ? 'Local API server healthy' :
-                   localApi.status === 'error' ? 'Local API health endpoint not reachable' : 'Checking local API…'}
+                  {localApi.status === 'ok' ? 'Optional local API server healthy' :
+                   localApi.status === 'error' ? 'Optional local API is not running' : 'Checking optional local API…'}
                 </span>
                 <span className="text-muted-foreground/50 font-mono text-[10px]">/api/healthz</span>
                 <button
@@ -345,7 +345,7 @@ export default function SettingsPage() {
                 </p>
               )}
               <p className="text-[11px] text-muted-foreground/70">
-                Local API health is optional for the reviewer workspace. The product uses the configured Frontier OS backend when available.
+                Local API health is an optional developer check. Reviewer runs use the configured Frontier OS backend when available.
               </p>
             </div>
 

@@ -756,6 +756,43 @@ function isValidUrl(val: string): boolean {
   }
 }
 
+function hasNonEmptyResultField(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, unknown>).length > 0);
+}
+
+function isUsableAnalysisPayload(value: unknown): boolean {
+  const record = asRecord(value);
+  const status = textValue(record.status, '').toLowerCase();
+  if (status === 'error' || status === 'unavailable') return false;
+  if (status === 'ok') return true;
+  return [
+    'verified_facts',
+    'claims',
+    'unknowns',
+    'diligence_blockers',
+    'acquisition_readiness_summary',
+    'evidence_cards',
+    'financial_signals',
+    'company_snapshot',
+  ].some(key => hasNonEmptyResultField(record[key]));
+}
+
+function analysisPayloadError(value: unknown, fallback = 'Backend analysis failed.'): string {
+  const record = asRecord(value);
+  const lines = [
+    textValue(record.message ?? record.detail, fallback),
+    record.status ? `backend_status: ${textValue(record.status)}` : '',
+    record.reason ? `backend_reason: ${textValue(record.reason)}` : '',
+    record.error_code ? `error_code: ${textValue(record.error_code)}` : '',
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
+function completeStages(stages: RunningStage[]): RunningStage[] {
+  return stages.map(stage => ({ ...stage, status: 'complete' as StageStatus }));
+}
+
 // ─── Step 1: Input form ───────────────────────────────────────────────────────
 
 interface Step1Props {
@@ -1196,10 +1233,11 @@ function Step1({
 
 // ─── Step 2: Analysis timeline ────────────────────────────────────────────────
 
-function Step2({ company, stages, isComplete, error, isFinalising, finalisingElapsedSecs, onContinue }: {
+function Step2({ company, stages, isComplete, completionMessage, error, isFinalising, finalisingElapsedSecs, onContinue }: {
   company: string;
   stages: RunningStage[];
   isComplete: boolean;
+  completionMessage?: string;
   error?: string | null;
   isFinalising: boolean;
   finalisingElapsedSecs: number;
@@ -1234,7 +1272,7 @@ function Step2({ company, stages, isComplete, error, isFinalising, finalisingEla
             {error
               ? 'Analysis failed.'
               : isComplete
-              ? 'Analysis complete.'
+              ? completionMessage || 'Analysis complete.'
               : showFinalising
               ? 'Finalising evidence screen…'
               : 'Public-source preview. Evidence checked. Gaps flagged.'}
@@ -3076,6 +3114,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [result, setResult]     = useState<AnalysisResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [completionMessage, setCompletionMessage] = useState('Analysis complete.');
   const [analysisInFlight, setAnalysisInFlight] = useState(false);
   const [isFinalising, setIsFinalising] = useState(false);
   const [finalisingElapsedSecs, setFinalisingElapsedSecs] = useState(0);
@@ -3202,6 +3241,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setResult(null);
     setDocumentAssistedResult(null);
     setAnalysisError(null);
+    setCompletionMessage('Analysis complete.');
     setAnalysisInFlight(false);
     setIsFinalising(false);
     setFinalisingElapsedSecs(0);
@@ -3374,6 +3414,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 	      setResult(null);
 	      setDocumentAssistedResult(null);
 	      setAnalysisError(null);
+	      setCompletionMessage('Analysis complete.');
       setStep(2);
 
       const updated = [...fresh];
@@ -3393,7 +3434,18 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
         setIsFinalising(true);
       }
       const apiResult = await apiPromise;
+      if (!isUsableAnalysisPayload(apiResult)) {
+        throw new Error(analysisPayloadError(apiResult));
+      }
       const merged = normalizeUrlAnalysisResult(apiResult, company.trim(), normalizedWebsite);
+      setStages(current => completeStages(current.length > 0 ? current : fresh));
+      setAnalysisError(null);
+      setCompletionMessage(
+        textValue((apiResult as unknown as Record<string, unknown>).status, '').toLowerCase() === 'partial'
+        || asArray((apiResult as unknown as Record<string, unknown>).warnings).length > 0
+          ? 'Analysis complete with warnings.'
+          : 'Analysis complete.',
+      );
       setResult(merged);
       // Save to local run history so the Deal Cockpit shows this run
       try { saveUrlRun(merged, normalizedWebsite); } catch { /* storage not available */ }
@@ -3406,6 +3458,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       const detail = err instanceof Error ? err.message : 'Backend analysis failed.';
       const message = detail;
       setAnalysisError(message);
+      setCompletionMessage('Analysis complete.');
       setResult(null);
       setIsTimelineComplete(false);
     } finally {
@@ -3444,6 +3497,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setResult(null);
       setDocumentAssistedResult(null);
       setAnalysisError(null);
+      setCompletionMessage('Analysis complete.');
       setStep(2);
 
       const updated = [...fresh];
@@ -3461,6 +3515,16 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
       if (!apiSettled) setIsFinalising(true);
       const apiResult = await apiPromise;
+      if (apiResult.status === 'error') {
+        throw new Error(analysisPayloadError(apiResult, 'Document-assisted analysis failed.'));
+      }
+      setStages(current => completeStages(current.length > 0 ? current : fresh));
+      setAnalysisError(null);
+      setCompletionMessage(
+        apiResult.status === 'unavailable'
+          ? 'Document-assisted review unavailable.'
+          : 'Analysis complete.',
+      );
       setDocumentAssistedResult(apiResult);
 
       if (apiResult.status === 'ok') {
@@ -3496,6 +3560,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     } catch (err) {
       setIsFinalising(false);
       setAnalysisError(err instanceof Error ? err.message : 'Document-assisted analysis failed.');
+      setCompletionMessage('Analysis complete.');
       setResult(null);
       setDocumentAssistedResult(null);
       setIsTimelineComplete(false);
@@ -3522,6 +3587,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   function reset() {
     setStep(1);
     setAnalysisError(null);
+    setCompletionMessage('Analysis complete.');
     setAnalysisInFlight(false);
     setIsFinalising(false);
     setFinalisingElapsedSecs(0);
@@ -3878,6 +3944,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 company={company}
                 stages={stages}
                 isComplete={isTimelineComplete}
+                completionMessage={completionMessage}
                 error={analysisError}
                 isFinalising={isFinalising}
                 finalisingElapsedSecs={finalisingElapsedSecs}
