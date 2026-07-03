@@ -12,17 +12,22 @@ import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
 // Signed-in users in /app/* use AppNavbar instead.
 
 const PUBLIC_NAV = [
-  { label: 'Product',      href: '/product' },
-  { label: 'How it works', href: '/platform-demo' },
-  { label: 'AI Risk',      href: '/ai-risk' },
-  { label: 'Evidence',     href: '/evidence' },
-  { label: 'Trust',        href: '/trust' },
+  { label: 'Run',         href: '/app/run' },
+  { label: 'Cockpit',     href: '/app/cockpit' },
+  { label: 'Compare',     href: '/app/compare' },
+  { label: 'Origination', href: '/app/origination' },
+  { label: 'Pricing',     href: '/pricing' },
+  { label: 'AI Risk',     href: '/app/ai-risk' },
+  { label: 'Trust',       href: '/trust' },
 ];
 
 const PUBLIC_MORE = [
-  { label: 'Pricing',              href: '/pricing' },
+  { label: 'Product',              href: '/product' },
+  { label: 'How it works',         href: '/platform-demo' },
   { label: 'Registry coverage',    href: '/registry-coverage' },
-  { label: 'Request private beta', href: '/request-pilot' },
+  { label: 'Evidence workflow',    href: '/evidence' },
+  { label: 'Exports · team beta',   href: '/app/exports' },
+  { label: 'Request pilot',         href: '/request-pilot' },
   { label: 'FAQ',                  href: '/faq' },
 ];
 

@@ -13,15 +13,20 @@ import type { AnalysisResult, CompareResult } from './frontierApi';
  *  Does NOT include raw file content — only extracted structured data. */
 export interface DocumentReviewSummary {
   document_name:        string;
+  document_type?:       string;
   confidentiality_flag: boolean;
   claims_count:         number;
   metrics_count:        number;
+  top_financial_claims?: string[];
+  key_unknowns?:        string[];
+  blocker_count?:       number;
+  evidence_confidence?: string;
   next_action:          string;
 }
 
 export interface RunEntry {
   id: string;
-  type: 'url' | 'compare' | 'document';
+  type: 'url' | 'compare' | 'document' | 'origination';
   timestamp: string;           // ISO 8601
   company: string;
   website: string;
@@ -121,7 +126,7 @@ function normalizeEntry(raw: unknown): RunEntry | null {
   const validLevels = new Set(['green', 'amber', 'red', 'blue', 'grey']);
   return {
     id:                   String(e.id),
-    type:                 e.type === 'compare' ? 'compare' : e.type === 'document' ? 'document' : 'url',
+    type:                 e.type === 'compare' ? 'compare' : e.type === 'document' ? 'document' : e.type === 'origination' ? 'origination' : 'url',
     timestamp:            typeof e.timestamp === 'string' ? e.timestamp : new Date().toISOString(),
     company:              String(e.company),
     website:              typeof e.website === 'string' ? e.website : '',
@@ -233,14 +238,21 @@ export function saveCompareRun(compareResult: CompareResult): RunEntry[] {
 export function saveDocumentRun(params: {
   documentName:        string;
   companyName:         string;
+  website?:            string;
+  documentType?:       string;
   confidentiality_flag: boolean;
   claims_count:        number;
   metrics_count:       number;
+  topFinancialClaims?: string[];
+  keyUnknowns?:        string[];
+  blockers?:           string[];
+  evidenceConfidence?: string;
   next_action:         string;
 }): RunEntry {
   const {
-    documentName, companyName, confidentiality_flag,
-    claims_count, metrics_count, next_action,
+    documentName, companyName, website = '', documentType, confidentiality_flag,
+    claims_count, metrics_count, topFinancialClaims = [], keyUnknowns = [], blockers = [],
+    evidenceConfidence = 'Claim, not verified', next_action,
   } = params;
 
   const entry: RunEntry = {
@@ -248,28 +260,85 @@ export function saveDocumentRun(params: {
     type:                 'document',
     timestamp:            new Date().toISOString(),
     company:              companyName,
-    website:              '',
+    website,
     recommendation:       next_action,
     recommendation_level: confidentiality_flag ? 'amber' : 'grey',
     ic_readiness:         `${claims_count} claims · ${metrics_count} metrics`,
     valuation_readiness:  '',
     strategic_fit_label:  '',
-    evidence_confidence:  'Claim, not verified',
+    evidence_confidence:  evidenceConfidence,
     ai_replica_risk:      '',
-    blockers:             [],
+    blockers,
     next_action,
     result:               null,
     documentSummary: {
       document_name:        documentName,
+      document_type:        documentType,
       confidentiality_flag,
       claims_count,
       metrics_count,
+      top_financial_claims: topFinancialClaims,
+      key_unknowns:         keyUnknowns,
+      blocker_count:        blockers.length,
+      evidence_confidence:  evidenceConfidence,
       next_action,
     },
   };
 
   const existing = getRuns().filter(
     (e) => !(e.type === 'document' && e.company === companyName),
+  );
+  persistRuns([entry, ...existing]);
+  return entry;
+}
+
+/** Save a reference-universe origination candidate. This is a signal-only entry,
+ *  not a verified URL analysis result. */
+export function saveOriginationTarget(params: {
+  companyName: string;
+  website?: string;
+  sector?: string;
+  country?: string;
+  fitScore?: string;
+  evidenceConfidence?: string;
+  aiRisk?: string;
+  whyItFits?: string;
+  missingEvidence?: string[];
+  nextAction?: string;
+}): RunEntry {
+  const {
+    companyName,
+    website = '',
+    sector = '',
+    country = '',
+    fitScore = '',
+    evidenceConfidence = 'Low',
+    aiRisk = 'Unknown',
+    whyItFits = '',
+    missingEvidence = [],
+    nextAction = 'Run URL screen before outreach or IC use.',
+  } = params;
+
+  const entry: RunEntry = {
+    id:                   generateId(),
+    type:                 'origination',
+    timestamp:            new Date().toISOString(),
+    company:              companyName,
+    website,
+    recommendation:       fitScore ? `Reference fit ${fitScore}/10` : 'Reference target candidate',
+    recommendation_level: 'blue',
+    ic_readiness:         'Signal only',
+    valuation_readiness:  '',
+    strategic_fit_label:  [sector, country].filter(Boolean).join(' · '),
+    evidence_confidence:  evidenceConfidence,
+    ai_replica_risk:      aiRisk,
+    blockers:             missingEvidence,
+    next_action:          nextAction || whyItFits || 'Run URL screen before outreach or IC use.',
+    result:               null,
+  };
+
+  const existing = getRuns().filter(
+    (e) => !(e.type === 'origination' && e.company === companyName),
   );
   persistRuns([entry, ...existing]);
   return entry;

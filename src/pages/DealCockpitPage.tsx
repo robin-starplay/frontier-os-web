@@ -104,6 +104,7 @@ function displayText(value: string | undefined | null): string | null {
 function sourceTypeLabel(type: RunEntry['type']): string {
   if (type === 'compare') return 'Compare';
   if (type === 'document') return 'Document-assisted';
+  if (type === 'origination') return 'Origination signal';
   return 'URL screen';
 }
 
@@ -136,6 +137,7 @@ function mainBlocker(run: RunEntry): string | null {
 function runRecommendation(run: RunEntry): string {
   return displayText(run.recommendation) ?? (
     run.type === 'document' ? 'Document reviewed' :
+    run.type === 'origination' ? 'Reference candidate' :
     run.type === 'compare' ? 'Compared target' :
     'Saved screen'
   );
@@ -152,10 +154,8 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
   const tabs: { id: CockpitTab; label: string }[] = [
     { id: 'summary',   label: 'Summary' },
     { id: 'evidence',  label: 'Evidence' },
-    { id: 'ai-risk',   label: 'AI Risk' },
     { id: 'diligence', label: 'Diligence' },
     { id: 'decisions', label: 'Decisions' },
-    { id: 'exports',   label: 'Exports' },
   ];
 
   return (
@@ -424,7 +424,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Next action</p>
                 <div className="space-y-2">
-                  <Link href="/run" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-border bg-background hover:bg-accent rounded-md transition-colors text-foreground">
+                  <Link href="/app/run" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-border bg-background hover:bg-accent rounded-md transition-colors text-foreground">
                     Run screen <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-md transition-colors text-primary">
@@ -439,7 +439,6 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                     { label: 'Monitor',                hint: 'Watch for further evidence' },
                     { label: 'Pass',                   hint: 'Mark as not progressing' },
                     { label: 'Pursue',                 hint: 'Advance to next stage' },
-                    { label: 'Review AI Risk',         hint: 'Flag for deeper AI diligence' },
                     { label: 'Prepare Evidence Pack',  hint: 'Compile IC evidence register' },
                   ].map(({ label, hint }) => (
                     <div key={label} className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-md border border-border/50 bg-card/40">
@@ -609,7 +608,7 @@ function SavedRunCard({
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className={cn(
                 'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-mono',
-                run.type === 'compare' ? 'text-blue-400' : run.type === 'document' ? 'text-violet-400' : 'text-primary',
+                run.type === 'compare' ? 'text-blue-400' : run.type === 'document' ? 'text-violet-400' : run.type === 'origination' ? 'text-cyan-400' : 'text-primary',
               )}>
                 {sourceTypeLabel(run.type)}
               </span>
@@ -746,11 +745,10 @@ export default function DealCockpitPage() {
             </p>
           </div>
           <Link
-            href="/compare"
+            href="/app/run"
             className="inline-flex items-center gap-2 text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 rounded-md transition-colors text-foreground shrink-0"
           >
-            <GitCompare className="w-4 h-4" />
-            Compare targets
+            Run another screen
           </Link>
         </div>
       </div>
@@ -908,11 +906,8 @@ export default function DealCockpitPage() {
 
               {/* Bottom CTAs */}
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link href="/run" className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
+                <Link href="/app/run" className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
                   Run another screen <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-                <Link href="/compare" className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
-                  <GitCompare className="w-3.5 h-3.5" /> Compare targets
                 </Link>
                 <a href={BOOK_INTRO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground">
                   Book 30-min intro
@@ -957,14 +952,11 @@ export default function DealCockpitPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
-              <Link href="/run" className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-md transition-colors">
+              <Link href="/app/run" className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-md transition-colors">
                 Run first screen <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-              <Link href="/compare" className="inline-flex items-center gap-1.5 text-sm font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-foreground">
-                <GitCompare className="w-3.5 h-3.5" /> Compare targets
-              </Link>
-              <Link href="/origination" className="inline-flex items-center gap-1.5 text-sm font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-foreground">
-                Start origination
+              <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-foreground">
+                View pricing
               </Link>
             </div>
           </div>

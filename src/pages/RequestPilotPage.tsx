@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle2, AlertTriangle, Calendar } from 'lucide-react';
 import { BookIntroButton, BOOK_INTRO_URL } from '@/components/BookIntroButton';
-import { DocumentReviewPanel } from '@/components/DocumentReviewPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -321,8 +320,6 @@ export default function RequestPilotPage() {
               </div>
             </div>
 
-            {/* document-assisted review */}
-            <DocumentReviewPanel />
             <div className="rounded-lg border border-border bg-card/50 p-5">
               <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Document-assisted review — pilot interest</p>
               <p className="text-xs text-muted-foreground mb-5">

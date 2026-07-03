@@ -12,22 +12,23 @@ import { OptionalUserButton } from '@/lib/optionalClerk';
 
 const APP_NAV = [
   { label: 'Run',         href: '/app/run' },
+  { label: 'Cockpit',     href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
   { label: 'Origination', href: '/app/origination' },
-  { label: 'Cockpit',     href: '/app/cockpit' },
-  { label: 'Evidence',    href: '/app/evidence' },
+  { label: 'Pricing',     href: '/pricing' },
   { label: 'AI Risk',     href: '/app/ai-risk' },
-  { label: 'Exports',     href: '/app/exports' },
+  { label: 'Trust',       href: '/trust' },
 ];
 
 // Primary app links — all /app/* prefixed.
 // Secondary informational links (trust, pricing, faq) are intentionally included
 // so signed-in users can access them without leaving the app shell.
 const APP_MORE = [
-  { label: 'Workspace', href: '/app/settings' },
-  { label: 'Trust',    href: '/trust' },
-  { label: 'Pricing',  href: '/pricing' },
-  { label: 'FAQ',      href: '/faq' },
+  { label: 'Workspace',              href: '/app/settings' },
+  { label: 'Exports · team beta',     href: '/app/exports' },
+  { label: 'Evidence workflow · beta', href: '/app/evidence' },
+  { label: 'Request pilot',           href: '/request-pilot' },
+  { label: 'FAQ',                     href: '/faq' },
 ];
 
 // ── Trial usage badge ─────────────────────────────────────────────────────────

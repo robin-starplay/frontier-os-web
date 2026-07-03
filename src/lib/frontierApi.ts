@@ -38,6 +38,58 @@ export interface UrlAnalysisPayload {
   save_to_cockpit?: boolean;
 }
 
+export interface DocumentAssistedPayload {
+  company_name?: string;
+  company_url?: string;
+  buyer_thesis?: string;
+  document_type?: string;
+  confidentiality_acknowledged: boolean;
+  file: File;
+  workspace_id?: string;
+  user_id?: string;
+  save_to_cockpit?: boolean;
+}
+
+export interface DocumentAssistedResult {
+  status: 'ok' | 'unavailable' | 'error';
+  analysis_mode: 'document_assisted_preview';
+  reason?: string;
+  message?: string;
+  company_name?: string;
+  website?: string;
+  document_type?: string;
+  document_summary?: unknown;
+  extracted_claims?: unknown[];
+  claims?: unknown[];
+  financial_claims?: unknown[];
+  metric_claims?: unknown[];
+  customer_claims?: unknown[];
+  product_claims?: unknown[];
+  ai_claims?: unknown[];
+  verified_facts?: unknown[];
+  public_source_checks?: unknown;
+  unknowns?: unknown[];
+  diligence_blockers?: unknown[];
+  next_questions?: unknown[];
+  recommended_documents?: unknown[];
+  acquisition_readiness_summary?: unknown;
+  source_references?: unknown[];
+  limitations?: unknown[];
+  evidence_confidence?: string;
+  recommendation?: string;
+  recommendation_level?: Level;
+  ic_readiness?: string;
+  valuation_readiness?: string;
+  main_blocker?: string;
+  next_action?: string;
+  saved_to_cockpit?: boolean;
+  saved_run_id?: string;
+  target_id?: string;
+  error_code?: string;
+  confidentiality_note?: string;
+  [key: string]: unknown;
+}
+
 export interface CompareCompany {
   name: string;
   url: string;
@@ -330,6 +382,55 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
         ...requestDiagnostics(endpoint, 'network_or_cors', { 'Network error': message }),
       ].join('\n'),
     );
+  }
+}
+
+export async function runDocumentAssistedAnalysis(payload: DocumentAssistedPayload): Promise<DocumentAssistedResult> {
+  const endpoint = apiRequestUrl('/api/analyse/document-assisted');
+  const body = new FormData();
+  body.append('file', payload.file);
+  if (payload.company_name) body.append('company_name', payload.company_name);
+  if (payload.company_url) body.append('company_url', payload.company_url);
+  if (payload.buyer_thesis) body.append('buyer_thesis', payload.buyer_thesis);
+  if (payload.document_type) body.append('document_type', payload.document_type);
+  body.append('confidentiality_acknowledged', String(payload.confidentiality_acknowledged));
+  body.append('save_to_cockpit', String(payload.save_to_cockpit ?? false));
+  if (payload.workspace_id) body.append('workspace_id', payload.workspace_id);
+  if (payload.user_id) body.append('user_id', payload.user_id);
+
+  debugFrontendApi('runDocumentAssistedAnalysis request', {
+    apiBaseUrl: endpoint.apiBaseUrl || '(not configured)',
+    requestUrl: endpoint.requestUrl,
+    documentType: payload.document_type,
+    fileName: payload.file.name,
+    fileSize: payload.file.size,
+  });
+
+  try {
+    const res = await fetchWithTimeout(endpoint.requestUrl, { method: 'POST', body }, URL_ANALYSIS_TIMEOUT_MS);
+    const responseText = await res.text();
+    const parsed = parseJsonText(responseText);
+    if (!res.ok) {
+      throw new UrlAnalysisRequestError(
+        [
+          backendErrorMessage(parsed, res.status),
+          ...requestDiagnostics(endpoint, 'backend_response', { 'HTTP status': res.status }),
+        ].join('\n'),
+        res.status,
+        parsed,
+      );
+    }
+    return parsed as DocumentAssistedResult;
+  } catch (err) {
+    if (err instanceof UrlAnalysisRequestError && err.backendBody && typeof err.backendBody === 'object') {
+      return err.backendBody as DocumentAssistedResult;
+    }
+    if (err instanceof UrlAnalysisRequestError) throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error([
+      'Backend could not be reached from this browser. Check backend status or local dev port/CORS.',
+      ...requestDiagnostics(endpoint, 'network_or_cors', { 'Network error': message }),
+    ].join('\n'));
   }
 }
 

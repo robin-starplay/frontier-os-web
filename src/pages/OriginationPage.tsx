@@ -7,6 +7,7 @@ import {
 import { BetaCTA } from '@/components/BetaCTA';
 import { getBackendBaseUrl } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
+import { saveOriginationTarget } from '@/lib/runHistory';
 
 const LEVEL_CLASSES: Record<string, string> = {
   green: 'bg-green-500/10 text-green-400 border-green-500/20',
@@ -28,12 +29,17 @@ type OriginationResult = Record<string, unknown>;
 
 async function runOrigination(req: OriginationRequest): Promise<OriginationResult> {
   const base = getBackendBaseUrl();
-  const url  = base ? `${base}/api/origination/thesis` : '/api/origination/thesis';
-  const res  = await fetch(url, {
+  const thesisUrl = base ? `${base}/api/origination/thesis` : '/api/origination/thesis';
+  const runUrl = base ? `${base}/api/origination/run` : '/api/origination/run';
+  const requestInit: RequestInit = {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(req),
-  });
+  };
+  let res = await fetch(thesisUrl, requestInit);
+  if (res.status === 404) {
+    res = await fetch(runUrl, requestInit);
+  }
   const body = await res.json().catch(() => null) as OriginationResult | null;
   if (!res.ok) {
     const message = typeof body?.message === 'string'
@@ -42,6 +48,18 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
     throw new Error(message);
   }
   return body ?? {};
+}
+
+function safeStr(v: unknown, fallback = ''): string {
+  if (v == null) return fallback;
+  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) return v.map(item => safeStr(item)).filter(Boolean).join(', ');
+  return fallback;
+}
+
+function asList(value: unknown): string[] {
+  if (!Array.isArray(value)) return safeStr(value) ? [safeStr(value)] : [];
+  return value.map(safeStr).filter(Boolean);
 }
 
 // ─── Result renderer ──────────────────────────────────────────────────────────
@@ -54,6 +72,7 @@ function OriginationResultView({
   onReset: () => void;
 }) {
   const [showRejected, setShowRejected] = useState(false);
+  const [savedCandidates, setSavedCandidates] = useState<Set<string>>(() => new Set());
 
   // Normalise candidate list — backend may call this field anything
   const candidates = (
@@ -65,6 +84,9 @@ function OriginationResultView({
 
   const isUnavailable = data.status === 'unavailable';
   const isReferenceUniverse = data.universe_mode === 'private_beta_reference_universe';
+  const emptyState = data.empty_state && typeof data.empty_state === 'object'
+    ? data.empty_state as Record<string, unknown>
+    : {};
   const summary    = (data.summary ?? data.thesis_summary) as string | undefined;
   const rationale  = (data.match_rationale ?? data.buyer_thesis) as string | undefined;
   const nextActArr = data.next_actions      as unknown[] | undefined;
@@ -77,15 +99,26 @@ function OriginationResultView({
     []
   );
 
-  function safeStr(v: unknown): string {
-    if (v == null) return '';
-    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
-    if (Array.isArray(v)) return v.map(safeStr).filter(Boolean).join(', ');
-    return '';
-  }
-
   if (isUnavailable) {
     return <OriginationUnavailable onReset={onReset} message={safeStr(data.message)} />;
+  }
+
+  function handleSaveCandidate(candidate: Record<string, unknown>) {
+    const name = safeStr(candidate.company_name ?? candidate.company ?? candidate.name) || 'Unnamed candidate';
+    const missingEvidence = asList(candidate.missing_evidence ?? candidate.evidence_gaps);
+    saveOriginationTarget({
+      companyName: name,
+      website: safeStr(candidate.website),
+      sector: safeStr(candidate.sector ?? candidate.vertical),
+      country: safeStr(candidate.country ?? candidate.jurisdiction),
+      fitScore: safeStr(candidate.fit_score),
+      evidenceConfidence: safeStr(candidate.evidence_confidence, 'Low'),
+      aiRisk: safeStr(candidate.ai_risk ?? candidate.ai_risk_view, 'Unknown'),
+      whyItFits: safeStr(candidate.why_it_fits ?? candidate.why_fits ?? candidate.rationale),
+      missingEvidence,
+      nextAction: safeStr(candidate.next_action, 'Run URL screen before outreach or IC use.'),
+    });
+    setSavedCandidates(prev => new Set(prev).add(name));
   }
 
   return (
@@ -131,12 +164,14 @@ function OriginationResultView({
             {candidates.map((c, i) => {
               const name    = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
               const sector  = safeStr(c.sector ?? c.vertical ?? '');
+              const country = safeStr(c.country ?? c.jurisdiction ?? '');
               const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
               const fit     = safeStr(c.fit_score ?? c.score ?? '');
+              const confidence = safeStr(c.evidence_confidence ?? '');
               const risk    = safeStr(c.ai_risk ?? c.ai_risk_view ?? c.risk ?? '');
               const fits    = safeStr(c.why_it_fits ?? c.why_fits ?? c.rationale ?? c.match_rationale ?? '');
               const description = safeStr(c.one_line_description ?? c.description ?? '');
-              const missing = safeStr(c.missing_evidence ?? c.evidence_gaps ?? '');
+              const missingItems = asList(c.missing_evidence ?? c.evidence_gaps ?? '');
               const action  = safeStr(c.next_action ?? '');
               const website = safeStr(c.website ?? '');
               const sourceLabel = safeStr(c.source_label) || 'Public-source candidate signal';
@@ -156,7 +191,7 @@ function OriginationResultView({
                   </div>
                   {(sector || description) && (
                     <p className="text-xs text-muted-foreground mb-2">
-                      {[sector, description].filter(Boolean).join(' · ')}
+                      {[sector, country, description].filter(Boolean).join(' · ')}
                     </p>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2 text-xs">
@@ -164,6 +199,12 @@ function OriginationResultView({
                       <div>
                         <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Fit score</p>
                         <p className="font-semibold text-foreground">{fit}</p>
+                      </div>
+                    )}
+                    {confidence && (
+                      <div>
+                        <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Evidence confidence</p>
+                        <p className="font-medium text-muted-foreground">{confidence}</p>
                       </div>
                     )}
                     {risk && (
@@ -179,11 +220,18 @@ function OriginationResultView({
                       </div>
                     )}
                   </div>
-                  {missing && (
-                    <p className="text-xs text-amber-400/70 mb-2">
-                      <span className="font-mono uppercase tracking-wide text-[10px]">Missing evidence</span>
-                      {' '}{missing}
-                    </p>
+                  {missingItems.length > 0 && (
+                    <div className="mb-2">
+                      <p className="font-mono uppercase tracking-wide text-[10px] text-amber-400/70 mb-1">Missing evidence</p>
+                      <ul className="space-y-1">
+                        {missingItems.slice(0, 4).map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-xs text-muted-foreground">
+                            <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-400/50 shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {website ? (
@@ -201,6 +249,19 @@ function OriginationResultView({
                         Run screen →
                       </Link>
                     )}
+                    <Link
+                      href={`/compare?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+                    >
+                      Add to Compare
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveCandidate(c)}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+                    >
+                      {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
+                    </button>
                     {action && (
                       <span className="text-[11px] text-muted-foreground/60">{action}</span>
                     )}
@@ -225,7 +286,11 @@ function OriginationResultView({
       )}
 
       {candidates.length === 0 && (
-        <OriginationUnavailable onReset={onReset} />
+        <OriginationEmptyState
+          title={safeStr(emptyState.title) || 'No reference targets matched this thesis.'}
+          message={safeStr(emptyState.message) || 'Broaden the thesis or run a known URL screen.'}
+          onReset={onReset}
+        />
       )}
 
       {/* Match rationale */}
@@ -382,6 +447,43 @@ function OriginationUnavailable({
             >
               Edit thesis
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OriginationEmptyState({
+  title,
+  message,
+  onReset,
+}: {
+  title: string;
+  message: string;
+  onReset: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <Search className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{message}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Broaden thesis
+            </button>
+            <Link
+              href="/run"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+            >
+              Run known URL screen <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         </div>
       </div>

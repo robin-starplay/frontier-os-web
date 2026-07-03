@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'wouter';
 import { Lock, FileText, BarChart2, Presentation, ClipboardList, ArrowRight } from 'lucide-react';
 import { BetaCTA } from '@/components/BetaCTA';
-import { DocumentReviewPanel } from '@/components/DocumentReviewPanel';
 
 // ─── Export types ─────────────────────────────────────────────────────────────
 
@@ -93,8 +92,19 @@ export default function ExportsPage() {
           </div>
         </div>
 
-        {/* Document-assisted review prototype */}
-        <DocumentReviewPanel collapsible defaultExpanded={false} />
+        {/* Document-assisted review belongs in Run, not Exports */}
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
+          <p className="text-sm font-semibold text-foreground mb-1">Run a document-assisted screen first.</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Website + document review is part of the acquisition screen workflow. Exports are generated later from saved Cockpit runs.
+          </p>
+          <Link
+            href="/app/run?mode=document"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            Run a document-assisted screen first <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
 
         {/* Export list */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -14,10 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { DEMO_SCENARIOS, DEFAULT_SCENARIO, NEUTRAL_STAGES, type DemoScenario, type AnalysisStageData } from '@/data/scenarios';
 import { useAccess } from '@/contexts/AccessContext';
-import { saveUrlRun, getRuns } from '@/lib/runHistory';
+import { saveUrlRun, saveDocumentRun, getRuns } from '@/lib/runHistory';
 import { getWorkspaceId, getUserId, createBackendAccount, getTrialAccount } from '@/lib/trialAccount';
 import {
   runUrlAnalysis,
+  runDocumentAssistedAnalysis,
   startAnalysis,
   pollStatus,
   fetchResult,
@@ -29,11 +30,11 @@ import {
   type AnalysisResultResponse,
   type StartAnalysisOutcome,
   type AnalysisEvidenceCard,
+  type DocumentAssistedResult,
   type EvidenceStatus,
   type Level,
 } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
-import { DocumentReviewPanel } from '@/components/DocumentReviewPanel';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ type StageStatus = 'queued' | 'running' | 'complete';
 type Step = 1 | 2 | 3;
 type JurisdictionCode = 'uk' | 'us' | 'de' | 'fr' | 'it' | 'other' | 'unknown';
 type ModeCode = 'url-only' | 'doc-assisted' | 'hybrid';
+type DocumentTypeCode = 'pitch_deck' | 'teaser' | 'cim_excerpt' | 'investor_deck' | 'management_pack' | 'annual_report' | 'unknown';
 
 /** State machine for the Railway/external backend call path. */
 type RailwayPhase =
@@ -105,6 +107,15 @@ const DEFAULT_DOCUMENTS_TO_REQUEST = [
   'Customer contracts / SOWs',
   'Implementation backlog',
   'AI/product architecture note if AI claims exist',
+];
+
+const DOCUMENT_ASSISTED_STAGES: AnalysisStageData[] = [
+  { id: 1, label: 'Preparing evidence screen', evidenceFound: 0, confidence: 'Medium', finding: 'Preparing the document-assisted acquisition screen.', durationMs: 1200 },
+  { id: 2, label: 'Reading uploaded document', evidenceFound: 0, confidence: 'Medium', finding: 'Reading the uploaded non-confidential PDF.', durationMs: 1600 },
+  { id: 3, label: 'Extracting company claims', evidenceFound: 0, confidence: 'Medium', finding: 'Extracting company claims and marking them as not independently verified.', durationMs: 1800 },
+  { id: 4, label: 'Checking public sources', evidenceFound: 0, confidence: 'Medium', finding: 'Checking public sources where a company website is provided.', durationMs: 1800 },
+  { id: 5, label: 'Ranking evidence and gaps', evidenceFound: 0, confidence: 'Medium', finding: 'Separating verified facts, company claims, unknowns and diligence blockers.', durationMs: 1600 },
+  { id: 6, label: 'Preparing IC-readiness view', evidenceFound: 0, confidence: 'Medium', finding: 'Preparing the IC readiness view and saving the run summary.', durationMs: 1400 },
 ];
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -188,7 +199,7 @@ function textValue(value: unknown, fallback = ''): string {
   return s || fallback;
 }
 
-function displayValue(value: unknown, fallback = 'Unavailable in this preview'): string {
+function displayValue(value: unknown, fallback = 'Not found in this run'): string {
   return textValue(value, fallback);
 }
 
@@ -261,13 +272,14 @@ function financialStatusCard(cards: AnalysisEvidenceCard[]): { value: string; le
   const financialCards = cards.filter(isFinancialEvidenceCard);
   const hasVerifiedRevenue = financialCards.some(card => isVerifiedMetric(card, /\b(revenue|turnover)\b/));
   const hasVerifiedArr = financialCards.some(card => isVerifiedMetric(card, /\barr\b|annual recurring revenue/));
-  const hasVerifiedRetentionOrConcentration = cards.some(card => isVerifiedMetric(card, /\b(retention|churn|customer concentration|top[- ]?10)\b/));
+  const hasVerifiedRetention = cards.some(card => isVerifiedMetric(card, /\b(retention|churn|grr|nrr)\b/));
+  const hasVerifiedConcentration = cards.some(card => isVerifiedMetric(card, /\b(customer concentration|top[- ]?10)\b/));
 
-  if (hasVerifiedRevenue && hasVerifiedArr && hasVerifiedRetentionOrConcentration) {
-    return { value: 'Financials substantially verified', level: 'green' };
+  if (hasVerifiedRevenue && hasVerifiedArr && hasVerifiedRetention && hasVerifiedConcentration) {
+    return { value: 'Financial diligence substantially source-backed', level: 'green' };
   }
   if (hasVerifiedRevenue && !hasVerifiedArr) {
-    return { value: 'Revenue verified; ARR not verified', level: 'amber' };
+    return { value: 'Revenue verified; ARR and revenue quality not yet underwritten', level: 'amber' };
   }
   const hasRevenueSignal = financialCards.some(card => {
     const haystack = `${card.field} ${card.value} ${card.summary}`.toLowerCase();
@@ -277,6 +289,16 @@ function financialStatusCard(cards: AnalysisEvidenceCard[]): { value: string; le
     return { value: 'Revenue signal found; source verification incomplete', level: 'amber' };
   }
   return { value: 'Financials not verified', level: 'red' };
+}
+
+function blockerTitle(item: unknown): string {
+  const rec = asRecord(item);
+  return textValue(rec.title ?? rec.field ?? rec.blocker ?? rec.claim_text ?? rec.detail ?? item, '');
+}
+
+function blockerSummary(item: unknown): string {
+  const rec = asRecord(item);
+  return textValue(rec.summary ?? rec.why_it_matters ?? rec.next_document_or_request_needed ?? rec.next_step, '');
 }
 
 function sourceLine(item: Record<string, unknown>): string {
@@ -572,8 +594,8 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
     evidence_confidence: textValue(r.evidence_confidence, '')
       ? confidenceValue(r.evidence_confidence)
       : r.evidence_confidence_score != null ? `${r.evidence_confidence_score}/100` : 'Not verified in this run',
-    ai_replica_risk: textValue(ai.replica_risk, 'Unavailable in this preview'),
-    ai_moat: textValue(ai.moat_evidence, 'Unavailable in this preview'),
+    ai_replica_risk: textValue(ai.replica_risk, 'Not assessed in this run'),
+    ai_moat: textValue(ai.moat_evidence, 'Not assessed in this run'),
     next_action: textValue(r.next_action ?? mainBlocker, 'Request source-backed financials and management data.'),
     strategic_fit: {
       score: textValue(sf.score, 'Not assessed'),
@@ -585,12 +607,12 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
     },
     evidence_cards: evidenceCards,
     ai_disruption: {
-      replica_risk: textValue(ai.replica_risk, 'Unavailable in this preview'),
+      replica_risk: textValue(ai.replica_risk, 'Not assessed in this run'),
       replica_risk_level: recommendationLevel(ai.replica_risk),
-      moat_evidence: textValue(ai.moat_evidence, 'Unavailable in this preview'),
-      inference_economics: textValue(ai.inference_economics, 'Unavailable in this preview'),
-      product_expansion: textValue(ai.product_expansion, 'Unavailable in this preview'),
-      opex_improvement: textValue(ai.opex_improvement, 'Unavailable in this preview'),
+      moat_evidence: textValue(ai.moat_evidence, 'Not assessed in this run'),
+      inference_economics: textValue(ai.inference_economics, 'Not assessed in this run'),
+      product_expansion: textValue(ai.product_expansion, 'Not assessed in this run'),
+      opex_improvement: textValue(ai.opex_improvement, 'Not assessed in this run'),
       diligence_questions: asArray(ai.diligence_questions).map(String),
     },
     verified_facts: verifiedRaw,
@@ -744,6 +766,9 @@ interface Step1Props {
   buyerThesis: string; setBuyerThesis: (v: string) => void;
   jurisdiction: JurisdictionCode; setJurisdiction: (v: JurisdictionCode) => void;
   mode: ModeCode; setMode: (v: ModeCode) => void;
+  documentFile: File | null; setDocumentFile: (v: File | null) => void;
+  documentType: DocumentTypeCode; setDocumentType: (v: DocumentTypeCode) => void;
+  confidentialityAcknowledged: boolean; setConfidentialityAcknowledged: (v: boolean) => void;
   onScenarioSelect: (s: DemoScenario) => void;
   onRun: () => void;
   analysisInFlight: boolean;
@@ -756,6 +781,8 @@ function Step1({
   scenario, company, setCompany, website, setWebsite,
   buyer, setBuyer, buyerThesis, setBuyerThesis,
   jurisdiction, setJurisdiction, mode, setMode,
+  documentFile, setDocumentFile, documentType, setDocumentType,
+  confidentialityAcknowledged, setConfidentialityAcknowledged,
   onScenarioSelect, onRun, analysisInFlight, backendConfigured,
   investmentStyle, setInvestmentStyle, riskPosture, setRiskPosture,
 }: Step1Props) {
@@ -780,11 +807,20 @@ function Step1({
   const urlScreensLimit = getTrialAccount()?.url_screens_limit ?? 5;
   const screensLeft = Math.max(0, urlScreensLimit - urlScreensUsed);
   const quotaReached = screensLeft <= 0;
+  const documentAttached = Boolean(documentFile);
+  const documentMode = mode === 'doc-assisted';
+  const pdfError = documentFile && !documentFile.name.toLowerCase().endsWith('.pdf') && documentFile.type !== 'application/pdf'
+    ? 'Only PDF files are supported.'
+    : documentFile && documentFile.size > 10 * 1024 * 1024
+      ? 'PDF must be 10MB or smaller.'
+      : '';
+  const documentFileRequired = documentMode && !documentFile;
+  const documentAckRequired = documentAttached && !confidentialityAcknowledged;
 
   const CHECK_LIST = [
     'Entity and registry sources',
     'Evidence quality and source hierarchy',
-    'Financial facts — revenue, EBITDA, ARR',
+    'Document claims, public facts and financial evidence',
     'AI defensibility and replica risk',
     'Buyer-specific fit',
     'Diligence gaps and IC readiness',
@@ -797,9 +833,9 @@ function Step1({
         <div className="lg:col-span-3">
           <Card className="border-border">
             <CardHeader className="pb-5">
-              <CardTitle className="text-lg">Target details</CardTitle>
+              <CardTitle className="text-lg">Run an evidence-first acquisition screen.</CardTitle>
               <CardDescription>
-                Enter a target company and website. Jurisdiction, buyer and thesis improve the analysis.
+                Start with a company website and, where available, one non-confidential deck or teaser. Frontier OS extracts claims, checks public evidence, flags gaps and prepares the IC-readiness view.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -813,6 +849,7 @@ function Step1({
                     setUrlError('Please enter a valid company website URL.');
                     return;
                   }
+                  if (pdfError || documentFileRequired || documentAckRequired) return;
                   if (normalised !== website) setWebsite(normalised);
                   setUrlError('');
                   onRun();
@@ -910,24 +947,107 @@ function Step1({
                   </Select>
                 </div>
 
-                {/* URL-only notice — always shown in private beta */}
-                <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-green-500/5 border border-green-500/20 text-xs text-green-400">
-                  <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  URL-only mode uses public sources and registry data only. No confidential documents required.
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMode('doc-assisted')}
+                    className={cn(
+                      'text-left rounded-lg border px-4 py-3 transition-colors',
+                      mode === 'doc-assisted' ? 'border-primary/50 bg-primary/5' : 'border-border bg-card/30 hover:bg-card/60',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-foreground">Website + document</p>
+                      <span className="text-[10px] font-mono text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5">
+                        Recommended
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Upload one non-confidential PDF such as a pitch deck, teaser, public investor deck or annual report. Frontier OS extracts claims, checks public evidence and prepares the IC-readiness view.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('url-only'); setDocumentFile(null); setConfidentialityAcknowledged(false); }}
+                    className={cn(
+                      'text-left rounded-lg border px-4 py-3 transition-colors',
+                      mode === 'url-only' ? 'border-primary/50 bg-primary/5' : 'border-border bg-card/30 hover:bg-card/60',
+                    )}
+                  >
+                    <p className="text-sm font-semibold text-foreground">Website only</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Run a public-source screen when no document is available.
+                    </p>
+                  </button>
                 </div>
 
-                {/* Document review prototype notice */}
-                <div className="rounded-lg border border-border bg-card/30 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-foreground">Document-assisted review</p>
-                    <span className="ml-auto text-[10px] font-mono text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5 whitespace-nowrap">
-                      Prototype · 1 free review
-                    </span>
+                {documentMode && (
+                  <div className="rounded-lg border border-border bg-card/30 p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-foreground">Upload one non-confidential PDF</p>
+                      <span className="ml-auto text-[10px] font-mono text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5 whitespace-nowrap">
+                        Prototype · 1 free review
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Frontier OS extracts document claims and checks public evidence. Document-derived items are company claims, not independently verified facts.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="document_type">Document type</Label>
+                        <Select value={documentType} onValueChange={v => setDocumentType(v as DocumentTypeCode)}>
+                          <SelectTrigger id="document_type" className="bg-background">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pitch_deck">Pitch deck</SelectItem>
+                            <SelectItem value="teaser">Teaser</SelectItem>
+                            <SelectItem value="cim_excerpt">CIM excerpt</SelectItem>
+                            <SelectItem value="investor_deck">Investor deck</SelectItem>
+                            <SelectItem value="management_pack">Management pack</SelectItem>
+                            <SelectItem value="annual_report">Annual report</SelectItem>
+                            <SelectItem value="unknown">Other / unknown</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="document_file">PDF</Label>
+                        <Input
+                          id="document_file"
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          className={cn('bg-background', pdfError ? 'border-destructive focus-visible:ring-destructive' : '')}
+                          onChange={e => setDocumentFile(e.currentTarget.files?.[0] ?? null)}
+                        />
+                        <p className={cn('text-xs', pdfError ? 'text-destructive' : 'text-muted-foreground')}>
+                          {pdfError || (documentFile ? documentFile.name : 'Upload a PDF to run document-assisted review. Max 10MB.')}
+                        </p>
+                      </div>
+                    </div>
+                    <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={confidentialityAcknowledged}
+                        onChange={e => setConfidentialityAcknowledged(e.currentTarget.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>I confirm this is non-confidential material and I have permission to upload it.</span>
+                    </label>
+                    {documentAckRequired && (
+                      <p className="text-xs text-amber-300">Confirm non-confidential permission before uploading.</p>
+                    )}
+                    {documentFileRequired && (
+                      <p className="text-xs text-amber-300">Upload a PDF to run a document-assisted screen.</p>
+                    )}
+                    <p className="text-xs text-red-300/80">Do not upload confidential materials in this preview.</p>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Upload one non-confidential PDF to preview how Frontier OS extracts claims, metrics, unknowns and diligence questions.
-                    Non-confidential only · Claims extracted, not independently verified.
-                  </p>
+                )}
+
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-green-500/5 border border-green-500/20 text-xs text-green-400">
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  {documentMode
+                    ? 'Website + document mode extracts document claims and checks public sources. Claims are not independently verified.'
+                    : 'Public-source preview. Evidence checked. Gaps flagged. No confidential documents required.'}
                 </div>
 
                 {/* Investment lens */}
@@ -975,7 +1095,7 @@ function Step1({
                 <Button
                   type="submit"
                   className="w-full h-11 text-base"
-                  disabled={analysisInFlight || quotaReached || !company.trim() || !website.trim()}
+                  disabled={analysisInFlight || quotaReached || !company.trim() || !website.trim() || Boolean(pdfError) || documentFileRequired || documentAckRequired}
                 >
                   {analysisInFlight ? (
                     <>
@@ -986,7 +1106,7 @@ function Step1({
                     'Free preview limit reached'
                   ) : (
                     <>
-                      Run analysis <ArrowRight className="w-4 h-4 ml-2" />
+                      {documentMode ? 'Run document-assisted screen' : 'Run public-source preview'} <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
@@ -1057,7 +1177,7 @@ function Step1({
             </div>
             <div className="mt-6 pt-5 border-t border-border">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Start URL-only. No confidential documents are required for the private beta sample screen.
+                Primary flow: company website plus one non-confidential PDF. Website-only public-source preview remains available when no document is attached.
               </p>
             </div>
           </div>
@@ -1274,6 +1394,279 @@ function LockedFeature({ title, description }: { title: string; description: str
   );
 }
 
+function claimText(item: unknown): string {
+  const rec = asRecord(item);
+  return displayValue(rec.text ?? rec.claim_text ?? rec.summary ?? rec.value ?? item, '');
+}
+
+function DocumentClaimList({ items, empty }: { items: unknown[]; empty: string }) {
+  if (items.length === 0) {
+    return <p className="text-xs text-muted-foreground">{empty}</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {items.map((item, i) => {
+        const rec = asRecord(item);
+        const source = textValue(rec.source_label ?? rec.source, 'Uploaded document');
+        return (
+          <div key={i} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+            <p className="text-xs text-foreground leading-snug">{claimText(item)}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <StatusPill label={formatLabel(textValue(rec.type ?? rec.category, 'company claim'))} />
+              <StatusPill label="Company claim" />
+              <StatusPill label="Not independently verified" />
+            </div>
+            <p className="text-[10px] text-muted-foreground/50 mt-1">
+              Source: {source} · Status: Claim, not verified
+              {rec.page ? ` · Page ${displayValue(rec.page)}` : ''}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DocumentAssistedResultDisplay({
+  result,
+  onRunAnother,
+  saveSource,
+}: {
+  result: DocumentAssistedResult;
+  onRunAnother: () => void;
+  saveSource?: 'backend' | 'local';
+}) {
+  const summary = asRecord(result.document_summary);
+  const readiness = asRecord(result.acquisition_readiness_summary);
+  const publicChecks = asRecord(result.public_source_checks);
+  const extractedClaims = asArray(result.extracted_claims ?? result.claims);
+  const financialClaims = asArray(result.financial_claims ?? result.metric_claims);
+  const customerClaims = asArray(result.customer_claims);
+  const productClaims = asArray(result.product_claims);
+  const aiClaims = asArray(result.ai_claims);
+  const verifiedFacts = asArray(result.verified_facts);
+  const unknowns = asArray(result.unknowns);
+  const blockers = asArray(result.diligence_blockers);
+  const nextQuestions = asArray(result.next_questions);
+  const recommendedDocuments = asArray(result.recommended_documents);
+  const sourceReferences = asArray(result.source_references);
+  const limitations = asArray(result.limitations);
+
+  if (result.status === 'unavailable') {
+    return (
+      <div className="w-full max-w-3xl mx-auto space-y-4">
+        <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
+          <p className="text-sm font-semibold text-amber-300">Document-assisted review is not enabled in this hosted workspace yet.</p>
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+            {result.message || 'Use website-only preview, or request private beta access.'}
+          </p>
+          <p className="text-[10px] font-mono text-muted-foreground/60 mt-2">Reason: {result.reason || 'document_uploads_disabled'}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onRunAnother}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+            >
+              Use website-only preview
+            </button>
+            <Link
+              href="/request-pilot"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Request private beta access
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-3xl mx-auto space-y-4">
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-400">
+        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+        <span>{saveSource === 'backend' ? 'Saved to Cockpit' : 'Saved locally · document-assisted run'}</span>
+        <Link href="/cockpit" className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
+          Open Cockpit →
+        </Link>
+      </div>
+
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Executive acquisition screen · Document-assisted preview</p>
+          <span className="text-xs font-mono text-muted-foreground">{result.company_name || 'Target'}</span>
+        </div>
+        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[
+            ['Recommendation', result.recommendation || 'Request evidence pack'],
+            ['IC readiness', result.ic_readiness || 'Not ready'],
+            ['Evidence confidence', result.evidence_confidence || 'Claim, not verified'],
+            ['Document claims', String(extractedClaims.length)],
+            ['Financial claims', String(financialClaims.length)],
+            ['Blockers', String(blockers.length)],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+              <p className="text-xs font-medium text-foreground leading-snug">{value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-3 border-t border-border bg-card/30">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Next action</p>
+          <p className="text-xs text-foreground leading-snug">{result.next_action || displayValue(readiness.recommended_next_action, 'Request management accounts and source evidence before IC.')}</p>
+        </div>
+      </div>
+
+      <PackSection title="Document Summary">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            ['Document type', formatLabel(textValue(summary.document_type ?? result.document_type, 'unknown'))],
+            ['Pages processed', displayValue(summary.pages_processed ?? summary.page_count, '0')],
+            ['Claims extracted', displayValue(summary.claim_count, String(extractedClaims.length))],
+            ['Financial claims', displayValue(summary.financial_claim_count, String(financialClaims.length))],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+              <p className="text-xs text-foreground">{value}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed mt-3">{displayValue(summary.summary, 'Document claims extracted. All document-derived items require independent verification.')}</p>
+      </PackSection>
+
+      <PackSection title="Metric Cards">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            ['Claims extracted', String(extractedClaims.length)],
+            ['Financial claims', String(financialClaims.length)],
+            ['Unknowns', String(unknowns.length)],
+            ['Blockers', String(blockers.length)],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+              <p className="text-lg font-semibold text-foreground">{value}</p>
+            </div>
+          ))}
+        </div>
+      </PackSection>
+
+      <PackSection title="Extracted Claims" empty={extractedClaims.length === 0} emptyMessage="No non-metric claims extracted. Metric claims are shown under Financial Claims.">
+        <DocumentClaimList items={extractedClaims} empty="No claims extracted." />
+      </PackSection>
+
+      <PackSection title="Financial Claims" empty={financialClaims.length === 0} emptyMessage="No financial or metric claims extracted. Request management accounts / ARR bridge.">
+        <DocumentClaimList items={financialClaims} empty="No financial claims extracted." />
+      </PackSection>
+
+      <PackSection title="Customer / GTM Claims" empty={customerClaims.length === 0} emptyMessage="Customer concentration, retention and GTM evidence not found in the uploaded document.">
+        <DocumentClaimList items={customerClaims} empty="No customer claims extracted." />
+      </PackSection>
+
+      <PackSection title="Product and AI Claims" empty={[...productClaims, ...aiClaims].length === 0} emptyMessage="Product and AI claims not found in the uploaded document.">
+        <DocumentClaimList items={[...productClaims, ...aiClaims]} empty="No product or AI claims extracted." />
+      </PackSection>
+
+      <PackSection title="Public Verification Checks">
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground leading-snug">
+            {publicChecks.checked
+              ? `Public-source checks ran for ${displayValue(result.website, 'the submitted website')}.`
+              : 'Public-source checks were not completed in this run.'}
+          </p>
+          {verifiedFacts.length > 0 ? (
+            <div className="space-y-2">
+              {verifiedFacts.map((fact, i) => {
+                const rec = asRecord(fact);
+                return (
+                  <div key={i} className="rounded-md border border-green-500/20 bg-green-500/[0.03] px-3 py-2.5">
+                    <p className="text-xs text-foreground">{displayValue(rec.field ?? rec.title ?? rec.claim_type)} {rec.value ? `· ${displayValue(rec.value)}` : ''}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">Public-source verified · {sourceLine(rec)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No public-source verified facts were returned for this document-assisted run.</p>
+          )}
+        </div>
+      </PackSection>
+
+      <PackSection title="Unknowns" empty={unknowns.length === 0}>
+        <DocumentClaimList items={unknowns} empty="No unknowns flagged." />
+      </PackSection>
+
+      <PackSection title="Diligence Blockers" empty={blockers.length === 0}>
+        <div className="space-y-2">
+          {blockers.map((item, i) => {
+            const rec = asRecord(item);
+            return (
+              <div key={i} className="rounded-md border border-red-500/20 bg-red-500/[0.03] px-3 py-2.5">
+                <p className="text-xs font-semibold text-foreground">{displayValue(rec.title ?? `Blocker ${i + 1}`)}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">{displayValue(rec.why_it_matters)}</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">Need: {displayValue(rec.next_document_or_request_needed)}</p>
+              </div>
+            );
+          })}
+        </div>
+      </PackSection>
+
+      <PackSection title="Next questions" empty={nextQuestions.length === 0}>
+        <ol className="space-y-2">
+          {nextQuestions.map((question, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+              <span>{displayValue(question)}</span>
+            </li>
+          ))}
+        </ol>
+      </PackSection>
+
+      <PackSection title="Documents to request" empty={recommendedDocuments.length === 0}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {recommendedDocuments.map((document, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-md border border-border/70 bg-card/30 px-3 py-2 text-xs text-muted-foreground">
+              <FileOutput className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+              {displayValue(document)}
+            </div>
+          ))}
+        </div>
+      </PackSection>
+
+      {(sourceReferences.length > 0 || limitations.length > 0) && (
+        <details className="rounded-lg border border-border bg-card/30 px-4 py-3">
+          <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+            Sources and limitations
+          </summary>
+          <div className="mt-3 space-y-3">
+            {sourceReferences.map((source, i) => (
+              <p key={i} className="text-xs text-muted-foreground">{displayValue(source)}</p>
+            ))}
+            {limitations.map((item, i) => (
+              <p key={`lim-${i}`} className="text-xs text-muted-foreground">{displayValue(item)}</p>
+            ))}
+          </div>
+        </details>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onRunAnother}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+        >
+          <RotateCcw className="w-3 h-3" /> Run another
+        </button>
+        <Link
+          href="/cockpit"
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          Open Deal Cockpit
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ─── Step 3: Full result ──────────────────────────────────────────────────────
 
 function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
@@ -1293,6 +1686,9 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
   const publicSignals = asArray(rawResult.public_signals);
   const financialSignals = asRecord(rawResult.financial_signals);
   const structuredUnknowns = asArray(rawResult.structured_unknowns);
+  const actionableBlockers = asArray(rawResult.actionable_diligence_blockers).length > 0
+    ? asArray(rawResult.actionable_diligence_blockers)
+    : asArray(rawResult.diligence_blockers);
   const nextQuestionsRaw = asArray(rawResult.next_questions);
   const recommendedDocumentsRaw = asArray(rawResult.recommended_documents);
   const nextQuestions = nextQuestionsRaw.length > 0 ? nextQuestionsRaw : DEFAULT_NEXT_DILIGENCE_QUESTIONS;
@@ -1320,13 +1716,17 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
   const claimCards    = result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; });
   const unknownCards  = result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'unknown');
   const blockerCards  = result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'blocking');
-  const mainBlocker   = blockerCards[0] ?? null;
+  const primaryBlocker = actionableBlockers.find(item => /revenue quality/i.test(blockerTitle(item)))
+    ?? actionableBlockers[0]
+    ?? blockerCards[0]
+    ?? null;
   const icNotReady    = !['Ready', 'IC-ready'].includes(result.ic_readiness);
 
   // IC gaps — derive from evidence cards; fall back to canonical gaps
   const icGaps: string[] = (
     blockerCards.length > 0 || unknownCards.length > 0
       ? [
+          ...actionableBlockers.map(blockerTitle).filter(Boolean).slice(0, 3),
           ...blockerCards.map(c => c.field).slice(0, 3),
           ...unknownCards.map(c => `${c.field} not yet evidenced`).slice(0, 2),
         ]
@@ -1360,7 +1760,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── Hero: acquisition screen verdict ─────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Acquisition screen · {resultModeLabel(result.data_mode)}</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Executive acquisition screen · {resultModeLabel(result.data_mode)}</p>
           <span className="text-xs font-mono text-muted-foreground">{result.company}</span>
         </div>
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1376,11 +1776,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             </div>
           ))}
         </div>
-        {mainBlocker && (
+        {primaryBlocker && (
           <div className="px-4 py-3 border-t border-border/60 bg-red-500/[0.03]">
             <p className="text-[10px] font-mono uppercase tracking-widest text-red-400/70 mb-1">Main blocker</p>
             <p className="text-xs text-foreground leading-snug">
-              {mainBlocker.field}{mainBlocker.summary ? ` — ${mainBlocker.summary}` : ''}
+              {blockerTitle(primaryBlocker)}{blockerSummary(primaryBlocker) ? ` — ${blockerSummary(primaryBlocker)}` : ''}
             </p>
           </div>
         )}
@@ -1391,7 +1791,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       </div>
 
       {Object.keys(readinessSummary).length > 0 && (
-        <PackSection title="Public Evidence Pack">
+        <PackSection title="Executive acquisition screen">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               ['What we found', asArray(readinessSummary.what_we_found)],
@@ -1506,7 +1906,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
         </PackSection>
       )}
 
-      <PackSection title="Next Questions" empty={nextQuestions.length === 0}>
+      <PackSection title="Next questions" empty={nextQuestions.length === 0}>
         <ol className="space-y-2">
           {nextQuestions.slice(0, 12).map((question, i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -1519,7 +1919,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
         </ol>
       </PackSection>
 
-      <PackSection title="Documents to Request" empty={recommendedDocuments.length === 0}>
+      <PackSection title="Documents to request" empty={recommendedDocuments.length === 0}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {recommendedDocuments.map((document, i) => (
             <div key={i} className="flex items-center gap-2 rounded-md border border-border/70 bg-card/30 px-3 py-2 text-xs text-muted-foreground">
@@ -1553,9 +1953,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                 <div>
                   <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Confidence basis</p>
                   <p className="text-xs text-muted-foreground leading-snug">
-                    {textValue(analysisQuality.quality_priority) === 'evidence_over_speed'
-                      ? 'Evidence coverage and source quality, not speed.'
-                      : displayValue(analysisQuality.quality_priority, 'Evidence coverage and source quality, not speed.')}
+                    Evidence coverage and source quality, not speed.
                   </p>
                 </div>
                 <div>
@@ -1569,7 +1967,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             {runLog.length > 0 && (
               <details className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
                 <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
-                  Technical run details
+                  Developer diagnostics
                 </summary>
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {Object.keys(analysisQuality).length > 0 && (
@@ -1726,9 +2124,6 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                 </button>
                 <Link href="/cockpit" className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
                   Save to Cockpit
-                </Link>
-                <Link href="/compare" className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
-                  Compare target
                 </Link>
               </div>
             </>
@@ -2037,24 +2432,6 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
       {/* Secondary links */}
       <div className="flex flex-wrap gap-2 pb-4">
-        <Link
-          href="/evidence-workflow"
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-        >
-          View evidence workflow
-        </Link>
-        <Link
-          href="/ai-disruption"
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-        >
-          AI disruption
-        </Link>
-        <Link
-          href="/compare"
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-        >
-          Compare targets
-        </Link>
         <button
           onClick={onRunAnother}
           className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
@@ -2336,7 +2713,7 @@ function AnalysisResultDisplay({
                       ))}</ul>
                     : <p className="text-xs text-foreground">{displayValue(field)}</p>
                 ) : (
-                  <p className="text-[11px] text-muted-foreground/40 italic">Unavailable in this preview</p>
+                  <p className="text-[11px] text-muted-foreground/40 italic">Not found in this run</p>
                 )}
               </div>
             );
@@ -2371,7 +2748,7 @@ function AnalysisResultDisplay({
                       ))}</ul>
                     : <p className="text-xs text-foreground">{displayValue(field)}</p>
                 ) : (
-                  <p className="text-[11px] text-muted-foreground/40 italic">Unavailable in this preview</p>
+                  <p className="text-[11px] text-muted-foreground/40 italic">Not found in this run</p>
                 )}
               </div>
             );
@@ -2530,12 +2907,6 @@ function AnalysisResultDisplay({
           <RotateCcw className="w-3 h-3" /> Run another
         </button>
         <Link
-          href="/compare"
-          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-        >
-          Compare targets
-        </Link>
-        <Link
           href="/cockpit"
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
@@ -2688,6 +3059,13 @@ const SAMPLE_RESULT: AnalysisResult = {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boolean }) {
+  const initialMode = React.useMemo<ModeCode>(() => {
+    if (typeof window === 'undefined') return DEFAULT_SCENARIO.modeCode;
+    const requested = new URLSearchParams(window.location.search).get('mode');
+    return requested === 'document' || requested === 'doc-assisted'
+      ? 'doc-assisted'
+      : DEFAULT_SCENARIO.modeCode;
+  }, []);
   // ── Sample-screen state (used when backend is not configured) ──
   const [step, setStep]         = useState<Step>(1);
   const [scenario, setScenario] = useState<DemoScenario>(DEFAULT_SCENARIO);
@@ -2708,7 +3086,11 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [buyer,        setBuyer]        = useState(DEFAULT_SCENARIO.buyer);
   const [buyerThesis,  setBuyerThesis]  = useState(DEFAULT_SCENARIO.buyer_thesis);
   const [jurisdiction, setJurisdiction] = useState<JurisdictionCode>(DEFAULT_SCENARIO.jurisdictionCode as JurisdictionCode);
-  const [mode,         setMode]         = useState<ModeCode>(DEFAULT_SCENARIO.modeCode);
+  const [mode,         setMode]         = useState<ModeCode>(initialMode);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState<DocumentTypeCode>('pitch_deck');
+  const [confidentialityAcknowledged, setConfidentialityAcknowledged] = useState(false);
+  const [documentAssistedResult, setDocumentAssistedResult] = useState<DocumentAssistedResult | null>(null);
 
   // ── Railway backend state (optional async backend — primary path uses POST /api/analyse/url) ──
   const backendConfigured = isBackendConfigured();
@@ -2813,9 +3195,12 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setBuyerThesis(s.buyer_thesis);
     setJurisdiction(s.jurisdictionCode as JurisdictionCode);
     setMode(s.modeCode);
+    setDocumentFile(null);
+    setConfidentialityAcknowledged(false);
     setStages(s.analysis_stages.map(st => ({ ...st, status: 'queued' })));
     setIsTimelineComplete(false);
     setResult(null);
+    setDocumentAssistedResult(null);
     setAnalysisError(null);
     setAnalysisInFlight(false);
     setIsFinalising(false);
@@ -2984,10 +3369,11 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       // Always use neutral stages for real URL submissions — never scenario-specific
       // copy that contains fictional company names or hardcoded financial figures.
       const fresh: RunningStage[] = NEUTRAL_STAGES.map(s => ({ ...s, status: 'queued' as StageStatus }));
-      setStages(fresh);
-      setIsTimelineComplete(false);
-      setResult(null);
-      setAnalysisError(null);
+	      setStages(fresh);
+	      setIsTimelineComplete(false);
+	      setResult(null);
+	      setDocumentAssistedResult(null);
+	      setAnalysisError(null);
       setStep(2);
 
       const updated = [...fresh];
@@ -3025,12 +3411,111 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     } finally {
       setAnalysisInFlight(false);
     }
+	  }
+
+  async function runDocumentAssistedForForm(file: File) {
+    if (analysisInFlight) return;
+    setAnalysisInFlight(true);
+    setIsFinalising(false);
+    setFinalisingElapsedSecs(0);
+    try {
+      await createBackendAccount(buyer, buyerThesis).catch(() => null);
+      const workspaceId = getWorkspaceId();
+      const userId = getUserId();
+      const normalizedWebsite = normaliseUrl(website);
+      let apiSettled = false;
+      const apiPromise = runDocumentAssistedAnalysis({
+        company_name: company.trim(),
+        company_url: normalizedWebsite,
+        buyer_thesis: buyerThesis,
+        document_type: documentType,
+        confidentiality_acknowledged: confidentialityAcknowledged,
+        file,
+        ...(workspaceId && userId
+          ? { workspace_id: workspaceId, user_id: userId, save_to_cockpit: true }
+          : {}),
+      }).finally(() => {
+        apiSettled = true;
+      });
+
+      const fresh: RunningStage[] = DOCUMENT_ASSISTED_STAGES.map(s => ({ ...s, status: 'queued' as StageStatus }));
+      setStages(fresh);
+      setIsTimelineComplete(false);
+      setResult(null);
+      setDocumentAssistedResult(null);
+      setAnalysisError(null);
+      setStep(2);
+
+      const updated = [...fresh];
+      for (let i = 0; i < updated.length; i++) {
+        updated[i] = { ...updated[i], status: 'running' };
+        setStages([...updated]);
+        const outcome = await Promise.race([
+          new Promise<'stage'>(r => setTimeout(() => r('stage'), updated[i].durationMs)),
+          apiPromise.then(() => 'api' as const),
+        ]);
+        updated[i] = { ...updated[i], status: 'complete' };
+        setStages([...updated]);
+        if (outcome === 'api') break;
+      }
+
+      if (!apiSettled) setIsFinalising(true);
+      const apiResult = await apiPromise;
+      setDocumentAssistedResult(apiResult);
+
+      if (apiResult.status === 'ok') {
+        const summary = asRecord(apiResult.document_summary);
+        const financialClaims = asArray(apiResult.financial_claims).map(item => displayValue(item, '')).filter(Boolean).slice(0, 3);
+        const unknowns = asArray(apiResult.unknowns).map(item => displayValue(item, '')).filter(Boolean).slice(0, 4);
+        const blockers = asArray(apiResult.diligence_blockers).map(item => {
+          const rec = asRecord(item);
+          return textValue(rec.title ?? rec.blocker ?? item, '');
+        }).filter(Boolean);
+        try {
+          saveDocumentRun({
+            documentName: file.name,
+            companyName: apiResult.company_name || company.trim(),
+            website: apiResult.website || normalizedWebsite,
+            documentType,
+            confidentiality_flag: Boolean(summary.confidentiality_flag),
+            claims_count: asArray(apiResult.extracted_claims).length,
+            metrics_count: financialClaims.length,
+            topFinancialClaims: financialClaims,
+            keyUnknowns: unknowns,
+            blockers,
+            evidenceConfidence: apiResult.evidence_confidence || 'Claim, not verified',
+            next_action: apiResult.next_action || 'Request source documents needed to verify claims before IC.',
+          });
+        } catch { /* storage not available */ }
+        setSaveSource(apiResult.saved_to_cockpit ? 'backend' : 'local');
+      } else {
+        setSaveSource(null);
+      }
+      setIsFinalising(false);
+      setIsTimelineComplete(true);
+    } catch (err) {
+      setIsFinalising(false);
+      setAnalysisError(err instanceof Error ? err.message : 'Document-assisted analysis failed.');
+      setResult(null);
+      setDocumentAssistedResult(null);
+      setIsTimelineComplete(false);
+    } finally {
+      setAnalysisInFlight(false);
+    }
   }
 
   function handleSubmit() {
     // Always use the configured Frontier OS API base URL for public preview runs.
     // The Railway async backend (handleRailwaySubmit) is a separate optional flow
     // activated only via the localStorage resume on mount.
+    if (mode === 'doc-assisted') {
+      if (!documentFile) {
+        setAnalysisError('Upload a PDF to run a document-assisted screen.');
+        return;
+      }
+      runDocumentAssistedForForm(documentFile);
+      return;
+    }
     runUrlAnalysisForForm();
   }
 
@@ -3040,6 +3525,9 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setAnalysisInFlight(false);
     setIsFinalising(false);
     setFinalisingElapsedSecs(0);
+    setDocumentAssistedResult(null);
+    setDocumentFile(null);
+    setConfidentialityAcknowledged(false);
     handleScenarioSelect(scenario);
   }
 
@@ -3057,12 +3545,12 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
             {sampleMode ? 'Private beta · example screen' : 'Run Analysis'}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            {sampleMode ? 'Private beta sample screen.' : 'Run a URL-only acquisition screen.'}
+            {sampleMode ? 'Private beta sample screen.' : 'Run an evidence-first acquisition screen.'}
           </h1>
           <p className="text-base text-muted-foreground">
             {sampleMode
               ? 'This is a private-beta sample screen using static data. Create a free account to run URL-only analysis on your own targets.'
-              : 'Start with a company website. Frontier OS screens available evidence, AI defensibility, strategic fit and diligence gaps before IC.'}
+              : 'Start with a company website and, where available, one non-confidential PDF. Frontier OS extracts claims, checks public evidence, flags gaps and prepares the IC-readiness view.'}
           </p>
         </div>
       </div>
@@ -3373,6 +3861,9 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 buyerThesis={buyerThesis}   setBuyerThesis={setBuyerThesis}
                 jurisdiction={jurisdiction} setJurisdiction={setJurisdiction}
                 mode={mode}                 setMode={setMode}
+                documentFile={documentFile} setDocumentFile={setDocumentFile}
+                documentType={documentType} setDocumentType={setDocumentType}
+                confidentialityAcknowledged={confidentialityAcknowledged} setConfidentialityAcknowledged={setConfidentialityAcknowledged}
                 onScenarioSelect={handleScenarioSelect}
                 onRun={handleSubmit}
                 analysisInFlight={analysisInFlight}
@@ -3380,13 +3871,6 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 investmentStyle={investmentStyle} setInvestmentStyle={setInvestmentStyle}
                 riskPosture={riskPosture}         setRiskPosture={setRiskPosture}
               />
-            )}
-
-            {/* ── Document review prototype (secondary card below URL form) ── */}
-            {!sampleMode && step === 1 && (
-              <div className="max-w-2xl mx-auto w-full px-4 md:px-8 pb-8">
-                <DocumentReviewPanel collapsible defaultExpanded={false} />
-              </div>
             )}
 
             {step === 2 && (
@@ -3398,6 +3882,14 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 isFinalising={isFinalising}
                 finalisingElapsedSecs={finalisingElapsedSecs}
                 onContinue={() => setStep(3)}
+              />
+            )}
+
+            {step === 3 && documentAssistedResult && (
+              <DocumentAssistedResultDisplay
+                result={documentAssistedResult}
+                onRunAnother={reset}
+                saveSource={saveSource ?? 'local'}
               />
             )}
 
