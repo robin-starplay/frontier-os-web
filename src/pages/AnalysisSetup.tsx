@@ -54,6 +54,12 @@ type RailwayPhase =
   | { kind: 'success';         result: AnalysisResultResponse }
   | { kind: 'error';           message: string; runId?: string };
 
+type DocumentUnavailableState = {
+  title: string;
+  message: string;
+  reason: string;
+} | null;
+
 async function openStarterGrowthCta() {
   const pricingUrl = '/pricing';
   try {
@@ -789,6 +795,29 @@ function analysisPayloadError(value: unknown, fallback = 'Backend analysis faile
   return lines.join('\n');
 }
 
+function isDocumentUnavailableResponse(value: unknown): boolean {
+  const record = asRecord(value);
+  return textValue(record.status, '').toLowerCase() === 'unavailable'
+    || textValue(record.reason, '').toLowerCase() === 'document_uploads_disabled'
+    || textValue(record.error_code, '').toLowerCase() === 'document_uploads_disabled';
+}
+
+function isUsableDocumentAssistedPayload(value: unknown): boolean {
+  if (isDocumentUnavailableResponse(value)) return false;
+  const record = asRecord(value);
+  if (textValue(record.status, '').toLowerCase() === 'error') return false;
+  return [
+    'document_summary',
+    'extracted_claims',
+    'financial_claims',
+    'customer_claims',
+    'product_claims',
+    'ai_claims',
+    'diligence_blockers',
+    'acquisition_readiness_summary',
+  ].some(key => hasNonEmptyResultField(record[key]));
+}
+
 function completeStages(stages: RunningStage[]): RunningStage[] {
   return stages.map(stage => ({ ...stage, status: 'complete' as StageStatus }));
 }
@@ -1029,6 +1058,9 @@ function Step1({
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       Frontier OS extracts document claims and checks public evidence. Document-derived items are company claims, not independently verified facts.
                     </p>
+                    <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90">
+                      Document-assisted upload is not enabled in this hosted workspace. You can still use website-only preview.
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label htmlFor="document_type">Document type</Label>
@@ -1233,19 +1265,32 @@ function Step1({
 
 // ─── Step 2: Analysis timeline ────────────────────────────────────────────────
 
-function Step2({ company, stages, isComplete, completionMessage, error, isFinalising, finalisingElapsedSecs, onContinue }: {
+function Step2({
+  company,
+  stages,
+  isComplete,
+  completionMessage,
+  error,
+  documentUnavailable,
+  isFinalising,
+  finalisingElapsedSecs,
+  onContinue,
+  onUseWebsiteOnly,
+}: {
   company: string;
   stages: RunningStage[];
   isComplete: boolean;
   completionMessage?: string;
   error?: string | null;
+  documentUnavailable?: DocumentUnavailableState;
   isFinalising: boolean;
   finalisingElapsedSecs: number;
   onContinue: () => void;
+  onUseWebsiteOnly: () => void;
 }) {
   const completedCount = stages.filter(s => s.status === 'complete').length;
   const total = stages.length;
-  const showFinalising = isFinalising && !isComplete && !error && completedCount === total;
+  const showFinalising = isFinalising && !isComplete && !error && !documentUnavailable && completedCount === total;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -1271,6 +1316,8 @@ function Step2({ company, stages, isComplete, completionMessage, error, isFinali
           <p className="text-xs text-muted-foreground">
             {error
               ? 'Analysis failed.'
+              : documentUnavailable
+              ? 'Document-assisted review unavailable.'
               : isComplete
               ? completionMessage || 'Analysis complete.'
               : showFinalising
@@ -1358,6 +1405,36 @@ function Step2({ company, stages, isComplete, completionMessage, error, isFinali
         </div>
       )}
 
+      {documentUnavailable && (
+        <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-amber-300">{documentUnavailable.title}</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              {documentUnavailable.message}
+            </p>
+            <p className="text-[10px] font-mono text-muted-foreground/60 mt-2">
+              Reason: {documentUnavailable.reason}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onUseWebsiteOnly}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+              >
+                Use website-only preview
+              </button>
+              <Link
+                href="/request-pilot"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Request private beta access
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showFinalising && (
         <div className="mt-4 rounded-lg border border-primary/25 bg-primary/5 overflow-hidden">
           <div className="px-4 py-4 flex items-start gap-3">
@@ -1398,7 +1475,7 @@ function Step2({ company, stages, isComplete, completionMessage, error, isFinali
         </p>
       </div>
 
-      {isComplete && !error && (
+      {isComplete && !error && !documentUnavailable && (
         <div className="mt-6 flex justify-end">
           <Button onClick={onContinue} className="h-10">
             View result <ArrowRight className="w-3.5 h-3.5 ml-2" />
@@ -3114,6 +3191,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [result, setResult]     = useState<AnalysisResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [documentUnavailable, setDocumentUnavailable] = useState<DocumentUnavailableState>(null);
   const [completionMessage, setCompletionMessage] = useState('Analysis complete.');
   const [analysisInFlight, setAnalysisInFlight] = useState(false);
   const [isFinalising, setIsFinalising] = useState(false);
@@ -3240,6 +3318,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setIsTimelineComplete(false);
     setResult(null);
     setDocumentAssistedResult(null);
+    setDocumentUnavailable(null);
     setAnalysisError(null);
     setCompletionMessage('Analysis complete.');
     setAnalysisInFlight(false);
@@ -3413,6 +3492,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 	      setIsTimelineComplete(false);
 	      setResult(null);
 	      setDocumentAssistedResult(null);
+	      setDocumentUnavailable(null);
 	      setAnalysisError(null);
 	      setCompletionMessage('Analysis complete.');
       setStep(2);
@@ -3440,6 +3520,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       const merged = normalizeUrlAnalysisResult(apiResult, company.trim(), normalizedWebsite);
       setStages(current => completeStages(current.length > 0 ? current : fresh));
       setAnalysisError(null);
+      setDocumentUnavailable(null);
       setCompletionMessage(
         textValue((apiResult as unknown as Record<string, unknown>).status, '').toLowerCase() === 'partial'
         || asArray((apiResult as unknown as Record<string, unknown>).warnings).length > 0
@@ -3496,6 +3577,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setIsTimelineComplete(false);
       setResult(null);
       setDocumentAssistedResult(null);
+      setDocumentUnavailable(null);
       setAnalysisError(null);
       setCompletionMessage('Analysis complete.');
       setStep(2);
@@ -3515,16 +3597,38 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
       if (!apiSettled) setIsFinalising(true);
       const apiResult = await apiPromise;
+      if (isDocumentUnavailableResponse(apiResult)) {
+        setIsFinalising(false);
+        setStages(current => {
+          const base = current.length > 0 ? current : fresh;
+          return base.map((stage, index) => ({
+            ...stage,
+            status: index === 0 ? 'complete' as StageStatus : 'queued' as StageStatus,
+          }));
+        });
+        setAnalysisError(null);
+        setCompletionMessage('Document-assisted review unavailable.');
+        setDocumentAssistedResult(null);
+        setResult(null);
+        setSaveSource(null);
+        setIsTimelineComplete(false);
+        setDocumentUnavailable({
+          title: 'Document-assisted review is not enabled in this hosted workspace yet.',
+          message: 'Use website-only preview, or request private beta access.',
+          reason: textValue(apiResult.reason ?? apiResult.error_code, 'document_uploads_disabled'),
+        });
+        return;
+      }
       if (apiResult.status === 'error') {
         throw new Error(analysisPayloadError(apiResult, 'Document-assisted analysis failed.'));
       }
+      if (!isUsableDocumentAssistedPayload(apiResult)) {
+        throw new Error(analysisPayloadError(apiResult, 'Document-assisted analysis did not return a usable result.'));
+      }
       setStages(current => completeStages(current.length > 0 ? current : fresh));
       setAnalysisError(null);
-      setCompletionMessage(
-        apiResult.status === 'unavailable'
-          ? 'Document-assisted review unavailable.'
-          : 'Analysis complete.',
-      );
+      setDocumentUnavailable(null);
+      setCompletionMessage('Analysis complete.');
       setDocumentAssistedResult(apiResult);
 
       if (apiResult.status === 'ok') {
@@ -3584,9 +3688,24 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     runUrlAnalysisForForm();
   }
 
+  function switchToWebsiteOnlyFromUnavailable() {
+    setMode('url-only');
+    setDocumentFile(null);
+    setConfidentialityAcknowledged(false);
+    setDocumentAssistedResult(null);
+    setDocumentUnavailable(null);
+    setAnalysisError(null);
+    setIsTimelineComplete(false);
+    setIsFinalising(false);
+    setCompletionMessage('Analysis complete.');
+    setStages(NEUTRAL_STAGES.map(s => ({ ...s, status: 'queued' as StageStatus })));
+    setStep(1);
+  }
+
   function reset() {
     setStep(1);
     setAnalysisError(null);
+    setDocumentUnavailable(null);
     setCompletionMessage('Analysis complete.');
     setAnalysisInFlight(false);
     setIsFinalising(false);
@@ -3946,13 +4065,15 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 isComplete={isTimelineComplete}
                 completionMessage={completionMessage}
                 error={analysisError}
+                documentUnavailable={documentUnavailable}
                 isFinalising={isFinalising}
                 finalisingElapsedSecs={finalisingElapsedSecs}
                 onContinue={() => setStep(3)}
+                onUseWebsiteOnly={switchToWebsiteOnlyFromUnavailable}
               />
             )}
 
-            {step === 3 && documentAssistedResult && (
+            {step === 3 && documentAssistedResult && isUsableDocumentAssistedPayload(documentAssistedResult) && (
               <DocumentAssistedResultDisplay
                 result={documentAssistedResult}
                 onRunAnother={reset}
