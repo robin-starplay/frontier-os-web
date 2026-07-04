@@ -1,58 +1,57 @@
 # Frontier OS Product Surface Status
 
-Last updated: 2026-07-01
+Last updated: 2026-07-04
 
-This document is the product-facing matrix for what the reviewer/private-beta frontend should show.
+## Reviewer-Ready Product Wedge
 
-## Reviewer-Ready Wedge
-
-| Surface | Frontend route | Backend support | Product status | Decision |
+| Surface | Route | Backend support | Product status | Decision |
 | --- | --- | --- | --- | --- |
-| Company website screen | `/app/run`, `/run` | `POST /api/analyse/url` | Live public-source preview | Keep as primary product path. |
-| Public Evidence Pack | Result screen inside `AnalysisSetup.tsx` | URL analysis response | Live | Keep. Expand carefully, no fabricated values. |
-| One non-confidential PDF review | `DocumentReviewPanel.tsx` | `POST /api/documents/review` | Prototype | Show as prototype/free-preview if routed. Non-confidential PDF only. |
-| Save to Deal Cockpit | Run/compare/document flows | `POST /api/cockpit/save-run`, cockpit endpoints | Live/partial | Keep, but fallback to local storage only when backend save is unavailable. |
-| Pricing | `/pricing` | `GET /api/pricing/plans` | Live | Keep backend-driven. |
+| Website + document acquisition screen | `/app/run` | `POST /api/analyse/document-assisted` | Hosted unavailable until document uploads enabled; local/private beta prototype exists | Primary UX, but show clean unavailable on hosted. |
+| Website-only public-source preview | `/app/run` | `POST /api/analyse/url` | Live | Fallback and still usable when no document is available. |
+| Result dashboard | `/app/run` result step | URL and document-assisted payloads | Live/partial | Render backend payload only; unknowns/blockers are not failures. |
+| Deal Cockpit saved runs | `/app/cockpit` | Cockpit endpoints plus local fallback | Partial live | Clean saved-runs dashboard; no repeated unavailable filler. |
+| Pricing | `/pricing` | `GET /api/pricing/plans` | Live | Backend source of truth; Starter/Growth use Stripe `cta_url`. |
+| Request pilot | `/request-pilot` | `POST /api/contact` | Live but email may be unconfigured | Show `sent:false/email_not_configured` honestly. |
 
-## Secondary or Partial Surfaces
+## Secondary Surfaces
 
-| Surface | Frontend route/file | Backend support | Product status | Decision |
+| Surface | Route | Backend support | Product status | Decision |
 | --- | --- | --- | --- | --- |
-| Compare targets | `/app/compare`, `/compare` | `POST /api/analyse/compare` | Live endpoint, patched frontend | Keep as secondary. User must enter real targets. No placeholder comparison. |
-| Origination | `/app/origination`, `/origination` | `POST /api/origination/thesis` | Private-beta reference universe | Show backend targets only, with reference-universe warning. If hosted route is unavailable, show clean unavailable state. |
-| Deal Cockpit | `/app/cockpit`, `/cockpit` | Cockpit endpoints plus local history | Partial | Keep, but prioritize real saved runs and target-specific actions. |
-| Evidence workflow page | `/app/evidence`, `/evidence` | Evidence endpoints exist; page mostly static | Partial/static | Replace with live document/evidence workflow or lock as private beta. |
-| AI Risk | `/app/ai-risk`, public AI pages | Run response has AI fields; standalone page is static | Private beta/static | Keep as roadmap/private-beta unless target-specific backend data is present. |
-| Exports | `/app/exports`, `/reports`, `/memo` | Reporting tools exist, no live export UX wired | Locked | Keep locked/private beta. |
-| Quality-first analysis | No default route | Backend returns structured unavailable on hosted worker gap | Private pilot | Do not default to this. Explain hosted worker requirement. |
+| Compare | `/app/compare` | `POST /api/analyse/compare` | Live | Require two real targets; no fake comparison. |
+| Origination | `/app/origination` | `POST /api/origination/thesis` or `/run` | Private-beta reference universe | Render targets/empty state/unavailable honestly. |
+| AI Risk | `/app/ai-risk` | Target-specific data only through analysis result | Preview/locked | Explain what will be assessed; do not imply live target research. |
+| Trust | `/trust` | Static trust contract | Safe static | Keep claims vs verified facts, no confidential docs, source metadata rules. |
+| Exports | `/app/exports` | Export/report scaffolds only | Locked/team beta | CTA to run a document-assisted screen first. |
+| Settings / Workspace | `/app/settings` | Workspace state, configured backend health | Live diagnostics | Hide raw IDs/API details in collapsed Developer diagnostics. |
 
-## Surfaces to Avoid in Reviewer Main Flow
+## Static/Mock Risk
 
-| Surface | Reason |
+| Risk | Status |
 | --- | --- |
-| Demo sample result routes | They can contaminate reviewer trust if confused with live analysis. |
-| Soft-launch demo scenarios | Useful for internal demos only. |
-| Legacy async `/analysis` flow | Worker/old pipeline path. Do not use as default public preview. |
-| Static memo/report pages | Risk of implying generated exports before live run-backed export is wired. |
-| Example cockpit previews | Must not be shown above real empty states or saved runs. |
+| ExampleSoft contamination | Must not appear in real workflows. |
+| Fake TriloDocs GBP45.4m / ARR GBP30m | Must not appear. |
+| Document-assisted unavailable shown as complete | Guarded in Run page via unavailable detection. |
+| Successful backend payload shown as failed | Guarded via shared usable-payload detection. |
+| Local API unreachable shown as scary product error | Settings now checks configured `/api/health` and keeps diagnostics collapsed. |
+| Origination empty target list shown as unavailable | Origination page treats empty `status:"ok"` as empty state. |
 
-## Copy and Evidence Rules
+## Copy Rules
 
-- Say `Public-source preview. Evidence checked. Gaps flagged.` for the default run.
-- Say `Preparing public-source preview` for progress step 1.
-- Say `Quality-first is available for private pilots once the hosted worker is enabled.` only near private-pilot positioning.
-- Verified financials require backend `status === "verified"` and concrete source metadata.
-- Company claims and document-derived items must be labelled as claims unless externally verified.
-- Public signals are useful, but not verified facts.
-- Empty states should be actionable: explain the source or document needed next.
+- Document metrics are `Company claim` and `Not independently verified` unless backend returns an external verified fact.
+- Public-source verified facts require source URL/source label/source metadata.
+- Cerillion revenue may show verified only when backend returns source-backed evidence.
+- Origination always says private-beta reference universe, no live crawling, no paid data providers, no verified revenue/ARR/EBITDA/customer concentration.
+- Missing fields should be hidden or turned into useful next actions, not repeated as generic unavailable text.
 
-## Current Patch Status
+## Current State
 
 | Patch | Status |
 | --- | --- |
-| Remove compare placeholder comparison | Done |
-| Remove compare API fallback | Done |
-| Remove origination illustrative target list | Done |
-| Keep origination wired to backend endpoint | Done: frontend calls `/api/origination/thesis`; hosted unavailable is handled cleanly |
-| Preserve public-source default run | Done |
-| Document backend/frontend capability map | Done |
+| Website + document selector on Run page | Done |
+| Website-only fallback on Run page | Done |
+| Document-assisted hosted unavailable state | Done |
+| Shared success detection for backend payloads | Done |
+| Backend-driven pricing | Done |
+| Request pilot honest email-not-configured state | Done |
+| Settings configured backend health | Done |
+| Shared contract docs | Done |

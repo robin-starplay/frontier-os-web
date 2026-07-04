@@ -24,6 +24,9 @@ import {
   fetchResult,
   isBackendConfigured,
   getBackendBaseUrl,
+  hasUsableAnalysisPayload,
+  hasUsableDocumentAssistedPayload,
+  isDocumentUnavailablePayload,
   type AnalysisResult,
   type AnalysisRequest,
   type RunStatusResponse,
@@ -762,28 +765,6 @@ function isValidUrl(val: string): boolean {
   }
 }
 
-function hasNonEmptyResultField(value: unknown): boolean {
-  if (Array.isArray(value)) return value.length > 0;
-  return Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, unknown>).length > 0);
-}
-
-function isUsableAnalysisPayload(value: unknown): boolean {
-  const record = asRecord(value);
-  const status = textValue(record.status, '').toLowerCase();
-  if (status === 'error' || status === 'unavailable') return false;
-  if (status === 'ok') return true;
-  return [
-    'verified_facts',
-    'claims',
-    'unknowns',
-    'diligence_blockers',
-    'acquisition_readiness_summary',
-    'evidence_cards',
-    'financial_signals',
-    'company_snapshot',
-  ].some(key => hasNonEmptyResultField(record[key]));
-}
-
 function analysisPayloadError(value: unknown, fallback = 'Backend analysis failed.'): string {
   const record = asRecord(value);
   const lines = [
@@ -795,29 +776,6 @@ function analysisPayloadError(value: unknown, fallback = 'Backend analysis faile
   return lines.join('\n');
 }
 
-function isDocumentUnavailableResponse(value: unknown): boolean {
-  const record = asRecord(value);
-  return textValue(record.status, '').toLowerCase() === 'unavailable'
-    || textValue(record.reason, '').toLowerCase() === 'document_uploads_disabled'
-    || textValue(record.error_code, '').toLowerCase() === 'document_uploads_disabled';
-}
-
-function isUsableDocumentAssistedPayload(value: unknown): boolean {
-  if (isDocumentUnavailableResponse(value)) return false;
-  const record = asRecord(value);
-  if (textValue(record.status, '').toLowerCase() === 'error') return false;
-  return [
-    'document_summary',
-    'extracted_claims',
-    'financial_claims',
-    'customer_claims',
-    'product_claims',
-    'ai_claims',
-    'diligence_blockers',
-    'acquisition_readiness_summary',
-  ].some(key => hasNonEmptyResultField(record[key]));
-}
-
 function completeStages(stages: RunningStage[]): RunningStage[] {
   return stages.map(stage => ({ ...stage, status: 'complete' as StageStatus }));
 }
@@ -825,6 +783,7 @@ function completeStages(stages: RunningStage[]): RunningStage[] {
 // ─── Step 1: Input form ───────────────────────────────────────────────────────
 
 interface Step1Props {
+  sampleMode: boolean;
   scenario: DemoScenario;
   company: string; setCompany: (v: string) => void;
   website: string; setWebsite: (v: string) => void;
@@ -844,7 +803,7 @@ interface Step1Props {
 }
 
 function Step1({
-  scenario, company, setCompany, website, setWebsite,
+  sampleMode, scenario, company, setCompany, website, setWebsite,
   buyer, setBuyer, buyerThesis, setBuyerThesis,
   jurisdiction, setJurisdiction, mode, setMode,
   documentFile, setDocumentFile, documentType, setDocumentType,
@@ -1253,12 +1212,13 @@ function Step1({
         </div>
       </div>
 
-      {/* Secondary: scenario selector */}
-      <div className="border-t border-border pt-8">
-        <p className="text-base font-semibold text-foreground mb-1">Try another scenario.</p>
-        <p className="text-sm text-muted-foreground mb-6">Select a pre-configured screen to see different outputs.</p>
-        <ScenarioSelector activeId={scenario.id} onSelect={onScenarioSelect} />
-      </div>
+      {sampleMode && (
+        <div className="border-t border-border pt-8">
+          <p className="text-base font-semibold text-foreground mb-1">Try another scenario.</p>
+          <p className="text-sm text-muted-foreground mb-6">Select a pre-configured screen to see different outputs.</p>
+          <ScenarioSelector activeId={scenario.id} onSelect={onScenarioSelect} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1553,7 +1513,12 @@ function DocumentAssistedResultDisplay({
 }) {
   const summary = asRecord(result.document_summary);
   const readiness = asRecord(result.acquisition_readiness_summary);
-  const publicChecks = asRecord(result.public_source_checks);
+  const publicCheckItems = asArray(result.public_source_check_records).length > 0
+    ? asArray(result.public_source_check_records)
+    : asArray(result.public_source_checks);
+  const publicChecks = publicCheckItems.length > 0
+    ? asRecord(publicCheckItems[0])
+    : asRecord(result.public_source_checks);
   const extractedClaims = asArray(result.extracted_claims ?? result.claims);
   const financialClaims = asArray(result.financial_claims ?? result.metric_claims);
   const customerClaims = asArray(result.customer_claims);
@@ -1684,10 +1649,39 @@ function DocumentAssistedResultDisplay({
       <PackSection title="Public Verification Checks">
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground leading-snug">
-            {publicChecks.checked
+            {publicChecks.checked || publicChecks.status === 'completed'
               ? `Public-source checks ran for ${displayValue(result.website, 'the submitted website')}.`
               : 'Public-source checks were not completed in this run.'}
           </p>
+          {publicCheckItems.length > 0 && (
+            <div className="space-y-2">
+              {publicCheckItems.map((check, i) => {
+                const rec = asRecord(check);
+                const urls = asArray(rec.source_urls);
+                return (
+                  <div key={i} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs font-semibold text-foreground">{formatLabel(textValue(rec.check, `Check ${i + 1}`))}</p>
+                      <StatusPill label={formatLabel(textValue(rec.status, 'unknown'))} />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-snug">
+                      {displayValue(rec.website ?? result.website, 'Submitted website')}
+                      {rec.verified_fact_count != null ? ` · ${displayValue(rec.verified_fact_count)} verified fact(s)` : ''}
+                    </p>
+                    {urls.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {urls.slice(0, 3).map((url, idx) => (
+                          <a key={`${url}-${idx}`} href={textValue(url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline">
+                            {displayValue(url)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {verifiedFacts.length > 0 ? (
             <div className="space-y-2">
               {verifiedFacts.map((fact, i) => {
@@ -3175,17 +3169,17 @@ const SAMPLE_RESULT: AnalysisResult = {
 
 export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boolean }) {
   const initialMode = React.useMemo<ModeCode>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SCENARIO.modeCode;
+    if (typeof window === 'undefined') return sampleMode ? DEFAULT_SCENARIO.modeCode : 'url-only';
     const requested = new URLSearchParams(window.location.search).get('mode');
     return requested === 'document' || requested === 'doc-assisted'
       ? 'doc-assisted'
-      : DEFAULT_SCENARIO.modeCode;
-  }, []);
+      : sampleMode ? DEFAULT_SCENARIO.modeCode : 'url-only';
+  }, [sampleMode]);
   // ── Sample-screen state (used when backend is not configured) ──
   const [step, setStep]         = useState<Step>(1);
   const [scenario, setScenario] = useState<DemoScenario>(DEFAULT_SCENARIO);
   const [stages, setStages]     = useState<RunningStage[]>(
-    DEFAULT_SCENARIO.analysis_stages.map(s => ({ ...s, status: 'queued' })),
+    (sampleMode ? DEFAULT_SCENARIO.analysis_stages : NEUTRAL_STAGES).map(s => ({ ...s, status: 'queued' })),
   );
   const [isTimelineComplete, setIsTimelineComplete] = useState(false);
   const [result, setResult]     = useState<AnalysisResult | null>(null);
@@ -3198,11 +3192,11 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [finalisingElapsedSecs, setFinalisingElapsedSecs] = useState(0);
 
   // Form state
-  const [company,      setCompany]      = useState(DEFAULT_SCENARIO.company);
-  const [website,      setWebsite]      = useState(DEFAULT_SCENARIO.website);
-  const [buyer,        setBuyer]        = useState(DEFAULT_SCENARIO.buyer);
-  const [buyerThesis,  setBuyerThesis]  = useState(DEFAULT_SCENARIO.buyer_thesis);
-  const [jurisdiction, setJurisdiction] = useState<JurisdictionCode>(DEFAULT_SCENARIO.jurisdictionCode as JurisdictionCode);
+  const [company,      setCompany]      = useState(sampleMode ? DEFAULT_SCENARIO.company : '');
+  const [website,      setWebsite]      = useState(sampleMode ? DEFAULT_SCENARIO.website : '');
+  const [buyer,        setBuyer]        = useState(sampleMode ? DEFAULT_SCENARIO.buyer : '');
+  const [buyerThesis,  setBuyerThesis]  = useState(sampleMode ? DEFAULT_SCENARIO.buyer_thesis : '');
+  const [jurisdiction, setJurisdiction] = useState<JurisdictionCode>(sampleMode ? (DEFAULT_SCENARIO.jurisdictionCode as JurisdictionCode) : 'unknown');
   const [mode,         setMode]         = useState<ModeCode>(initialMode);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState<DocumentTypeCode>('pitch_deck');
@@ -3514,19 +3508,14 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
         setIsFinalising(true);
       }
       const apiResult = await apiPromise;
-      if (!isUsableAnalysisPayload(apiResult)) {
+      if (!hasUsableAnalysisPayload(apiResult)) {
         throw new Error(analysisPayloadError(apiResult));
       }
       const merged = normalizeUrlAnalysisResult(apiResult, company.trim(), normalizedWebsite);
       setStages(current => completeStages(current.length > 0 ? current : fresh));
       setAnalysisError(null);
       setDocumentUnavailable(null);
-      setCompletionMessage(
-        textValue((apiResult as unknown as Record<string, unknown>).status, '').toLowerCase() === 'partial'
-        || asArray((apiResult as unknown as Record<string, unknown>).warnings).length > 0
-          ? 'Analysis complete with warnings.'
-          : 'Analysis complete.',
-      );
+      setCompletionMessage('Analysis complete.');
       setResult(merged);
       // Save to local run history so the Deal Cockpit shows this run
       try { saveUrlRun(merged, normalizedWebsite); } catch { /* storage not available */ }
@@ -3597,7 +3586,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
       if (!apiSettled) setIsFinalising(true);
       const apiResult = await apiPromise;
-      if (isDocumentUnavailableResponse(apiResult)) {
+      if (isDocumentUnavailablePayload(apiResult)) {
         setIsFinalising(false);
         setStages(current => {
           const base = current.length > 0 ? current : fresh;
@@ -3622,7 +3611,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       if (apiResult.status === 'error') {
         throw new Error(analysisPayloadError(apiResult, 'Document-assisted analysis failed.'));
       }
-      if (!isUsableDocumentAssistedPayload(apiResult)) {
+      if (!hasUsableDocumentAssistedPayload(apiResult)) {
         throw new Error(analysisPayloadError(apiResult, 'Document-assisted analysis did not return a usable result.'));
       }
       setStages(current => completeStages(current.length > 0 ? current : fresh));
@@ -3713,7 +3702,19 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setDocumentAssistedResult(null);
     setDocumentFile(null);
     setConfidentialityAcknowledged(false);
-    handleScenarioSelect(scenario);
+    if (sampleMode) {
+      handleScenarioSelect(scenario);
+      return;
+    }
+    setCompany('');
+    setWebsite('');
+    setBuyer('');
+    setBuyerThesis('');
+    setJurisdiction('unknown');
+    setMode('url-only');
+    setStages(NEUTRAL_STAGES.map(s => ({ ...s, status: 'queued' as StageStatus })));
+    setResult(null);
+    setSaveSource(null);
   }
 
   // ── Render ────────────────────────────────────────────────────
@@ -4039,6 +4040,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
             {!sampleMode && step === 1 && (
               <Step1
+                sampleMode={sampleMode}
                 scenario={scenario}
                 company={company}           setCompany={setCompany}
                 website={website}           setWebsite={setWebsite}
@@ -4073,7 +4075,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
               />
             )}
 
-            {step === 3 && documentAssistedResult && isUsableDocumentAssistedPayload(documentAssistedResult) && (
+            {step === 3 && documentAssistedResult && hasUsableDocumentAssistedPayload(documentAssistedResult) && (
               <DocumentAssistedResultDisplay
                 result={documentAssistedResult}
                 onRunAnother={reset}

@@ -13,7 +13,7 @@ import { BackendStatusBadge } from '@/components/BackendStatusBadge';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
 import { clerkEnabled, useOptionalClerk, useOptionalUser } from '@/lib/optionalClerk';
 
-// ─── Local API health ─────────────────────────────────────────────────────────
+// ─── Optional developer API health ────────────────────────────────────────────
 
 type LocalApiStatus = 'checking' | 'ok' | 'error';
 
@@ -24,7 +24,9 @@ function useLocalApiHealth() {
   async function check() {
     setStatus('checking');
     try {
-      const res = await fetch('/api/healthz', { method: 'GET' });
+      const base = getBackendBaseUrl();
+      const endpoint = base ? `${base}/api/health` : '/api/health';
+      const res = await fetch(endpoint, { method: 'GET' });
       setCheckedAt(new Date());
       setStatus(res.ok ? 'ok' : 'error');
     } catch {
@@ -327,10 +329,10 @@ export default function SettingsPage() {
                 <span className={`font-medium ${
                   localApi.status === 'ok' ? 'text-green-400' : 'text-muted-foreground'
                 }`}>
-                  {localApi.status === 'ok' ? 'Optional local API server healthy' :
-                   localApi.status === 'error' ? 'Optional local API is not running' : 'Checking optional local API…'}
+                {localApi.status === 'ok' ? 'Configured Frontier OS backend healthy' :
+                   localApi.status === 'error' ? 'Configured backend health check did not respond' : 'Checking configured Frontier OS backend…'}
                 </span>
-                <span className="text-muted-foreground/50 font-mono text-[10px]">/api/healthz</span>
+                <span className="text-muted-foreground/50 font-mono text-[10px]">/api/health</span>
                 <button
                   type="button"
                   onClick={localApi.recheck}
@@ -341,11 +343,11 @@ export default function SettingsPage() {
               </div>
               {localApi.checkedAt && (
                 <p className="text-[10px] text-muted-foreground/40 pl-5">
-                  Local API last checked {localApi.checkedAt.toLocaleTimeString()}
+                  Backend last checked {localApi.checkedAt.toLocaleTimeString()}
                 </p>
               )}
               <p className="text-[11px] text-muted-foreground/70">
-                Local API health is an optional developer check. Reviewer runs use the configured Frontier OS backend when available.
+                Reviewer runs use the configured Frontier OS backend. Local API availability is not required when Railway is configured.
               </p>
             </div>
 

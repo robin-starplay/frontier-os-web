@@ -68,6 +68,7 @@ export interface DocumentAssistedResult {
   ai_claims?: unknown[];
   verified_facts?: unknown[];
   public_source_checks?: unknown;
+  public_source_check_records?: unknown[];
   unknowns?: unknown[];
   diligence_blockers?: unknown[];
   next_questions?: unknown[];
@@ -313,12 +314,17 @@ function backendErrorMessage(body: unknown, httpStatus: number): string {
   return parts.length > 0 ? `Backend returned status ${httpStatus}. ${parts.join(' ')}` : `Backend returned status ${httpStatus}.`;
 }
 
-function hasUsableBackendResult(body: unknown): boolean {
+function hasNonEmptyResultField(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'string') return value.trim().length > 0;
+  return Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, unknown>).length > 0);
+}
+
+export function hasUsableAnalysisPayload(body: unknown): boolean {
   if (!body || typeof body !== 'object') return false;
   const record = body as Record<string, unknown>;
   const status = String(record.status || '').toLowerCase();
   if (status === 'error' || status === 'unavailable') return false;
-  if (status === 'ok') return true;
   const resultKeys = [
     'verified_facts',
     'claims',
@@ -328,13 +334,35 @@ function hasUsableBackendResult(body: unknown): boolean {
     'evidence_cards',
     'financial_signals',
     'company_snapshot',
+    'public_source_check_records',
   ];
-  return resultKeys.some((key) => {
-    const value = record[key];
-    return Array.isArray(value)
-      ? value.length > 0
-      : Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, unknown>).length > 0);
-  });
+  return resultKeys.some((key) => hasNonEmptyResultField(record[key]));
+}
+
+export function isDocumentUnavailablePayload(body: unknown): boolean {
+  if (!body || typeof body !== 'object') return false;
+  const record = body as Record<string, unknown>;
+  return String(record.status || '').toLowerCase() === 'unavailable'
+    || String(record.reason || '').toLowerCase() === 'document_uploads_disabled'
+    || String(record.error_code || '').toLowerCase() === 'document_uploads_disabled';
+}
+
+export function hasUsableDocumentAssistedPayload(body: unknown): boolean {
+  if (!body || typeof body !== 'object') return false;
+  if (isDocumentUnavailablePayload(body)) return false;
+  const record = body as Record<string, unknown>;
+  if (String(record.status || '').toLowerCase() === 'error') return false;
+  const resultKeys = [
+    'document_summary',
+    'extracted_claims',
+    'financial_claims',
+    'customer_claims',
+    'product_claims',
+    'ai_claims',
+    'diligence_blockers',
+    'acquisition_readiness_summary',
+  ];
+  return resultKeys.some((key) => hasNonEmptyResultField(record[key]));
 }
 
 function requestDiagnostics(endpoint: ReturnType<typeof apiRequestUrl>, failureType: string, extras: Record<string, unknown> = {}): string[] {
@@ -388,7 +416,7 @@ export async function runUrlAnalysis(payload: UrlAnalysisPayload): Promise<Analy
     });
     const body = parseJsonText(responseText);
     if (!res.ok) {
-      if (hasUsableBackendResult(body)) {
+      if (hasUsableAnalysisPayload(body)) {
         return body as AnalysisResult;
       }
       throw new UrlAnalysisRequestError(
