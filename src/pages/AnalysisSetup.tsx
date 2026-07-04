@@ -1071,10 +1071,15 @@ function Step1({
                   </div>
                 )}
 
-                <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-green-500/5 border border-green-500/20 text-xs text-green-400">
+                <div className={cn(
+                  'flex items-start gap-2 px-3 py-2.5 rounded border text-xs',
+                  documentMode
+                    ? 'bg-amber-500/5 border-amber-500/20 text-amber-200'
+                    : 'bg-green-500/5 border-green-500/20 text-green-400',
+                )}>
                   <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   {documentMode
-                    ? 'Website + document mode extracts document claims and checks public sources. Claims are not independently verified.'
+                    ? 'Document-assisted mode is prepared, but not enabled in this hosted workspace yet. Use website-only preview for now.'
                     : 'Public-source preview. Evidence checked. Gaps flagged. No confidential documents required.'}
                 </div>
 
