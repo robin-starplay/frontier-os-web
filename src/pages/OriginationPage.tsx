@@ -62,6 +62,12 @@ function asList(value: unknown): string[] {
   return value.map(safeStr).filter(Boolean);
 }
 
+function isSyntheticReferenceCandidate(candidate: Record<string, unknown>): boolean {
+  return candidate.synthetic_reference_target === true
+    || safeStr(candidate.source_mode) === 'synthetic_reference_examples'
+    || safeStr(candidate.source_note).toLowerCase().includes('synthetic example');
+}
+
 // ─── Result renderer ──────────────────────────────────────────────────────────
 
 function OriginationResultView({
@@ -75,18 +81,18 @@ function OriginationResultView({
   const [savedCandidates, setSavedCandidates] = useState<Set<string>>(() => new Set());
 
   // Normalise candidate list — backend may call this field anything
-  const candidates = (
+  const rawCandidates = (
     (data.targets as unknown[] | undefined) ??
     (data.ranked_targets as unknown[] | undefined) ??
     (data.candidates as unknown[] | undefined) ??
     []
   ) as Record<string, unknown>[];
+  const candidates = rawCandidates.filter(candidate => !isSyntheticReferenceCandidate(candidate));
 
   const isUnavailable = data.status === 'unavailable';
   const isReferenceUniverse = data.universe_mode === 'private_beta_reference_universe';
-  const emptyState = data.empty_state && typeof data.empty_state === 'object'
-    ? data.empty_state as Record<string, unknown>
-    : {};
+  const sourceMode = safeStr(data.source_mode || data.universe_mode);
+  const hasSourceBackedUniverse = data.source_backed_target_universe_available === true || candidates.length > 0;
   const summary    = (data.summary ?? data.thesis_summary) as string | undefined;
   const rationale  = (data.match_rationale ?? data.buyer_thesis) as string | undefined;
   const nextActArr = data.next_actions      as unknown[] | undefined;
@@ -101,6 +107,17 @@ function OriginationResultView({
 
   if (isUnavailable) {
     return <OriginationUnavailable onReset={onReset} message={safeStr(data.message)} />;
+  }
+
+  if (candidates.length === 0 || !hasSourceBackedUniverse) {
+    return (
+      <OriginationLimitedPreview
+        onReset={onReset}
+        warnings={warnings}
+        limitations={limitations}
+        summary={summary}
+      />
+    );
   }
 
   function handleSaveCandidate(candidate: Record<string, unknown>) {
@@ -123,14 +140,27 @@ function OriginationResultView({
 
   return (
     <div className="space-y-4">
-      {isReferenceUniverse && (
-        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-primary/80">
-          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          <span>
-            Generated from private-beta reference universe; validate before outreach.
+      <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
+        <div className="flex flex-wrap gap-2">
+          {(isReferenceUniverse || sourceMode.includes('private_beta_reference_universe')) && (
+            <span className="inline-flex items-center rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-mono text-primary">
+              Private-beta reference universe
+            </span>
+          )}
+          <span className="inline-flex items-center rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-mono text-amber-300">
+            Validate before outreach
+          </span>
+          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-mono text-muted-foreground">
+            No live crawling
+          </span>
+          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-mono text-muted-foreground">
+            No paid data providers
+          </span>
+          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-mono text-muted-foreground">
+            No verified revenue/ARR/EBITDA/customer concentration
           </span>
         </div>
-      )}
+      </div>
 
       {warnings.length > 0 && (
         <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
@@ -236,14 +266,14 @@ function OriginationResultView({
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {website ? (
                       <Link
-                        href={`/run?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
+                        href={`/app/run?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
                         className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
                       >
                         Run screen →
                       </Link>
                     ) : (
                       <Link
-                        href="/run"
+                        href="/app/run"
                         className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
                       >
                         Run screen →
@@ -255,13 +285,15 @@ function OriginationResultView({
                     >
                       Add to Compare
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleSaveCandidate(c)}
-                      className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-                    >
-                      {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
-                    </button>
+                    {website && (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveCandidate(c)}
+                        className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+                      >
+                        {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
+                      </button>
+                    )}
                     {action && (
                       <span className="text-[11px] text-muted-foreground/60">{action}</span>
                     )}
@@ -283,14 +315,6 @@ function OriginationResultView({
             })}
           </div>
         </div>
-      )}
-
-      {candidates.length === 0 && (
-        <OriginationEmptyState
-          title={safeStr(emptyState.title) || 'No reference targets matched this thesis.'}
-          message={safeStr(emptyState.message) || 'Broaden the thesis or run a known URL screen.'}
-          onReset={onReset}
-        />
       )}
 
       {/* Match rationale */}
@@ -393,7 +417,7 @@ function OriginationResultView({
           Run another origination screen
         </button>
         <Link
-          href="/run"
+          href="/app/run"
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
           Run URL screen
@@ -405,6 +429,86 @@ function OriginationResultView({
           Deal Cockpit
         </Link>
       </div>
+    </div>
+  );
+}
+
+function OriginationLimitedPreview({
+  onReset,
+  warnings,
+  limitations,
+  summary,
+}: {
+  onReset: () => void;
+  warnings?: unknown[];
+  limitations?: unknown[];
+  summary?: string;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.04] p-5">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              Origination target discovery is not enabled in this hosted workspace yet.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              This preview can describe the workflow, but it will not invent acquisition targets. Use a known company URL, broaden the thesis, or request private beta access.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/app/run"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+              >
+                Run known URL screen <ArrowRight className="w-3 h-3" />
+              </Link>
+              <Link
+                href="/request-pilot"
+                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+              >
+                Request private beta access
+              </Link>
+              <button
+                type="button"
+                onClick={onReset}
+                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+              >
+                Broaden thesis
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {summary && (
+        <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Workflow preview</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{summary}</p>
+        </div>
+      )}
+
+      {warnings && warnings.length > 0 && (
+        <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Warnings</p>
+          <ul className="space-y-1">
+            {warnings.map((warning, i) => (
+              <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(warning)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {limitations && limitations.length > 0 && (
+        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Limitations</p>
+          <ul className="space-y-1">
+            {limitations.map((limitation, i) => (
+              <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(limitation)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -429,7 +533,7 @@ function OriginationUnavailable({
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
-              href="/run"
+              href="/app/run"
               className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
             >
               Run URL screen <ArrowRight className="w-3 h-3" />
@@ -447,43 +551,6 @@ function OriginationUnavailable({
             >
               Edit thesis
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OriginationEmptyState({
-  title,
-  message,
-  onReset,
-}: {
-  title: string;
-  message: string;
-  onReset: () => void;
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <div className="flex items-start gap-3">
-        <Search className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{title}</p>
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{message}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onReset}
-              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-            >
-              Broaden thesis
-            </button>
-            <Link
-              href="/run"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
-            >
-              Run known URL screen <ArrowRight className="w-3 h-3" />
-            </Link>
           </div>
         </div>
       </div>
@@ -557,7 +624,7 @@ function OriginationForm() {
             Try again
           </button>
           <Link
-            href="/run"
+            href="/app/run"
             className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
           >
             Run URL screen <ArrowRight className="w-3 h-3" />
@@ -642,7 +709,7 @@ function OriginationForm() {
 
       {/* Caveat */}
       <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-        Origination is available in private beta. Public preview currently supports URL-based acquisition screens.
+        Hosted preview does not generate acquisition targets unless a source-backed target universe is enabled.
       </p>
 
       <button
@@ -651,9 +718,9 @@ function OriginationForm() {
         className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {state.kind === 'submitting' ? (
-          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Running origination preview…</>
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Previewing origination workflow…</>
         ) : (
-          <>Run origination preview <ArrowRight className="w-3.5 h-3.5" /></>
+          <>Preview origination workflow <ArrowRight className="w-3.5 h-3.5" /></>
         )}
       </button>
 
@@ -661,9 +728,9 @@ function OriginationForm() {
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-start gap-3">
           <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-semibold text-foreground">Finding public-source candidates…</p>
+            <p className="text-xs font-semibold text-foreground">Previewing origination workflow…</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Ranking reference-universe matches, evidence confidence, missing proof and next action.
+              Checking whether the backend has a source-backed target universe for this thesis.
             </p>
           </div>
         </div>
@@ -676,7 +743,7 @@ function OriginationForm() {
 
 const AVAILABLE_NOW = [
   {
-    href:  '/run',
+    href:  '/app/run',
     title: 'Run screen',
     desc:  'Screen a specific company from its website URL. 8-stage public-source check.',
   },
@@ -716,12 +783,11 @@ export default function OriginationPage() {
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            Find acquisition targets from a buyer thesis.
+            Preview thesis-led origination workflow.
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl">
-            Describe your buyer thesis. Frontier OS returns ranked public-source target candidates,
-            evidence confidence, missing proof and next action when the private-beta backend workflow
-            is enabled.
+            Describe your buyer thesis. Hosted preview will not invent acquisition targets; it only
+            renders targets when the backend provides a source-backed target universe.
           </p>
         </div>
       </div>
@@ -796,7 +862,7 @@ export default function OriginationPage() {
         title="Ready to screen specific targets now?"
         body="Run a URL-only screen on any company website and get a recommendation in under 2 minutes."
         primaryLabel="Run screen"
-        primaryHref="/run"
+        primaryHref="/app/run"
         secondaryLabel="Compare targets"
         secondaryHref="/compare"
         eventName="origination_bottom"
