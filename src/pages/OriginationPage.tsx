@@ -62,6 +62,34 @@ function asList(value: unknown): string[] {
   return value.map(safeStr).filter(Boolean);
 }
 
+function titleCaseWords(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function formatBuyerType(value: string): string {
+  const buyerTypes: Record<string, string> = {
+    search_fund: 'Search Fund',
+    operating_partner: 'Operating Partner',
+    corporate_development: 'Corporate Development',
+    private_equity: 'Private Equity',
+  };
+  return buyerTypes[value] || titleCaseWords(value);
+}
+
+function polishOriginationPreviewSummary(summary: string): string {
+  const match = summary.match(
+    /^No source-backed targets available for ([a-z_]+) thesis in (.+?) \/ (.+?) in hosted preview\.$/i,
+  );
+  if (!match) return summary;
+  const [, buyerType, geography, sector] = match;
+  return `No source-backed targets are available for this ${formatBuyerType(buyerType)} thesis in ${geography} ${sector} in the hosted preview.`;
+}
+
 function isSyntheticReferenceCandidate(candidate: Record<string, unknown>): boolean {
   return candidate.synthetic_reference_target === true
     || safeStr(candidate.source_mode) === 'synthetic_reference_examples'
@@ -474,7 +502,7 @@ function OriginationLimitedPreview({
                 onClick={onReset}
                 className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
               >
-                Broaden thesis
+                Edit thesis
               </button>
             </div>
           </div>
@@ -484,7 +512,7 @@ function OriginationLimitedPreview({
       {summary && (
         <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
           <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Workflow preview</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">{summary}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{polishOriginationPreviewSummary(summary)}</p>
         </div>
       )}
 
