@@ -4,10 +4,10 @@ export const AGENT_STAGES = [
     label: "Entity Resolver",
     durationMs: 1200,
     findings: [
-      "Resolved entity: Cerillion Technologies Ltd",
-      "Companies House: CR number 02806563",
-      "Primary trading subsidiary identified: Cerillion Traverse Ltd",
-      "LinkedIn: ~300 employees",
+      "Static example — not a real company",
+      "Registry lookup: source required",
+      "Trading subsidiary: not verified",
+      "Employee count: not verified",
     ],
     confidence: "high",
     summary: "Entity resolved. 4 sources indexed.",
@@ -91,9 +91,9 @@ export const AGENT_STAGES = [
     durationMs: 1600,
     findings: [
       "Net cash: aligns with Companies House filing — conflict resolved",
-      "Revenue: management pack differs from filed accounts by £2.1m — conflict flagged",
+      "Revenue: source-backed bridge required — no sample amount shown",
       "ARR from management pack: definition absent from official accounts — candidate only",
-      "Top-5 customers 55%: diligence item, not yet verified",
+      "Customer concentration: diligence item, not yet verified",
     ],
     confidence: "medium",
     summary: "1 conflict, 1 candidate, 1 diligence item.",
@@ -105,9 +105,9 @@ export const AGENT_STAGES = [
     durationMs: 1400,
     findings: [
       "ARR quality: moderate — definition unverified",
-      "Services mix: ~65% SaaS estimate, unconfirmed",
+      "Services mix: estimate unavailable in static sample mode",
       "Adjusted EBITDA bridge: required before IC",
-      "Customer concentration: 55% top-5 — elevated",
+      "Customer concentration: schedule required",
       "Product defensibility: medium-high — telco billing niche",
     ],
     confidence: "medium",
@@ -242,7 +242,7 @@ export const AGENT_STAGES = [
       "AI upside caveat: not reflected in base valuation pending technical diligence",
     ],
     confidence: "medium",
-    summary: "EV range: £159m–£272m. Revenue split + AI caveats applied.",
+    summary: "EV range not shown in static sample mode. Revenue split + AI caveats require source-backed evidence.",
     hasWarning: true,
   },
   {
@@ -292,16 +292,16 @@ export const AGENT_STAGES = [
 
 export const EVIDENCE_CARDS = [
   { field: "Revenue", value: "—", source: "—", confidence: "low" as const, status: "blocking" as const },
-  { field: "Adjusted EBITDA", value: "[illustrative]", source: "Annual Report", confidence: "medium" as const, status: "caveat" as const },
+  { field: "Adjusted EBITDA", value: "Unknown", source: "Source required", confidence: "low" as const, status: "caveat" as const },
   { field: "ARR", value: "Claimed — definition absent", source: "Management Pack", confidence: "low" as const, status: "candidate" as const },
-  { field: "Top-5 customer concentration", value: "55%", source: "Management Pack", confidence: "medium" as const, status: "diligence" as const },
+  { field: "Top-customer concentration", value: "Unknown", source: "Source required", confidence: "low" as const, status: "diligence" as const },
   { field: "Ownership structure", value: "Unknown", source: "No authoritative source", confidence: "low" as const, status: "blocking" as const },
 ];
 
 export const PREVIOUS_REPORTS = [
-  { company: "Cerillion", ticker: "CER.L", recommendation: "Request Financials", evidenceQuality: "High", strategicFit: "Adjacent", blockingGaps: 7, date: "Today" },
-  { company: "Checkit", ticker: "CKT.L", recommendation: "Request Financials", evidenceQuality: "Medium", strategicFit: "Core", blockingGaps: 4, date: "Yesterday" },
-  { company: "ENSEK", ticker: "Private", recommendation: "Monitor", evidenceQuality: "Medium", strategicFit: "Adjacent", blockingGaps: 3, date: "3 days ago" },
+  { company: "Acme Software Ltd", ticker: "Static example", recommendation: "Request Evidence", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 7, date: "Today" },
+  { company: "Northstar Workflow Systems", ticker: "Static example", recommendation: "Request Evidence", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 4, date: "Yesterday" },
+  { company: "Example Vertical SaaS Co", ticker: "Static example", recommendation: "Monitor", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 3, date: "3 days ago" },
 ];
 
 // ── Deal Cockpit ──────────────────────────────────────────────────────────────
@@ -360,22 +360,22 @@ export const DEAL_COCKPIT_TARGETS: CockpitTarget[] = [
     icReadiness: 'Partial',
     valuationReadiness: 'Caveated — ARR bridge required',
     aiReplicaRisk: 'Low',
-    evidenceConfidence: 'High',
+    evidenceConfidence: 'Unknown',
     nextAction: 'Request management accounts for ARR bridge.',
     lastRun: '2026-06-25',
-    decisionSummary: 'Strong strategic fit and best evidence quality in cohort. Registry data supports revenue at £42.1m (filed). ARR bridge is the primary remaining blocker before IC. AI replica risk is low given domain-specific billing IP.',
+    decisionSummary: 'Static example pipeline entry. Revenue, ARR and customer evidence require source-backed validation before IC use.',
     strategicFit: 'Core — billing infrastructure',
     aiDisruptionSummary: 'Low AI replica risk. Domain-specific billing logic creates meaningful switching costs. No live AI module identified; AI as a feature rather than a moat.',
     score: 82,
     topEvidenceCards: [
-      { field: 'Revenue', value: '£42.1m', source: 'Companies House', confidence: 'high', status: 'verified' },
-      { field: 'Net cash', value: '£8.4m', source: 'Companies House', confidence: 'high', status: 'verified' },
-      { field: 'ARR', value: '£31m est.', source: 'Management Pack', confidence: 'medium', status: 'candidate' },
+      { field: 'Revenue', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'blocking' },
+      { field: 'Net cash', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'blocking' },
+      { field: 'ARR', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'blocking' },
     ],
     topDiligenceGaps: [
-      { label: 'ARR definition and bridge', severity: 'blocking', note: 'ARR £31m from management pack — not present in filed accounts. Definition and methodology required.' },
+      { label: 'ARR definition and bridge', severity: 'blocking', note: 'ARR definition and methodology required.' },
       { label: 'SaaS vs. services revenue split', severity: 'high', note: 'Filing does not distinguish recurring vs. non-recurring. Critical for multiple benchmarking.' },
-      { label: 'Customer concentration', severity: 'medium', note: 'Top-3 customer concentration estimated at 42% — requires confirmation.' },
+      { label: 'Customer concentration', severity: 'medium', note: 'Customer concentration schedule requires confirmation.' },
     ],
     detailDecisionHistory: [
       { date: '2026-06-25', action: 'Marked Request Financials', note: 'ARR definition blocking IC readiness.' },
@@ -400,7 +400,7 @@ export const DEAL_COCKPIT_TARGETS: CockpitTarget[] = [
     score: 67,
     topEvidenceCards: [
       { field: 'Revenue', value: '—', source: '—', confidence: 'low', status: 'blocking' },
-      { field: 'Adjusted EBITDA', value: '[illustrative]', source: 'Annual Report', confidence: 'medium', status: 'caveat' },
+      { field: 'Adjusted EBITDA', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'caveat' },
       { field: 'ARR', value: 'Claimed — definition absent', source: 'Management Pack', confidence: 'low', status: 'candidate' },
     ],
     topDiligenceGaps: [
@@ -425,13 +425,13 @@ export const DEAL_COCKPIT_TARGETS: CockpitTarget[] = [
     evidenceConfidence: 'Low',
     nextAction: 'Request Handelsregister filings and revenue split.',
     lastRun: '2026-06-23',
-    decisionSummary: 'Strategic adjacency in CRM vertical is plausible but registry evidence is incomplete. Handelsregister filings have not been retrieved. Revenue and ARR data are estimated only. Not actionable until German registry data is available.',
+    decisionSummary: 'Strategic adjacency in CRM vertical is plausible but registry evidence is incomplete. Revenue and ARR data are unknown. Not actionable until registry data is available.',
     strategicFit: 'Adjacent — vertical CRM',
     aiDisruptionSummary: 'Medium AI replica risk. CRM layer faces substitution pressure from AI-native tools. No evidence of proprietary workflow depth or data lock-in sufficient to differentiate.',
     score: 51,
     topEvidenceCards: [
-      { field: 'Revenue (est.)', value: '€18–22m', source: 'Aggregator estimate', confidence: 'low', status: 'candidate' },
-      { field: 'Employees', value: '~85', source: 'LinkedIn', confidence: 'medium', status: 'candidate' },
+      { field: 'Revenue', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'candidate' },
+      { field: 'Employees', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'candidate' },
       { field: 'ARR', value: 'Unknown', source: 'No source', confidence: 'low', status: 'blocking' },
     ],
     topDiligenceGaps: [
@@ -461,8 +461,8 @@ export const DEAL_COCKPIT_TARGETS: CockpitTarget[] = [
     aiDisruptionSummary: 'High AI replica risk. Analytics and reporting layer is among the most exposed categories to AI commoditisation. No proprietary dataset or workflow depth identified. Inference economics unknown. Pass recommended.',
     score: 28,
     topEvidenceCards: [
-      { field: 'Revenue (SEC filing)', value: '$31.2m', source: 'SEC 10-K', confidence: 'high', status: 'verified' },
-      { field: 'Gross margin', value: '61%', source: 'SEC 10-K', confidence: 'high', status: 'verified' },
+      { field: 'Revenue', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'blocking' },
+      { field: 'Gross margin', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'blocking' },
       { field: 'ARR', value: 'Not disclosed', source: 'No source', confidence: 'low', status: 'blocking' },
     ],
     topDiligenceGaps: [
@@ -482,22 +482,22 @@ export const DEAL_COCKPIT_TARGETS: CockpitTarget[] = [
     recommendationLevel: 'grey',
     pipelineStatus: 'Prepare Evidence Pack',
     icReadiness: 'In preparation',
-    valuationReadiness: 'Partial — revenue from Companies House filing, ARR pending',
+    valuationReadiness: 'Partial — revenue and ARR pending',
     aiReplicaRisk: 'Low',
     evidenceConfidence: 'Medium',
     nextAction: 'Assemble IC evidence pack. Confirm ARR definition with management.',
     lastRun: '2026-06-26',
-    decisionSummary: 'Niche data room and deal workflow software with strong registry evidence. Revenue extracted from Companies House filing. ARR definition pending management confirmation. IC evidence pack in preparation — expected ready in 5 days.',
+    decisionSummary: 'Niche data room and deal workflow software example. Revenue and ARR definition require source-backed confirmation before IC use.',
     strategicFit: 'Adjacent — deal workflow tooling',
     aiDisruptionSummary: 'Low AI replica risk. Data room workflows have structural compliance requirements limiting AI substitution. Proprietary deal data may provide a defensible data moat — requires technical diligence to confirm.',
     score: 71,
     topEvidenceCards: [
-      { field: 'Revenue', value: '£12.8m', source: 'Companies House', confidence: 'high', status: 'verified' },
-      { field: 'EBITDA margin', value: '~34%', source: 'Annual Report', confidence: 'medium', status: 'caveat' },
-      { field: 'ARR', value: '£9m est.', source: 'Management Pack', confidence: 'medium', status: 'candidate' },
+      { field: 'Revenue', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'blocking' },
+      { field: 'EBITDA margin', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'caveat' },
+      { field: 'ARR', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'candidate' },
     ],
     topDiligenceGaps: [
-      { label: 'ARR definition confirmation', severity: 'high', note: 'Management ARR estimate of £9m requires definition and methodology sign-off.' },
+      { label: 'ARR definition confirmation', severity: 'high', note: 'ARR requires definition and methodology sign-off.' },
       { label: 'Customer churn rate', severity: 'high', note: 'No churn data available in public filings. Required for SaaS multiple benchmarking.' },
       { label: 'Ownership structure', severity: 'medium', note: 'Holding company structure partially clear — full perimeter required for IC.' },
     ],

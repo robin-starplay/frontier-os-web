@@ -264,8 +264,8 @@ export default function Landing() {
                 },
                 {
                   n: 2,
-                  label: 'Compare with Checkit',
-                  detail: 'Add: Checkit · checkit.net',
+                  label: 'Compare sample targets',
+                  detail: 'Static example — not a real company',
                 },
                 {
                   n: 3,

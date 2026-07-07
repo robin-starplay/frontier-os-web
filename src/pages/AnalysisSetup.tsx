@@ -741,10 +741,9 @@ function StepIndicator({ step }: { step: Step }) {
 // ─── URL helpers ─────────────────────────────────────────────────────────────
 
 const REVIEWER_SUGGESTIONS: { company: string; website: string }[] = [
-  { company: 'Cerillion',         website: 'https://www.cerillion.com' },
-  { company: 'Checkit',           website: 'https://www.checkit.net' },
-  { company: 'Raptor Collective', website: 'https://www.raptorcollective.com' },
-  { company: 'Hire-Digital',      website: 'https://www.hire-digital.com' },
+  { company: 'Acme Software Ltd',            website: 'https://example.com' },
+  { company: 'Northstar Workflow Systems',   website: '' },
+  { company: 'Example Vertical SaaS Co',     website: '' },
 ];
 
 /** Prepends https:// when the user omits the scheme. */
@@ -909,22 +908,23 @@ function Step1({
                       <p className="text-xs text-destructive">{urlError}</p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Enter a public company website, for example https://www.cerillion.com
+                        Enter a public company website, for example https://example.com
                       </p>
                     )}
-                    {/* Reviewer suggestions */}
+                    {/* Neutral sample helpers; these populate the form only and do not start analysis. */}
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[10px] text-muted-foreground/50">Try:</span>
                       {REVIEWER_SUGGESTIONS.map(s => (
                         <button
-                          key={s.website}
+                          key={s.company}
                           type="button"
                           onClick={() => { setCompany(s.company); setWebsite(s.website); setUrlError(''); }}
                           className="inline-flex items-center text-[11px] font-medium text-primary/80 hover:text-primary border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 rounded px-2 py-0.5 transition-colors"
                         >
-                          {s.company}
+                          {s.website ? 'Use sample company' : s.company === 'Northstar Workflow Systems' ? 'Try website-only' : 'Try document-assisted'}
                         </button>
                       ))}
+                      <span className="text-[10px] text-muted-foreground/60">Static example — not a real company.</span>
                     </div>
                   </div>
                 </div>

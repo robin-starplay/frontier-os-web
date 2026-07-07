@@ -73,7 +73,7 @@ export function ProductSnapshot() {
 
       {/* Footer CTA */}
       <div className="px-5 py-3 border-t border-border bg-muted/10 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Cerillion Technologies Ltd · URL-only mode · 20 stages · 20 evidences</span>
+        <span className="text-xs text-muted-foreground">Static example — not a real company · URL-only mode · source checks shown separately</span>
         <Link
           href="/workflow"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"

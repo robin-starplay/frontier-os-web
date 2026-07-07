@@ -111,13 +111,13 @@ const softwareRollups: BuyerPageData = {
     'Flag AI replica risk and moat evidence across the shortlist.',
     'Origination — surface ranked targets from a buyer thesis description.',
   ],
-  sampleCardTarget: 'Cerillion plc vs. Checkit plc',
+  sampleCardTarget: 'Acme Software Ltd vs. Northstar Workflow Systems',
   sampleRows: [
-    { label: 'Buyer thesis fit', chip: { text: 'Strong — Cerillion',       color: 'green' } },
+    { label: 'Buyer thesis fit', chip: { text: 'Strong — sample target',   color: 'green' } },
     { label: 'AI replica risk',  chip: { text: 'Low / Medium-high',        color: 'amber' } },
     { label: 'Evidence quality', chip: { text: 'High / Partial',           color: 'amber' } },
     { label: 'Integration risk', chip: { text: 'Low / Moderate',          color: 'amber' } },
-    { label: 'Next action',      value: 'Screen Cerillion now. Request Checkit ARR bridge before progressing.' },
+    { label: 'Next action',      value: 'Run URL screens and request ARR bridge before progressing.' },
   ],
   workflowSteps: [
     { number: 1, label: 'Enter buyer thesis',   description: 'Sector, geography, revenue range and add-on rationale.' },

@@ -19,15 +19,15 @@ export default function ResultsPreview() {
       <div className="border-b border-amber-500/20 bg-amber-500/5 px-6 py-2 text-xs text-amber-400 flex items-center gap-2">
         <span className="font-mono font-semibold uppercase tracking-widest">Example screen</span>
         <span className="text-amber-400/60">·</span>
-        <span>This is a static illustrative preview — not a live analysis result. Financial figures are not verified.</span>
+        <span>Static example — not a real company. Public-source facts require source metadata.</span>
       </div>
 
       {/* Top Bar */}
       <div className="border-b border-border bg-card py-6 px-6 md:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-bold tracking-tight">Cerillion</h1>
-            <Badge variant="outline" className="bg-muted font-mono rounded text-muted-foreground border-border">CER.L</Badge>
+            <h1 className="text-3xl font-bold tracking-tight">Acme Software Ltd</h1>
+            <Badge variant="outline" className="bg-muted font-mono rounded text-muted-foreground border-border">Static example</Badge>
           </div>
           <p className="text-sm text-muted-foreground">Generated Today</p>
         </div>
@@ -69,7 +69,7 @@ export default function ResultsPreview() {
               </span>
             </div>
             <p className="text-sm text-foreground leading-relaxed mb-4">
-              Attractive profitability and strong net cash, but ARR, customer concentration and adjusted EBITDA reconciliation remain blocking gaps.
+              Financial quality, ARR, customer concentration and adjusted EBITDA reconciliation remain unknown until source-backed evidence is provided.
             </p>
             <div className="text-xs text-muted-foreground font-medium flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-amber-500"></span>
@@ -81,7 +81,7 @@ export default function ResultsPreview() {
         <Card className="col-span-1 border-border lg:col-span-2 shadow-sm">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Key Evidence</CardTitle>
-            <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Example screen · figures illustrative</Badge>
+            <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Static example · no fake figures</Badge>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -147,19 +147,19 @@ export default function ResultsPreview() {
             <div className="space-y-3 mb-4">
               <div className="flex justify-between items-center p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-muted-foreground">Bear (3.5x)</span>
-                <span className="font-mono font-bold text-foreground">£158.9m</span>
+                <span className="font-mono font-bold text-foreground">Not available</span>
               </div>
               <div className="flex justify-between items-center p-2 rounded bg-blue-500/10 border border-blue-500/30">
                 <span className="text-sm text-blue-500 font-medium">Base (4.5x)</span>
-                <span className="font-mono font-bold text-blue-500">£204.3m</span>
+                <span className="font-mono font-bold text-blue-500">Not available</span>
               </div>
               <div className="flex justify-between items-center p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-muted-foreground">Bull (6.0x)</span>
-                <span className="font-mono font-bold text-foreground">£272.4m</span>
+                <span className="font-mono font-bold text-foreground">Not available</span>
               </div>
             </div>
             <p className="text-xs italic text-amber-500 p-2 bg-amber-500/10 rounded border border-amber-500/20">
-              Indicative only. Not transaction-ready without ARR and EBITDA bridge.
+              Valuation is not shown in static sample mode. ARR and EBITDA bridge require source-backed evidence.
             </p>
           </CardContent>
         </Card>
@@ -207,7 +207,7 @@ export default function ResultsPreview() {
                 <span>10</span>
               </div>
               <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                Vertical software alignment confirmed. Buyer-specific synergies not fully underwritten.
+                Vertical software alignment is illustrative only. Buyer-specific synergies require a real URL screen.
               </p>
             </div>
             
@@ -217,7 +217,7 @@ export default function ResultsPreview() {
                 <RiskBadge level="moderate" />
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Moderate risk. Core product is not AI-native. Medium-high defensibility in telco billing niche.
+                AI risk is illustrative only until product evidence and source metadata are available.
               </p>
             </div>
           </CardContent>

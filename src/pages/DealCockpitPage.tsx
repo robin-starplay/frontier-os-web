@@ -513,7 +513,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
  * Return a short, readable label for a company name in list contexts.
  * Skips a leading "The" / "THE" so we never display a bare "The —" bullet.
  * Examples:
- *   "TriloDocs Ltd."            → "TriloDocs"
+ *   "Northstar Workflow Systems Ltd." → "Northstar Workflow Systems"
  *   "The Boeing Company"        → "Boeing Company"
  *   "Illustrative Target Co."    → "Illustrative Target"
  */

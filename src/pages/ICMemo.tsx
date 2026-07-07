@@ -25,7 +25,7 @@ export default function ICMemo() {
         {' · '}This is a static illustrative preview — not a live analysis result. Financial figures are not independently verified.
       </div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">IC Draft Memo: Cerillion</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">IC Draft Memo: Acme Software Ltd</h1>
         <p className="text-muted-foreground">Comprehensive extraction, analysis, and sanity check results.</p>
       </div>
 
@@ -47,9 +47,9 @@ export default function ICMemo() {
           {/* EXECUTIVE SUMMARY */}
           <TabsContent value="executive" className="space-y-6 outline-none">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <MetricCard label="Revenue" value="— (illustrative)" source="Not verified in this preview" />
-              <MetricCard label="EBITDA" value="[illustrative]" source="Annual Report" />
-              <MetricCard label="Net Cash" value="£34.4m" source="Companies House" variant="success" />
+              <MetricCard label="Revenue" value="Unknown" source="Source required" />
+              <MetricCard label="EBITDA" value="Unknown" source="Source required" />
+              <MetricCard label="Net Cash" value="Unknown" source="Source required" variant="warning" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -60,8 +60,8 @@ export default function ICMemo() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Strong margin profile (~51% EBITDA)</span></div>
-                  <div className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Net cash positive £34.4m</span></div>
+                  <div className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Margin profile requires source-backed evidence</span></div>
+                  <div className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Net cash requires source-backed verification</span></div>
                   <div className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Niche vertical with high switching costs</span></div>
                 </CardContent>
               </Card>
@@ -74,7 +74,7 @@ export default function ICMemo() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">ARR unverified — management claim, not confirmed</span></div>
-                  <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Customer concentration (55% top-5)</span></div>
+                  <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Customer concentration schedule required</span></div>
                   <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Non-GAAP EBITDA reconciliation required</span></div>
                 </CardContent>
               </Card>
@@ -85,7 +85,7 @@ export default function ICMemo() {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Indicative EV Range</p>
-                    <p className="font-mono text-3xl font-bold text-foreground">£158.9m – £272.4m</p>
+                    <p className="font-mono text-3xl font-bold text-foreground">Not available</p>
                   </div>
                   <div className="h-12 w-[1px] bg-border hidden md:block"></div>
                   <div className="text-left md:text-right">
@@ -181,22 +181,22 @@ export default function ICMemo() {
             <Card className="border-border">
               <CardHeader>
                 <CardTitle>Indicative Valuation Range</CardTitle>
-                <CardDescription>Illustrative valuation range — based on example revenue figure. Not derived from a live analysis.</CardDescription>
+                <CardDescription>Valuation is hidden in static sample mode. Source-backed revenue, ARR and EBITDA evidence are required.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="p-6 rounded-md border border-border bg-card text-center">
                     <div className="text-sm text-muted-foreground mb-1">Bear Case (3.5x)</div>
-                    <div className="font-mono text-3xl font-bold text-foreground mb-2">£158.9m</div>
+                    <div className="font-mono text-3xl font-bold text-foreground mb-2">Not available</div>
                   </div>
                   <div className="p-6 rounded-md border border-blue-500/30 bg-blue-500/5 text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-md">BASE</div>
                     <div className="text-sm text-blue-400 mb-1">Base Case (4.5x)</div>
-                    <div className="font-mono text-3xl font-bold text-blue-500 mb-2">£204.3m</div>
+                    <div className="font-mono text-3xl font-bold text-blue-500 mb-2">Not available</div>
                   </div>
                   <div className="p-6 rounded-md border border-border bg-card text-center">
                     <div className="text-sm text-muted-foreground mb-1">Bull Case (6.0x)</div>
-                    <div className="font-mono text-3xl font-bold text-foreground mb-2">£272.4m</div>
+                    <div className="font-mono text-3xl font-bold text-foreground mb-2">Not available</div>
                   </div>
                 </div>
 
@@ -205,7 +205,7 @@ export default function ICMemo() {
                   <div className="space-y-1">
                     <p className="text-sm text-amber-500 font-medium">Multiple selection highly dependent on unverified metrics.</p>
                     <p className="text-sm text-amber-500/80">
-                      The base case multiple requires verification of the unconfirmed ARR figure and the SaaS vs services revenue split. If software recurring revenue is lower than management claims, a structural multiple derating will be required.
+                      Valuation is not available in static sample mode. ARR, revenue split and EBITDA bridge require source-backed evidence before modelling.
                     </p>
                   </div>
                 </div>
@@ -404,7 +404,7 @@ export default function ICMemo() {
                   {[
                     { item: "Revenue Figure", finding: "Management pack figure differs from filed accounts — variance flagged as diligence item (example)", res: "Filed accounts take precedence. Variance flagged as diligence item.", status: "diligence" },
                     { item: "ARR Validation", finding: "ARR from management pack absent from official accounts", res: "Demoted to 'Candidate' fact. Blocking gap.", status: "blocking" },
-                    { item: "Customer Mix", finding: "Top 5 customers represent 55% of revenue", res: "Flagged as concentration risk. Diligence schedule created.", status: "warning" }
+                    { item: "Customer Mix", finding: "Customer concentration not verified in static sample mode", res: "Request concentration schedule before IC use.", status: "warning" }
                   ].map((row, i) => (
                     <div key={i} className="grid grid-cols-12 p-4 border-b border-border last:border-0 items-start bg-card gap-4">
                       <div className="col-span-3 text-sm font-medium">{row.item}</div>
