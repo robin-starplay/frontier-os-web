@@ -3589,9 +3589,10 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setResult(null);
       setIsTimelineComplete(false);
     } finally {
+      setIsFinalising(false);
       setAnalysisInFlight(false);
     }
-	  }
+  }
 
   async function runDocumentAssistedForForm(file: File) {
     if (analysisInFlight) return;
@@ -3715,6 +3716,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setDocumentAssistedResult(null);
       setIsTimelineComplete(false);
     } finally {
+      setIsFinalising(false);
       setAnalysisInFlight(false);
     }
   }
@@ -3726,6 +3728,11 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     if (mode === 'doc-assisted') {
       if (!documentFile) {
         setAnalysisError('Upload a PDF to run a document-assisted screen.');
+        setDocumentUnavailable(null);
+        setDocumentAssistedResult(null);
+        setResult(null);
+        setAnalysisInFlight(false);
+        setIsFinalising(false);
         return;
       }
       runDocumentAssistedForForm(documentFile);
@@ -3741,6 +3748,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setDocumentAssistedResult(null);
     setDocumentUnavailable(null);
     setAnalysisError(null);
+    setAnalysisInFlight(false);
     setIsTimelineComplete(false);
     setIsFinalising(false);
     setCompletionMessage('Analysis complete.');
@@ -3777,6 +3785,9 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   // ── Render ────────────────────────────────────────────────────
 
   const railwayActive = backendConfigured && railwayPhase.kind !== 'idle';
+  const hasTerminalResult =
+    Boolean(result) || Boolean(documentAssistedResult) || Boolean(analysisError) || Boolean(documentUnavailable);
+  const showBuildingScreen = analysisInFlight && !hasTerminalResult;
 
   return (
     <div className="flex-1 flex flex-col w-full">
@@ -4184,7 +4195,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
               </>
             )}
 
-            {step === 3 && !result && (
+            {step === 3 && showBuildingScreen && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 <p className="text-sm">Building acquisition screen…</p>
