@@ -1011,15 +1011,12 @@ function Step1({
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">Upload one non-confidential PDF</p>
                       <span className="ml-auto text-[10px] font-mono text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5 whitespace-nowrap">
-                        Prototype · 1 free review
+                        Document-assisted review
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       Frontier OS extracts document claims and checks public evidence. Document-derived items are company claims, not independently verified facts.
                     </p>
-                    <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90">
-                      Document-assisted upload is not enabled in this hosted workspace. You can still use website-only preview.
-                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label htmlFor="document_type">Document type</Label>
@@ -1079,8 +1076,8 @@ function Step1({
                 )}>
                   <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   {documentMode
-                    ? 'Document-assisted mode is prepared, but not enabled in this hosted workspace yet. Use website-only preview for now.'
-                    : 'Public-source preview. Evidence checked. Gaps flagged. No confidential documents required.'}
+                    ? 'Frontier OS separates verified facts, company claims, unknowns and diligence blockers.'
+                    : 'Website-only runs use public sources when no document is available.'}
                 </div>
 
                 {/* Investment lens */}
@@ -1282,7 +1279,7 @@ function Step2({
             {error
               ? 'Analysis failed.'
               : documentUnavailable
-              ? 'Document-assisted review unavailable.'
+              ? 'Document-assisted review is not enabled in this workspace yet.'
               : isComplete
               ? completionMessage || 'Analysis complete.'
               : showFinalising
@@ -1378,9 +1375,12 @@ function Step2({
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {documentUnavailable.message}
             </p>
-            <p className="text-[10px] font-mono text-muted-foreground/60 mt-2">
-              Reason: {documentUnavailable.reason}
-            </p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Developer diagnostics</summary>
+              <p className="text-[10px] font-mono text-muted-foreground/60 mt-1">
+                Reason: {documentUnavailable.reason}
+              </p>
+            </details>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -1541,11 +1541,14 @@ function DocumentAssistedResultDisplay({
     return (
       <div className="w-full max-w-3xl mx-auto space-y-4">
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
-          <p className="text-sm font-semibold text-amber-300">Document-assisted review is not enabled in this hosted workspace yet.</p>
+          <p className="text-sm font-semibold text-amber-300">Document-assisted review is not enabled in this workspace yet.</p>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-            {result.message || 'Use website-only preview, or request private beta access.'}
+            Use website-only preview, or request private beta access.
           </p>
-          <p className="text-[10px] font-mono text-muted-foreground/60 mt-2">Reason: {result.reason || 'document_uploads_disabled'}</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Developer diagnostics</summary>
+            <p className="text-[10px] font-mono text-muted-foreground/60 mt-1">Reason: {result.reason || 'document_uploads_disabled'}</p>
+          </details>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
@@ -1578,7 +1581,7 @@ function DocumentAssistedResultDisplay({
 
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Executive acquisition screen · Document-assisted preview</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Analysis complete · Document-assisted review</p>
           <span className="text-xs font-mono text-muted-foreground">{result.company_name || 'Target'}</span>
         </div>
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -3601,13 +3604,13 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
           }));
         });
         setAnalysisError(null);
-        setCompletionMessage('Document-assisted review unavailable.');
+        setCompletionMessage('Document-assisted review is not enabled in this workspace yet.');
         setDocumentAssistedResult(null);
         setResult(null);
         setSaveSource(null);
         setIsTimelineComplete(false);
         setDocumentUnavailable({
-          title: 'Document-assisted review is not enabled in this hosted workspace yet.',
+          title: 'Document-assisted review is not enabled in this workspace yet.',
           message: 'Use website-only preview, or request private beta access.',
           reason: textValue(apiResult.reason ?? apiResult.error_code, 'document_uploads_disabled'),
         });
@@ -3733,14 +3736,14 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-10">
           <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">
-            {sampleMode ? 'Private beta · example screen' : 'Run Analysis'}
+            {sampleMode ? 'Example screen' : 'Evidence-first acquisition screen'}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            {sampleMode ? 'Private beta sample screen.' : 'Run an evidence-first acquisition screen.'}
+            {sampleMode ? 'Example acquisition screen.' : 'Run an evidence-first acquisition screen.'}
           </h1>
           <p className="text-base text-muted-foreground">
             {sampleMode
-              ? 'This is a private-beta sample screen using static data. Create a free account to run URL-only analysis on your own targets.'
+              ? 'This static example shows how Frontier OS separates facts, claims and unknowns. Create a free account to run website-only analysis on your own targets.'
               : 'Start with a company website and, where available, one non-confidential PDF. Frontier OS extracts claims, checks public evidence, flags gaps and prepares the IC-readiness view.'}
           </p>
         </div>
@@ -3755,7 +3758,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
               EXAMPLE
             </span>
             <span className="text-muted-foreground">
-              Private beta · example screen. Static preview only.{' '}
+              Example screen. Static output only.{' '}
               <Link href="/create-workspace" className="text-primary hover:underline transition-colors">
                 Create a free workspace
               </Link>
@@ -3765,10 +3768,10 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
         ) : (
           <div className="mb-6 bg-primary/5 border border-primary/20 px-4 py-3 rounded-md flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
-              PRIVATE BETA
+              FRONTIER OS
             </span>
             <span className="text-muted-foreground">
-              Public-source preview. Evidence checked. Gaps flagged.
+              Evidence-first acquisition screen. Verified facts, claims, unknowns and blockers stay separate.
             </span>
           </div>
         )}

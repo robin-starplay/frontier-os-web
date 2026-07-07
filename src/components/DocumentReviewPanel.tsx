@@ -7,7 +7,7 @@
  * States: idle → uploading → result | error
  *
  * Safety copy rules enforced here:
- *  - "Prototype" badge always visible
+ *  - Trust and temporary-processing caveats always visible
  *  - "Do not upload confidential information" always shown
  *  - Confirmation checkbox required before submit
  *  - Source attribution on every extracted item
@@ -170,7 +170,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
       <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
       <p className="text-sm font-semibold text-foreground">Document-assisted review</p>
       <span className="text-[10px] font-mono border border-primary/30 text-primary/80 rounded px-1.5 py-0.5 bg-primary/5">
-        Prototype · 1 free review
+        Evidence-first screen
       </span>
       {collapsible && (
         <span className="ml-auto text-muted-foreground">
@@ -187,18 +187,18 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
       {/* Warning */}
       <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
         <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-        <span>Do not upload confidential information in this preview.</span>
+        <span>Do not upload confidential information in this workspace.</span>
       </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Upload one non-confidential PDF to preview how Frontier OS extracts claims, metrics, unknowns
+        Upload one non-confidential PDF. Frontier OS extracts claims, metrics, unknowns
         and diligence questions.
       </p>
       <p className="text-[10px] text-muted-foreground/50">
         Temporary processing · Raw file not retained by default · Claims are not independently verified
       </p>
       <p className="text-[10px] text-muted-foreground/60 border border-border/40 rounded px-2 py-1.5 bg-muted/20">
-        Free preview includes one document review. More document reviews, saved evidence packs and
+        Free review includes one document review. More document reviews, saved evidence packs and
         IC-style exports are available in private beta.
       </p>
 
@@ -602,7 +602,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           </div>
         </div>
 
-        {/* Prototype reminder */}
+        {/* Trust reminder */}
         <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
           Temporary processing · Raw file not retained by default · Claims are not independently verified.
           This is not a secure data-room workflow. Confidential CIMs, financial models and management packs
@@ -629,7 +629,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
 
     const friendlyMsg = isValidationMsg
       ? message
-      : 'Document review is temporarily unavailable. Use URL-only screening for now, or book an intro for private pilot access.';
+      : 'Document review is temporarily unavailable. Use website-only screening for now, or book an intro for private pilot access.';
 
     return (
       <div className="space-y-4">

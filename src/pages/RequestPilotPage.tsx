@@ -105,25 +105,21 @@ export default function RequestPilotPage() {
       setFallbackEmail(contactEmail);
       setBookIntroUrl(bookingUrl);
 
-      if (
-        res.ok &&
-        (
-          (data?.sent === false && data?.reason === 'email_not_configured') ||
-          data?.delivery_mode === 'email_not_configured'
-        )
-      ) {
-        setResponseMessage(
-          typeof data?.message === 'string'
-            ? data.message
-            : `Please email ${contactEmail} or book a 30-minute intro.`,
-        );
+      if (res.ok && data?.status === 'ok' && data?.delivery_mode === 'email_sent') {
+        setResponseMessage('We stored your request and sent the email notification.');
+        setSubmitState('success');
+        return;
+      }
+
+      if (res.ok && data?.status === 'ok' && data?.delivery_mode === 'stored_only') {
+        setResponseMessage('We stored your request. Email notification could not be sent, so please use the fallback email if urgent.');
         setSubmitState('fallback');
         return;
       }
 
-      if (res.ok && (data?.sent === true || data?.status === 'ok')) {
-        setResponseMessage(typeof data?.message === 'string' ? data.message : 'Request received');
-        setSubmitState('success');
+      if (res.ok && data?.status === 'ok') {
+        setResponseMessage('We stored your request. Email notification could not be sent, so please use the fallback email if urgent.');
+        setSubmitState('fallback');
         return;
       }
 
@@ -133,7 +129,7 @@ export default function RequestPilotPage() {
     } catch {
       setFallbackEmail('contact@getfrontieros.com');
       setBookIntroUrl(BOOK_INTRO_URL);
-      setResponseMessage('Please email contact@getfrontieros.com or book a 30-minute intro.');
+      setResponseMessage('Please email contact@getfrontieros.com.');
       setSubmitState('error');
     } finally {
       setSubmitting(false);
@@ -174,10 +170,10 @@ export default function RequestPilotPage() {
           </div>
         </div>
 
-        {/* demo notice */}
+        {/* delivery notice */}
         <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/8 border border-amber-500/20 text-amber-400 text-xs">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          Private beta preview — if this form fails, email{' '}
+          Private beta request is stored after submission. If email notification fails, use{' '}
           <a href="mailto:contact@getfrontieros.com" className="underline underline-offset-2 ml-0.5">
             contact@getfrontieros.com
           </a>.
@@ -191,10 +187,7 @@ export default function RequestPilotPage() {
             <div>
               <p className="text-base font-semibold text-foreground mb-1">Request received</p>
               <p className="text-sm text-muted-foreground">
-                Thanks — we'll review your message and respond from{' '}
-                <a href="mailto:contact@getfrontieros.com" className="text-primary hover:underline">
-                  contact@getfrontieros.com
-                </a>.
+                {responseMessage || 'We stored your request and sent the email notification.'}
               </p>
             </div>
             <div className="pt-1">
@@ -241,10 +234,10 @@ export default function RequestPilotPage() {
                   : 'border-amber-500/25 bg-amber-500/10 text-amber-300',
               )}>
                 <p className="font-semibold text-foreground mb-1">
-                  {submitState === 'error' ? 'Request could not be sent' : 'Email delivery is not configured yet'}
+                  {submitState === 'error' ? 'Request could not be submitted' : 'Request received'}
                 </p>
                 <p className="text-muted-foreground">
-                  {responseMessage || `Please email ${fallbackEmail} or book a 30-minute intro.`}
+                  {responseMessage || (submitState === 'error' ? 'Please email contact@getfrontieros.com.' : 'We stored your request. Email notification could not be sent, so please use the fallback email if urgent.')}
                 </p>
                 <div className="mt-3 flex flex-col sm:flex-row gap-2">
                   <a

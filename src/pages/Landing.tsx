@@ -514,7 +514,7 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* ══════════════════════════════ DOCUMENT REVIEW PROTOTYPE TEASER */}
+      {/* ══════════════════════════════ DOCUMENT REVIEW TEASER */}
       <div className="w-full border-t border-border">
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-12">
           <div className="rounded-lg border border-border bg-card/30 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5 justify-between">
@@ -522,7 +522,7 @@ export default function Landing() {
               <div className="flex items-center gap-2 mb-2">
                 <p className="text-sm font-semibold text-foreground">Document-assisted review</p>
                 <span className="text-[10px] font-mono border border-primary/30 text-primary/80 rounded px-1.5 py-0.5 bg-primary/5">
-                  Prototype
+                  Document-assisted
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">
