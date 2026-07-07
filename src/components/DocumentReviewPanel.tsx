@@ -474,9 +474,22 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                 ? <p className="text-xs text-muted-foreground py-4 text-center">No unknowns flagged.</p>
                 : data.unknowns.map((u, i) => (
                   <div key={i} className="rounded-lg border border-amber-500/20 bg-amber-500/[0.03] px-4 py-3">
-                    <p className="text-xs font-medium text-foreground">{u.field}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-medium text-foreground leading-snug">{u.field || 'Diligence gap'}</p>
+                      <div className="flex flex-wrap gap-1.5 justify-end shrink-0">
+                        <span className="inline-flex items-center text-[10px] font-mono text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
+                          Unknown
+                        </span>
+                        <span className="inline-flex items-center text-[10px] font-mono text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
+                          Diligence gap
+                        </span>
+                      </div>
+                    </div>
                     {u.note && <p className="text-[11px] text-muted-foreground mt-1">{u.note}</p>}
-                    <SourceBadge />
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">Not verified in this run</p>
+                    {(u.next_step || u.next_action) && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">Next step: {u.next_step || u.next_action}</p>
+                    )}
                   </div>
                 ))
             )}

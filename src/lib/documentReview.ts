@@ -42,6 +42,8 @@ export interface DocMetric {
 export interface DocUnknown {
   field: string;
   note?: string;
+  next_step?: string;
+  next_action?: string;
 }
 
 export interface DocQuestion {
@@ -156,13 +158,19 @@ function normalizeDocumentReviewResult(raw: unknown): DocumentReviewResult {
   const rawUnknowns = asArr<unknown>(r.unknowns ?? r.unknown_list ?? r.gaps ?? r.evidence_gaps);
   const unknowns: DocUnknown[] = rawUnknowns.map(u => {
     const o = asObj(u);
+    const detail = asStr(
+      o.detail ?? o.summary ?? o.text ?? o.note ?? o.description ?? o.claim_text ?? (typeof u === 'string' ? u : ''),
+    );
+    const rawTitle = asStr(o.topic ?? o.field ?? o.title ?? o.name ?? o.gap);
+    const title = rawTitle && rawTitle.toLowerCase() !== 'unknown'
+      ? rawTitle
+      : 'Diligence gap';
     return {
-      field: asStr(o.field ?? o.name ?? o.topic ?? o.gap ?? (typeof u === 'string' ? u : '')),
-      note: typeof o.note === 'string' ? o.note
-        : typeof o.description === 'string' ? o.description
-        : undefined,
+      field: title,
+      note: detail || undefined,
+      next_step: asStr(o.next_step ?? o.next_action ?? o.diligence_question),
     };
-  }).filter(u => u.field.length > 0);
+  }).filter(u => u.field.length > 0 || Boolean(u.note));
 
   // ── Diligence questions ───────────────────────────────────────────────────
   // Backend may use: diligence_questions | questions | key_questions

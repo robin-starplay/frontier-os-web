@@ -1479,6 +1479,55 @@ function claimText(item: unknown): string {
   return displayValue(rec.text ?? rec.claim_text ?? rec.summary ?? rec.value ?? item, '');
 }
 
+function normalizeUnknown(item: unknown) {
+  const rec = asRecord(item);
+  const body = typeof item === 'string'
+    ? item
+    : textValue(rec.detail ?? rec.summary ?? rec.text ?? rec.note ?? rec.claim_text ?? rec.value, '');
+  const rawTitle = textValue(rec.topic ?? rec.field ?? rec.title ?? rec.name, '');
+  const title = rawTitle && rawTitle.toLowerCase() !== 'unknown'
+    ? rawTitle
+    : body
+      ? 'Diligence gap'
+      : 'Diligence gap';
+  return {
+    title,
+    body,
+    nextStep: textValue(rec.next_step ?? rec.next_action ?? rec.diligence_question, ''),
+  };
+}
+
+function UnknownList({ items, empty }: { items: unknown[]; empty: string }) {
+  if (items.length === 0) {
+    return <p className="text-xs text-muted-foreground">{empty}</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {items.map((item, i) => {
+        const unknown = normalizeUnknown(item);
+        return (
+          <div key={i} className="rounded-md border border-amber-500/20 bg-amber-500/[0.03] px-3 py-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs font-semibold text-foreground leading-snug">{unknown.title}</p>
+              <div className="flex flex-wrap gap-1.5 justify-end shrink-0">
+                <StatusPill label="Unknown" />
+                <StatusPill label="Diligence gap" />
+              </div>
+            </div>
+            {unknown.body && (
+              <p className="text-xs text-muted-foreground mt-1 leading-snug">{unknown.body}</p>
+            )}
+            <p className="text-[10px] text-muted-foreground/50 mt-1">Not verified in this run</p>
+            {unknown.nextStep && (
+              <p className="text-[10px] text-muted-foreground/70 mt-1">Next step: {unknown.nextStep}</p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function DocumentClaimList({ items, empty }: { items: unknown[]; empty: string }) {
   if (items.length === 0) {
     return <p className="text-xs text-muted-foreground">{empty}</p>;
@@ -1709,7 +1758,7 @@ function DocumentAssistedResultDisplay({
       </PackSection>
 
       <PackSection title="Unknowns" empty={unknowns.length === 0}>
-        <DocumentClaimList items={unknowns} empty="No unknowns flagged." />
+        <UnknownList items={unknowns} empty="No unknowns flagged." />
       </PackSection>
 
       <PackSection title="Diligence Blockers" empty={blockers.length === 0}>
