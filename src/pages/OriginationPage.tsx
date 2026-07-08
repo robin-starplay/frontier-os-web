@@ -424,6 +424,7 @@ function OriginationResultView({
     const aiRisk = safeStr(aiDiagnostics.level || risk);
     const rank = safeStr(c.rank, String(i + 1));
     const urls = sourceUrls(c);
+    const compareKey = compareCandidateKey(c);
     const canSaveCandidate = website && (
       safeStr(c.source_mode) === 'user_supplied_target_universe'
       || sourceLabel === 'User supplied target universe'
@@ -496,6 +497,13 @@ function OriginationResultView({
               {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => handleAddToCompare(c)}
+            className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+          >
+            {compareMessages[compareKey] || 'Add to Compare'}
+          </button>
           {action && <span className="text-[11px] text-muted-foreground/60">{action}</span>}
         </div>
         <p className="text-[10px] font-medium text-muted-foreground/40 mt-2">
@@ -517,8 +525,9 @@ function OriginationResultView({
   function renderCompactCandidateRow(c: Record<string, unknown>, i: number) {
     const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
     const companyHouseUrl = sourceUrls(c).find(url => url.includes('company-information.service.gov.uk') || url.includes('companieshouse'));
+    const compareKey = compareCandidateKey(c);
     return (
-      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr] gap-2 px-4 py-3 text-xs items-start">
+      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-3 text-xs items-start">
         <p className="font-semibold text-foreground">{name}</p>
         <p className="text-muted-foreground">{displayValue(c.source_label, 'Source-backed lead')}</p>
         <p className="text-muted-foreground">{humanLabel(displayValue(c.website_status))}</p>
@@ -532,6 +541,13 @@ function OriginationResultView({
         ) : (
           <span className="text-muted-foreground/50">No registry link</span>
         )}
+        <button
+          type="button"
+          onClick={() => handleAddToCompare(c)}
+          className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+        >
+          {compareMessages[compareKey] || 'Add to Compare'}
+        </button>
       </div>
     );
   }
@@ -559,7 +575,7 @@ function OriginationResultView({
           <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
         </div>
         {mode === 'compact' && (
-          <div className="hidden md:grid grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
+          <div className="hidden md:grid grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
             <span>Company</span>
             <span>Source</span>
             <span>Website</span>
@@ -567,6 +583,7 @@ function OriginationResultView({
             <span>Decision</span>
             <span>Next action</span>
             <span>Registry</span>
+            <span>Compare</span>
           </div>
         )}
         <div className={mode === 'full' ? 'divide-y divide-border' : ''}>
@@ -932,23 +949,35 @@ function OriginationUnavailable({
 type FormState =
   | { kind: 'idle' }
   | { kind: 'submitting' }
-  | { kind: 'result'; data: OriginationResult }
+  | { kind: 'result'; data: OriginationResult; restored?: boolean }
   | { kind: 'error'; message: string };
 
 function OriginationForm() {
-  const [sector,    setSector   ] = useState('');
-  const [geo,       setGeo      ] = useState('');
-  const [sizeCriteria, setSizeCriteria] = useState('');
-  const [rationale, setRationale] = useState('');
-  const [buyerThesis, setBuyerThesis] = useState('');
-  const [targetUniverse, setTargetUniverse] = useState('');
-  const [state,     setState    ] = useState<FormState>({ kind: 'idle' });
+  const storedForm = readStoredOriginationForm();
+  const [sector,    setSector   ] = useState(storedForm.sector);
+  const [geo,       setGeo      ] = useState(storedForm.geo);
+  const [sizeCriteria, setSizeCriteria] = useState(storedForm.sizeCriteria);
+  const [rationale, setRationale] = useState(storedForm.rationale);
+  const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
+  const [targetUniverse, setTargetUniverse] = useState(storedForm.targetUniverse);
+  const [state,     setState    ] = useState<FormState>(() => {
+    const storedResult = readStoredOriginationResult();
+    return storedResult ? { kind: 'result', data: storedResult, restored: true } : { kind: 'idle' };
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setState({ kind: 'submitting' });
     try {
       const targets = parseKnownTargetUniverse(targetUniverse);
+      const formValues: OriginationFormValues = {
+        sector,
+        geo,
+        sizeCriteria,
+        rationale,
+        buyerThesis,
+        targetUniverse,
+      };
       const data = await runOrigination({
         buyer_thesis: buyerThesis,
         sector,
@@ -957,7 +986,8 @@ function OriginationForm() {
         strategic_rationale: rationale,
         ...(targets.length > 0 ? { targets } : {}),
       });
-      setState({ kind: 'result', data });
+      storeOriginationRun(formValues, data);
+      setState({ kind: 'result', data, restored: false });
     } catch (err) {
       console.error('[origination] run failed', err);
       setState({
@@ -971,8 +1001,35 @@ function OriginationForm() {
     setState({ kind: 'idle' });
   }
 
+  function handleClearRestored() {
+    clearStoredOriginationRun();
+    setSector('');
+    setGeo('');
+    setSizeCriteria('');
+    setRationale('');
+    setBuyerThesis('');
+    setTargetUniverse('');
+    setState({ kind: 'idle' });
+  }
+
   if (state.kind === 'result') {
-    return <OriginationResultView data={state.data} onReset={handleReset} />;
+    return (
+      <div className="space-y-4">
+        {state.restored && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+            <span>Restored last origination run</span>
+            <button
+              type="button"
+              onClick={handleClearRestored}
+              className="font-medium text-primary hover:text-primary/80"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+        <OriginationResultView data={state.data} onReset={handleReset} />
+      </div>
+    );
   }
 
   if (state.kind === 'error') {

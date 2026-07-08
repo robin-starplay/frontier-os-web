@@ -17,6 +17,11 @@ import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAcco
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
+import {
+  readCompareCandidates,
+  removeCompareCandidate,
+  type StoredCompareCandidate,
+} from '@/lib/compareSelection';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +32,15 @@ interface CompanyRow {
   name: string;
   url: string;
   jurisdiction: Jurisdiction;
+  source?: string;
+  sourceLabel?: string;
+  evidenceStatus?: string;
+  websiteStatus?: string;
+  compareReady?: boolean;
+  compareNote?: string;
+  storageCompanyName?: string;
+  storageWebsite?: string;
+  storageJurisdiction?: string;
 }
 
 interface ProgressStage {
@@ -65,21 +79,65 @@ function rankBadgeStyle(rank: number) {
   return 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border border-[var(--semantic-unknown-border)]';
 }
 
+function normalizeJurisdiction(value: string): Jurisdiction {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'uk' || normalized === 'gb' || normalized === 'united kingdom') return 'uk';
+  if (normalized === 'us' || normalized === 'usa' || normalized === 'united states') return 'us';
+  if (normalized === 'de' || normalized === 'germany') return 'de';
+  if (normalized === 'fr' || normalized === 'france') return 'fr';
+  if (normalized === 'it' || normalized === 'italy') return 'it';
+  return 'other';
+}
+
+function rowFromStoredCandidate(candidate: StoredCompareCandidate): CompanyRow {
+  return {
+    name: candidate.company_name,
+    url: candidate.website,
+    jurisdiction: normalizeJurisdiction(candidate.jurisdiction),
+    source: candidate.source,
+    sourceLabel: candidate.source_label,
+    evidenceStatus: candidate.evidence_status,
+    websiteStatus: candidate.website_status,
+    compareReady: candidate.compare_ready,
+    compareNote: candidate.compare_note,
+    storageCompanyName: candidate.company_name,
+    storageWebsite: candidate.website,
+    storageJurisdiction: candidate.jurisdiction,
+  };
+}
+
+function initialCompanyRows(): CompanyRow[] {
+  const rows = readCompareCandidates().slice(0, 5).map(rowFromStoredCandidate);
+  while (rows.length < 2) rows.push(EMPTY_COMPANY());
+  return rows;
+}
+
 // ─── Form phase ───────────────────────────────────────────────────────────────
 
 function CompareForm({
   buyer, setBuyer,
   buyerThesis, setBuyerThesis,
   companies, setCompanies,
+  onRemoveStoredCandidate,
   onSubmit,
 }: {
   buyer: string; setBuyer: (v: string) => void;
   buyerThesis: string; setBuyerThesis: (v: string) => void;
   companies: CompanyRow[]; setCompanies: (v: CompanyRow[]) => void;
+  onRemoveStoredCandidate: (candidate: CompanyRow) => void;
   onSubmit: () => void;
 }) {
   function updateCompany(i: number, field: keyof CompanyRow, value: string) {
-    const updated = companies.map((c, idx) => idx === i ? { ...c, [field]: value } : c);
+    const updated = companies.map((c, idx) => {
+      if (idx !== i) return c;
+      const next = { ...c, [field]: value };
+      if (field === 'url' && value.trim()) {
+        next.compareReady = true;
+        next.compareNote = undefined;
+        next.websiteStatus = 'known';
+      }
+      return next;
+    });
     setCompanies(updated);
   }
 
@@ -88,7 +146,11 @@ function CompareForm({
   }
 
   function removeCompany(i: number) {
-    if (companies.length > 2) setCompanies(companies.filter((_, idx) => idx !== i));
+    const candidate = companies[i];
+    if (candidate?.source) onRemoveStoredCandidate(candidate);
+    const updated = companies.filter((_, idx) => idx !== i);
+    while (updated.length < 2) updated.push(EMPTY_COMPANY());
+    setCompanies(updated);
   }
 
   const canSubmit = companies.filter(c => c.name.trim()).length >= 2;
@@ -138,8 +200,15 @@ function CompareForm({
             {companies.map((co, i) => (
               <div key={i} className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-medium text-foreground">Company {i + 1}</p>
-                  {companies.length > 2 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-medium text-foreground">Company {i + 1}</p>
+                    {co.source === 'origination' && (
+                      <SemanticBadge tone={co.compareReady === false || !co.url ? 'partial' : 'info'}>
+                        Origination
+                      </SemanticBadge>
+                    )}
+                  </div>
+                  {(companies.length > 2 || co.source) && (
                     <button
                       type="button"
                       onClick={() => removeCompany(i)}
@@ -149,6 +218,11 @@ function CompareForm({
                     </button>
                   )}
                 </div>
+                {(co.compareReady === false || (co.source && !co.url.trim())) && (
+                  <div className="mb-3 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
+                    {co.compareNote || 'Website required before this target can be compared.'}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                   <div className="sm:col-span-2 space-y-1.5">
                     <Label className="text-xs" htmlFor={`co-name-${i}`}>Company name</Label>
@@ -564,16 +638,21 @@ export default function CompareTargetsPage() {
   const [phase, setPhase]             = useState<Phase>('form');
   const [buyer, setBuyer]             = useState('');
   const [buyerThesis, setBuyerThesis] = useState('');
-  const [companies, setCompanies]     = useState<CompanyRow[]>([
-    EMPTY_COMPANY(),
-    EMPTY_COMPANY(),
-  ]);
+  const [companies, setCompanies]     = useState<CompanyRow[]>(initialCompanyRows);
   const [progress, setProgress] = useState<ProgressStage[]>(
     PROGRESS_STEPS.map(label => ({ label, status: 'queued' })),
   );
   const [result, setResult] = useState<CompareResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function handleRemoveStoredCandidate(candidate: CompanyRow) {
+    removeCompareCandidate({
+      company_name: candidate.storageCompanyName || candidate.name,
+      website: candidate.storageWebsite || candidate.url,
+      jurisdiction: candidate.storageJurisdiction || candidate.jurisdiction,
+    });
+  }
 
   async function handleSubmit() {
     const normalizedCompanies = companies.map(company => ({
@@ -690,6 +769,7 @@ export default function CompareTargetsPage() {
               buyer={buyer}             setBuyer={setBuyer}
               buyerThesis={buyerThesis} setBuyerThesis={setBuyerThesis}
               companies={companies}     setCompanies={setCompanies}
+              onRemoveStoredCandidate={handleRemoveStoredCandidate}
               onSubmit={handleSubmit}
             />
             {error && (
