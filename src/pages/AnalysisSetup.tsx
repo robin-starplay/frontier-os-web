@@ -131,21 +131,21 @@ const DOCUMENT_ASSISTED_STAGES: AnalysisStageData[] = [
 
 function levelClass(level: Level | string) {
   switch (level) {
-    case 'amber': return 'bg-amber-500/10 text-amber-700 border-amber-500/20';
-    case 'red':   return 'bg-red-500/10   text-red-700   border-red-500/20';
-    case 'green': return 'bg-green-500/10 text-green-700 border-green-500/20';
-    case 'blue':  return 'bg-blue-500/10  text-blue-700  border-blue-500/20';
-    default:      return 'bg-muted/40 text-muted-foreground border-border';
+    case 'amber': return 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]';
+    case 'red':   return 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]';
+    case 'green': return 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]';
+    case 'blue':  return 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]';
+    default:      return 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]';
   }
 }
 
 function evidenceChipClass(status: EvidenceStatus) {
   const map: Record<EvidenceStatus, string> = {
-    verified: 'bg-green-500/10 text-green-700 border-green-500/20',
-    caveat:   'bg-amber-500/10 text-amber-700 border-amber-500/20',
-    claim:    'bg-blue-500/10  text-blue-700  border-blue-500/20',
-    blocking: 'bg-red-500/10   text-red-700   border-red-500/20',
-    unknown:  'bg-muted/40     text-muted-foreground border-border',
+    verified: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+    caveat:   'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+    claim:    'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+    blocking: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+    unknown:  'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
   };
   return map[status] ?? map.unknown;
 }
@@ -722,7 +722,7 @@ function StepIndicator({ step }: { step: Step }) {
                 ? 'bg-primary text-primary-foreground border-primary'
                 : step > s.n
                 ? 'bg-green-500/10 text-green-700 border-green-500/30'
-                : 'bg-muted/30 text-muted-foreground border-border',
+                : 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
             )}>
               {step > s.n ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.n}
             </div>
@@ -1930,7 +1930,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
               {primaryBlockerText}
             </p>
           </div>
-          <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5">
+          <div className="rounded-md border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] px-3 py-2.5">
             <p className="text-[11px] font-medium text-primary mb-1">Next action</p>
             <p className="text-xs text-foreground leading-snug">{result.next_action}</p>
           </div>
@@ -2287,7 +2287,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
           <p className="text-[10px] font-semibold tracking-normal text-primary">Diligence blockers</p>
           {blockerCards.length > 0 && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-red-500/10 text-red-700 border-red-500/20">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]">
               {blockerCards.length} blocking
             </span>
           )}
@@ -2552,7 +2552,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       </div>
 
       {/* Upgrade CTA */}
-      <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-5">
+      <div className="rounded-lg border border-card-border bg-card px-5 py-5 shadow-xs">
         <p className="text-sm font-semibold text-foreground mb-1">Unlock the full acquisition screen.</p>
         <p className="text-xs text-muted-foreground mb-4">
           Pilot access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
@@ -3019,7 +3019,7 @@ function AnalysisResultDisplay({
       </div>
 
       {/* ── Upgrade CTA ────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-5">
+      <div className="rounded-lg border border-card-border bg-card px-5 py-5 shadow-xs">
         <p className="text-sm font-semibold text-foreground mb-1">Unlock the full acquisition screen.</p>
         <p className="text-xs text-muted-foreground mb-4">
           Pilot access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
@@ -3133,7 +3133,7 @@ function formatElapsed(secs: number): string {
 
 const SAMPLE_RESULT: AnalysisResult = {
   status: 'partial',
-  data_mode: 'Private beta · example screen',
+  data_mode: 'Public-source preview',
   company: 'Illustrative Target Co.',
   recommendation: 'Request Financials',
   recommendation_level: 'amber',
@@ -3861,7 +3861,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                   {/* Top status strip */}
                   <div className="rounded-lg border border-border bg-card/50 px-4 py-3 space-y-2">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20 shrink-0">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border border-[var(--semantic-info-border)] shrink-0">
                         Review in progress
                       </span>
                       <span className="text-sm font-medium text-foreground">{company.trim() || 'target'}</span>

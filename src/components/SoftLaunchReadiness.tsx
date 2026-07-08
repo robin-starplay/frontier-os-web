@@ -43,7 +43,7 @@ export function SoftLaunchReadiness() {
           <CheckCircle2 className="w-3 h-3" /> {ready} ready
         </span>
         {partial > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-amber-500/20 px-3 py-1 rounded-full">
             <AlertCircle className="w-3 h-3" /> {partial} partial
           </span>
         )}

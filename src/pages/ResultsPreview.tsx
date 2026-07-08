@@ -33,13 +33,13 @@ export default function ResultsPreview() {
         </div>
         <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
           <div className="flex flex-wrap gap-2">
-            <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20 font-semibold px-3 py-1">
+            <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 hover:bg-amber-500/20 font-semibold px-3 py-1">
               Request Financials
             </Badge>
-            <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20 px-3 py-1">
+            <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 hover:bg-amber-500/20 px-3 py-1">
               Partially Ready
             </Badge>
-            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 px-3 py-1">
+            <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20 hover:bg-blue-500/20 px-3 py-1">
               Adjacent Fit
             </Badge>
           </div>
@@ -81,7 +81,7 @@ export default function ResultsPreview() {
         <Card className="col-span-1 border-border lg:col-span-2 shadow-sm">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Key Evidence</CardTitle>
-            <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Static example · no fake figures</Badge>
+            <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20">Static example · no fake figures</Badge>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -176,15 +176,15 @@ export default function ResultsPreview() {
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-foreground">Candidate facts</span>
-                <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">2</Badge>
+                <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20">2</Badge>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-foreground">Conflicting claims</span>
-                <Badge className="bg-red-500/10 text-red-500 border-red-500/20">1</Badge>
+                <Badge className="bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-red-500/20">1</Badge>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-foreground">Diligence items</span>
-                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">4</Badge>
+                <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20">4</Badge>
               </div>
             </div>
           </CardContent>
@@ -198,7 +198,7 @@ export default function ResultsPreview() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">Fit Score</span>
-                <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Adjacent</Badge>
+                <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20">Adjacent</Badge>
               </div>
               <Progress value={70} className="h-2 mb-2" />
               <div className="flex justify-between text-xs text-muted-foreground">

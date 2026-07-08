@@ -11,11 +11,11 @@ interface InvestabilityRow {
 }
 
 const ANSWER_CHIP: Record<AnswerLevel, string> = {
-  yes:         'bg-green-500/10 text-green-700 border-green-500/20',
-  partial:     'bg-amber-500/10 text-amber-700 border-amber-500/20',
-  no:          'bg-muted/30 text-muted-foreground border-border',
-  conditional: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
-  blocked:     'bg-red-500/10 text-red-700 border-red-500/20',
+  yes:         'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  partial:     'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  no:          'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
+  conditional: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
+  blocked:     'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
 };
 
 const ROWS: InvestabilityRow[] = [

@@ -97,7 +97,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     field: 'Adjusted EBITDA',
     value: '[illustrative]',
     status: 'Caveated',
-    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+    statusColor: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
     confidence: 'Medium',
     confidenceColor: 'text-amber-700',
     note: 'Non-GAAP — requires statutory reconciliation',
@@ -106,7 +106,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     field: 'AI assistant',
     value: 'Claimed',
     status: 'Claim',
-    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+    statusColor: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
     confidence: 'Medium',
     confidenceColor: 'text-amber-700',
     note: 'Product page only — no usage, adoption or revenue proof',
@@ -175,8 +175,8 @@ export default function EvidenceWorkflowPage() {
             <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-5">After Frontier OS — evidence workflow</p>
             <div className="space-y-3">
               {[
-                { label: 'Revenue',            value: 'Conflict detected — figures differ between Tier 1 and Tier 3', chip: 'bg-red-500/10 text-red-700 border-red-500/20', chipLabel: 'Conflict' },
-                { label: 'AI assistant',       value: 'Claim, not verified adoption — product page only', chip: 'bg-amber-500/10 text-amber-700 border-amber-500/20', chipLabel: 'Claim' },
+                { label: 'Revenue',            value: 'Conflict detected — figures differ between Tier 1 and Tier 3', chip: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]', chipLabel: 'Conflict' },
+                { label: 'AI assistant',       value: 'Claim, not verified adoption — product page only', chip: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]', chipLabel: 'Claim' },
                 { label: 'Recurring revenue',  value: 'ARR definition missing — blocks valuation readiness', chip: 'bg-muted/40 text-muted-foreground border-border', chipLabel: 'Unknown' },
               ].map(({ label, value, chip, chipLabel }) => (
                 <div key={label} className="flex items-start gap-3">
@@ -321,14 +321,14 @@ export default function EvidenceWorkflowPage() {
                   <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 3 — Management pack</p>
                   <p className="text-base font-mono font-semibold text-foreground">Revenue £50m</p>
                 </div>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-amber-500/10 text-amber-700 border-amber-500/20 shrink-0">Claim</span>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)] shrink-0">Claim</span>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div>
                   <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 1 — Official filing</p>
                   <p className="text-base font-mono font-semibold text-foreground">Revenue [Tier 1 filing figure]</p>
                 </div>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-green-500/10 text-green-700 border-green-500/20 shrink-0">Tier 1</span>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)] shrink-0">Tier 1</span>
               </div>
             </div>
             <div className="rounded-lg border border-border bg-card px-5 py-4">

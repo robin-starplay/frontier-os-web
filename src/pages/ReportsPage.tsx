@@ -59,7 +59,7 @@ export default function ReportsPage() {
                   </td>
                   <td className="px-6 py-4">
                     {report.recommendation === "Request Financials" ? (
-                      <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/10">
+                      <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 hover:bg-amber-500/10">
                         {report.recommendation}
                       </Badge>
                     ) : (
@@ -82,7 +82,7 @@ export default function ReportsPage() {
                   </td>
                   <td className="px-6 py-4">
                     {report.blockingGaps > 0 ? (
-                      <span className="inline-flex items-center justify-center bg-red-500/10 text-red-500 border border-red-500/20 rounded px-2 py-0.5 text-xs font-bold">
+                      <span className="inline-flex items-center justify-center bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-red-500/20 rounded px-2 py-0.5 text-xs font-bold">
                         {report.blockingGaps}
                       </span>
                     ) : (

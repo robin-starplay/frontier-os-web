@@ -9,16 +9,16 @@ interface TrustBadgeProps {
 }
 
 const variantStyles: Record<string, string> = {
-  default: 'text-blue-700 bg-blue-50 border-blue-200',
-  success: 'text-green-700 bg-green-50 border-green-200',
-  warning: 'text-amber-700 bg-amber-50 border-amber-200',
-  muted: 'text-muted-foreground bg-muted/30 border-border',
+  default: 'text-[var(--semantic-info-text)] bg-[var(--semantic-info-bg)] border-[var(--semantic-info-border)]',
+  success: 'text-[var(--semantic-verified-text)] bg-[var(--semantic-verified-bg)] border-[var(--semantic-verified-border)]',
+  warning: 'text-[var(--semantic-claim-text)] bg-[var(--semantic-claim-bg)] border-[var(--semantic-claim-border)]',
+  muted: 'text-[var(--semantic-unknown-text)] bg-[var(--semantic-unknown-bg)] border-[var(--semantic-unknown-border)]',
 };
 
 export function TrustBadge({ label, value, variant = 'default', className }: TrustBadgeProps) {
   return (
     <div className={cn(
-      "flex items-center gap-1.5 px-2 py-1 rounded border text-[10px]",
+      "flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium leading-none",
       variantStyles[variant],
       className
     )}>

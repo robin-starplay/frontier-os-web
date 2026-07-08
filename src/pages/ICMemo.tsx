@@ -90,7 +90,7 @@ export default function ICMemo() {
                   <div className="h-12 w-[1px] bg-border hidden md:block"></div>
                   <div className="text-left md:text-right">
                     <p className="text-sm text-muted-foreground mb-2">Recommendation</p>
-                    <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-lg px-4 py-1">Request Financials</Badge>
+                    <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 text-lg px-4 py-1">Request Financials</Badge>
                   </div>
                 </div>
               </CardContent>
@@ -158,7 +158,7 @@ export default function ICMemo() {
                       <div className="col-span-3 font-mono text-sm">{row.v}</div>
                       <div className="col-span-3 text-xs text-muted-foreground">{row.s}</div>
                       <div className="col-span-2 text-xs">
-                        <span className={`px-2 py-1 rounded-full ${row.c === 'High' ? 'bg-green-500/10 text-green-500' : row.c === 'Medium' ? 'bg-amber-500/10 text-amber-500' : 'bg-gray-500/10 text-gray-500'}`}>
+                        <span className={`px-2 py-1 rounded-full ${row.c === 'High' ? 'bg-green-500/10 text-green-500' : row.c === 'Medium' ? 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]' : 'bg-gray-500/10 text-gray-500'}`}>
                           {row.c}
                         </span>
                       </div>
@@ -225,7 +225,7 @@ export default function ICMemo() {
                     <div className="text-5xl font-mono font-bold text-blue-500">7.0</div>
                     <div>
                       <div className="text-sm text-muted-foreground">Fit Score / 10</div>
-                      <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 mt-1">Adjacent Fit</Badge>
+                      <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20 mt-1">Adjacent Fit</Badge>
                     </div>
                   </div>
                   <p className="text-sm leading-relaxed text-muted-foreground">

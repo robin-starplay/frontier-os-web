@@ -197,7 +197,7 @@ export default function RequestPilotPage() {
 
             {/* sidebar — Prefer to talk first? */}
             <div className="lg:order-2">
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 sticky top-6">
+              <div className="rounded-lg border border-card-border bg-card p-5 sticky top-6 shadow-xs">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-4 h-4 text-primary" />
                   <p className="text-sm font-semibold text-foreground">Prefer to talk first?</p>
@@ -207,7 +207,7 @@ export default function RequestPilotPage() {
                 </p>
                 <BookIntroButton
                   eventName="clicked_book_intro_request_pilot"
-                  variant="primary"
+                  variant="outline"
                   className="w-full justify-center"
                 />
               </div>
@@ -220,8 +220,8 @@ export default function RequestPilotPage() {
               <div className={cn(
                 'rounded-lg border px-4 py-3 text-sm',
                 submitState === 'error'
-                  ? 'border-destructive/30 bg-destructive/10 text-destructive'
-                  : 'border-amber-500/25 bg-amber-500/10 text-amber-700',
+                  ? 'border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)]'
+                  : 'border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]',
               )}>
                 <p className="font-semibold text-foreground mb-1">
                   {submitState === 'error' ? 'Request could not be submitted' : 'Request received'}

@@ -21,7 +21,7 @@ const MODULES: Module[] = [
     subtitle: 'Facts, claims, assumptions, unknowns and conflicts.',
     description: 'Every material point is classified before it reaches the memo.',
     accent: 'border-blue-500/30 hover:border-blue-500/60',
-    iconBg: 'bg-blue-500/10 text-blue-700',
+    iconBg: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)]',
   },
   {
     icon: Layers,
@@ -57,7 +57,7 @@ const MODULES: Module[] = [
     subtitle: 'Is the software asset becoming easier to replicate?',
     description: 'Flags AI-native substitution risk, workflow defensibility and potential rebuildability exposure.',
     accent: 'border-amber-500/30 hover:border-amber-500/60',
-    iconBg: 'bg-amber-500/10 text-amber-500',
+    iconBg: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]',
   },
   {
     icon: AlertTriangle,
@@ -66,7 +66,7 @@ const MODULES: Module[] = [
     subtitle: 'What do we need before IC?',
     description: 'Turns uncertainty into specific data requests, DD questions and next actions.',
     accent: 'border-red-500/30 hover:border-red-500/60',
-    iconBg: 'bg-red-500/10 text-red-700',
+    iconBg: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)]',
   },
 ];
 

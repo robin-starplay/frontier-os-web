@@ -66,9 +66,9 @@ const SECURITY_ITEMS = [
 ];
 
 const STATUS_CHIP: Record<string, string> = {
-  'Planned':          'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  'Planned':          'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
   'Provider defaults': 'bg-muted/40 text-muted-foreground border-border',
-  'HTTPS':            'bg-green-500/10 text-green-700 border-green-500/20',
+  'HTTPS':            'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
   'Not performed':    'bg-muted/40 text-muted-foreground border-border',
   'None':             'bg-muted/40 text-muted-foreground border-border',
 };

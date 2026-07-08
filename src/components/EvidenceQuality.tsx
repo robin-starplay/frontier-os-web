@@ -20,7 +20,7 @@ export function EvidenceQuality() {
         </h3>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Confidence</span>
-          <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 text-xs font-bold font-mono">
+          <span className="px-2 py-1 rounded bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-amber-500/20 text-xs font-bold font-mono">
             73%
           </span>
         </div>

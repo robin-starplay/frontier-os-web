@@ -8,17 +8,17 @@ import type { BuyerPageData, ChipColor } from '@/data/buyerPages';
 // ── Chip ──────────────────────────────────────────────────────────────────────
 
 const CHIP_CLS: Record<ChipColor, string> = {
-  green: 'bg-green-500/10 text-green-700 border-green-500/20',
-  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-700   border-red-500/20',
-  blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
-  muted: 'bg-muted/30     text-muted-foreground border-border',
+  green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+  blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
+  muted: 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
 };
 
 function Chip({ text, color }: { text: string; color: ChipColor }) {
   return (
     <span className={cn(
-      'inline-flex items-center text-xs font-mono font-semibold px-2.5 py-1 rounded-md border whitespace-nowrap',
+      'inline-flex items-center text-xs font-semibold leading-none px-2.5 py-1 rounded-md border whitespace-nowrap',
       CHIP_CLS[color],
     )}>
       {text}
@@ -39,7 +39,7 @@ function SampleCard({ data }: { data: BuyerPageData }) {
             Acquisition screen
           </span>
         </div>
-        <span className="text-[11px] text-muted-foreground font-mono">Private beta · example screen</span>
+        <span className="text-[11px] text-muted-foreground">Public-source preview</span>
       </div>
 
       {/* Target */}
@@ -70,8 +70,8 @@ function SampleCard({ data }: { data: BuyerPageData }) {
 
       {/* Footer */}
       <div className="px-5 py-3 border-t border-border bg-muted/10 flex items-center justify-between gap-2">
-        <span className="text-[11px] text-muted-foreground font-mono">
-          Private beta · example screen · requires human review
+        <span className="text-[11px] text-muted-foreground">
+          Public-source preview · requires human review
         </span>
         <Link
           href="/run?mode=sample"

@@ -13,10 +13,10 @@ interface ResearchPanel {
 }
 
 const STATUS_CHIP: Record<string, string> = {
-  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-700   border-red-500/20',
-  muted: 'bg-muted/30     text-muted-foreground border-border',
-  blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
+  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+  muted: 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
+  blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
 };
 
 const CONFIDENCE_COLOR: Record<ConfidenceLevel, string> = {

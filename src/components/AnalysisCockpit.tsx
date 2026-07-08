@@ -51,12 +51,12 @@ const PROCESS_COLOR: Record<ProcessStatus, string> = {
 };
 
 const STATUS_CHIP: Record<EvidenceStatus, string> = {
-  Verified:  'bg-green-500/10 text-green-700 border-green-500/20',
-  Caveated:  'bg-amber-500/10 text-amber-700 border-amber-500/20',
-  Candidate: 'bg-blue-500/10  text-blue-700  border-blue-500/20',
-  Blocking:  'bg-red-500/10   text-red-700   border-red-500/20',
-  Diligence: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-  Unknown:   'bg-muted/30     text-muted-foreground border-border',
+  Verified:  'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  Caveated:  'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  Candidate: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
+  Blocking:  'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+  Diligence: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  Unknown:   'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
 };
 
 const IMPACT_COLOR: Record<string, string> = {

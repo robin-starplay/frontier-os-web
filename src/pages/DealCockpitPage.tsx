@@ -55,11 +55,11 @@ function formatTs(iso: string): string {
 function chip(level: RecommendationLevel, label: string) {
   const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border';
   const map: Record<RecommendationLevel, string> = {
-    green: 'bg-green-500/10 text-green-700 border-green-500/20',
-    amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-    red:   'bg-red-500/10   text-red-700   border-red-500/20',
-    blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
-    grey:  'bg-muted/40     text-muted-foreground border-border',
+    green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+    amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+    red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+    blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
+    grey:  'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
   };
   return <span className={cn(base, map[level])}>{label}</span>;
 }
@@ -624,7 +624,7 @@ function SavedRunCard({
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {chip(safeLevel(run.recommendation_level), runRecommendation(run))}
             {run.blockers.length > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-red-500/10 text-red-700 border border-red-500/20 whitespace-nowrap">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-[var(--semantic-blocker-border)] whitespace-nowrap">
                 {run.blockers.length} blocker{run.blockers.length === 1 ? '' : 's'}
               </span>
             )}
@@ -822,7 +822,7 @@ export default function DealCockpitPage() {
               return true;
             }).slice(0, 3);
             return (
-              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-5">
+              <div className="mb-6 rounded-lg border border-card-border bg-card p-5 shadow-xs">
                 <p className="text-xs font-semibold text-primary mb-4">Priority next actions</p>
                 <div className="space-y-3">
                   {deduped.map(r => (

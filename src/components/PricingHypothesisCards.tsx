@@ -49,7 +49,7 @@ export function PricingHypothesisCards() {
       </p>
 
       {/* Deep Screen Sprint */}
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-8">
+      <div className="rounded-xl border border-card-border bg-card p-8 shadow-xs">
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-1">
             <p className="text-xs font-semibold tracking-normal text-primary mb-2">First paid workflow</p>

@@ -12,16 +12,16 @@ import { useOptionalUser } from '@/lib/optionalClerk';
 type ChipVariant = 'green' | 'amber' | 'red' | 'blue' | 'muted';
 
 const CHIP: Record<ChipVariant, string> = {
-  green: 'bg-green-50 text-green-700 border-green-200',
-  amber: 'bg-amber-50 text-amber-700 border-amber-200',
-  red:   'bg-red-50   text-red-700   border-red-200',
-  blue:  'bg-blue-50  text-blue-700  border-blue-200',
-  muted: 'bg-muted/30     text-muted-foreground border-border',
+  green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+  blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
+  muted: 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
 };
 
 function Chip({ label, variant }: { label: string; variant: ChipVariant }) {
   return (
-    <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md border ${CHIP[variant]}`}>
+    <span className={`inline-flex items-center text-xs font-semibold leading-none px-2.5 py-1 rounded-md border ${CHIP[variant]}`}>
       {label}
     </span>
   );
@@ -68,22 +68,22 @@ function ReviewerStartButton() {
 
 function AcquisitionScreenCard() {
   return (
-    <div className="w-full rounded-xl border border-border bg-card overflow-hidden shadow-lg">
+    <div className="w-full rounded-xl border border-card-border bg-card overflow-hidden shadow-md">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/30">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-card">
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-xs font-semibold text-muted-foreground">
             Acquisition screen
           </span>
         </div>
-        <span className="text-[11px] text-muted-foreground">Private beta · example screen</span>
+        <span className="text-[11px] text-muted-foreground">Public-source preview</span>
       </div>
 
       {/* Company name */}
       <div className="px-5 py-4 border-b border-border/60">
         <p className="text-xs font-medium text-muted-foreground mb-1">Target</p>
-        <p className="text-base font-semibold text-foreground">Illustrative Target Co.</p>
+        <p className="text-base font-semibold text-foreground">Target company</p>
       </div>
 
       {/* Data rows */}
@@ -104,7 +104,7 @@ function AcquisitionScreenCard() {
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-3.5 border-t border-border bg-muted/10 flex items-center justify-between">
+      <div className="px-5 py-3.5 border-t border-border bg-muted/30 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">URL-only mode · 8 stages · 24 evidence items</span>
         <RunYourOwnLink />
       </div>
@@ -241,7 +241,8 @@ export default function Landing() {
 
       {/* ══════════════════════════════════════════════ REVIEWER GUIDE */}
       <div className="w-full max-w-6xl mx-auto px-4 md:px-8 pb-4">
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 md:p-8">
+        <div className="rounded-xl border border-border bg-muted/40 p-3 md:p-4">
+          <div className="rounded-lg border border-card-border bg-card p-5 md:p-6 shadow-xs">
           <div className="flex flex-col md:flex-row md:items-start gap-8">
 
             {/* Left: title + CTA */}
@@ -260,7 +261,7 @@ export default function Landing() {
                 {
                   n: 1,
                   label: 'Run sample screen',
-                  detail: 'Example/private-beta preview',
+                  detail: 'Public-source preview',
                 },
                 {
                   n: 2,
@@ -279,7 +280,7 @@ export default function Landing() {
                   isFeedback: true,
                 },
               ].map(({ n, label, detail, isFeedback }) => (
-                <div key={n} className="flex items-start gap-3 rounded-lg border border-border/60 bg-card/60 p-4">
+                <div key={n} className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
                   <div className="w-6 h-6 rounded-full border border-primary/40 bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="text-[10px] font-bold text-primary">{n}</span>
                   </div>
@@ -293,6 +294,7 @@ export default function Landing() {
                 </div>
               ))}
             </div>
+          </div>
           </div>
         </div>
       </div>

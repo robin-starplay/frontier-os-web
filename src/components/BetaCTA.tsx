@@ -34,7 +34,7 @@ function CompactCTA({
 }: BetaCTAProps) {
   return (
     <div className={cn(
-      'rounded-lg border border-primary/20 bg-primary/5 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4',
+      'rounded-lg border border-card-border bg-card px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs',
       className,
     )}>
       <div>
@@ -75,7 +75,7 @@ function SidebarCTA({
   eventName, className,
 }: BetaCTAProps) {
   return (
-    <div className={cn('rounded-lg border border-primary/20 bg-primary/5 p-5', className)}>
+    <div className={cn('rounded-lg border border-card-border bg-card p-5 shadow-xs', className)}>
       {title && <p className="text-sm font-semibold text-foreground mb-1">{title}</p>}
       {body && <p className="text-xs text-muted-foreground leading-relaxed mb-4">{body}</p>}
       <div className="space-y-2">

@@ -374,8 +374,8 @@ export default function PlatformDemoPage() {
                   <div className={cn(
                     'w-9 h-9 rounded flex items-center justify-center text-[10px] font-mono font-bold shrink-0 border',
                     doc.type === 'pdf'
-                      ? 'bg-red-500/10 text-red-700 border-red-500/20'
-                      : 'bg-green-500/10 text-green-700 border-green-500/20',
+                      ? 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]'
+                      : 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
                   )}>
                     {doc.type.toUpperCase()}
                   </div>

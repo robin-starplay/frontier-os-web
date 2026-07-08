@@ -145,7 +145,7 @@ export function PersonaTabs() {
           </ul>
         </div>
 
-        <div className="p-5 rounded-lg bg-card border border-primary/20 bg-primary/5">
+        <div className="p-5 rounded-lg bg-card border border-card-border shadow-xs">
           <div className="flex items-center gap-2 mb-4">
             <ArrowRight className="h-4 w-4 text-primary" />
             <h4 className="text-xs font-semibold tracking-normal text-muted-foreground">Best first workflow</h4>

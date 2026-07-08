@@ -47,10 +47,10 @@ const PROGRESS_STEPS: string[] = [
 function chip(level: Level, label: string) {
   const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium whitespace-nowrap border';
   const map: Record<Level, string> = {
-    green: 'bg-green-500/10 text-green-700 border-green-500/20',
-    amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-    red:   'bg-red-500/10   text-red-700   border-red-500/20',
-    blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
+    green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+    amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+    red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+    blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
     grey:  'bg-muted/40     text-muted-foreground border-border',
   };
   return <span className={cn(base, map[level])}>{label}</span>;

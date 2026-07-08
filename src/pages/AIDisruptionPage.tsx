@@ -28,12 +28,12 @@ const SCORECARD: ScorecardItem[] = [
 ];
 
 const SCORE_CHIP: Record<ScoreStatus, string> = {
-  'medium-high': 'bg-red-500/10 text-red-700 border-red-500/20',
+  'medium-high': 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
   'unproven':    'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  'medium':      'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  'medium':      'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
   'unknown':     'bg-muted/40 text-muted-foreground border-border',
-  'low':         'bg-green-500/10 text-green-700 border-green-500/20',
-  'high':        'bg-red-500/10 text-red-700 border-red-500/20',
+  'low':         'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  'high':        'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
 };
 
 // ─── evidence board (5 cards) ─────────────────────────────────────────────────
@@ -52,7 +52,7 @@ const EVIDENCE_BOARD: EvidenceBoardCard[] = [
   {
     title: 'AI adoption evidence',
     status: 'Claimed',
-    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+    statusColor: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
     evidenceLine: 'Workflow assistant with AI claims mentioned on product page. No usage, adoption or revenue proof found.',
     verifyNext: [
       'Request live feature list from product team',
@@ -63,7 +63,7 @@ const EVIDENCE_BOARD: EvidenceBoardCard[] = [
   {
     title: 'Could this workflow be replicated?',
     status: 'Medium-high',
-    statusColor: 'bg-red-500/10 text-red-700 border-red-500/20',
+    statusColor: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
     evidenceLine: 'Generic workflow UI, limited proprietary data evidence. AI-native entrant replication exposure is elevated.',
     verifyNext: [
       'Assess proprietary dataset depth and uniqueness',
@@ -96,7 +96,7 @@ const EVIDENCE_BOARD: EvidenceBoardCard[] = [
   {
     title: 'P&L impact',
     status: 'Mixed',
-    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+    statusColor: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
     evidenceLine: 'Revenue expansion potential noted. Services cannibalisation and inference COGS drag unquantified. EBITDA impact uncertain.',
     verifyNext: [
       'Quantify services revenue at risk from AI automation',
@@ -156,10 +156,10 @@ const EVIDENCE_PANELS: { title: string; signals: EvidenceSignal[] }[] = [
 ];
 
 const CHIP: Record<DetailStatus, string> = {
-  Verified:  'bg-green-500/10 text-green-700 border-green-500/20',
-  Claim:     'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  Verified:  'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  Claim:     'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
   Unknown:   'bg-muted/40 text-muted-foreground border-border',
-  Diligence: 'bg-red-500/10 text-red-700 border-red-500/20',
+  Diligence: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
 };
 
 const ICON: Record<DetailStatus, React.ElementType> = {
@@ -220,8 +220,8 @@ export default function AIDisruptionPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
             {[
-              { label: 'AI thesis',        value: 'Not yet proven',        chip: 'bg-amber-500/10 text-amber-700 border-amber-500/20' },
-              { label: 'Replica risk',     value: 'Medium-high',           chip: 'bg-red-500/10 text-red-700 border-red-500/20' },
+              { label: 'AI thesis',        value: 'Not yet proven',        chip: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]' },
+              { label: 'Replica risk',     value: 'Medium-high',           chip: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]' },
               { label: 'Moat evidence',    value: 'Unproven',              chip: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
               { label: 'P&L impact',       value: 'Potential upside, cost unknown', chip: 'bg-muted/40 text-muted-foreground border-border' },
               { label: 'AI moat evidence', value: 'Unproven',              chip: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },

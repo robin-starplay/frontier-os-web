@@ -370,7 +370,7 @@ export default function PricingPage() {
             Free preview includes one document-assisted review. Starter / Growth is £99/month during pilot access.
             Team and Enterprise pricing available on request.
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary/80 text-xs">
+          <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] text-xs">
             Pilot access · Do not upload confidential information in the public preview
           </div>
         </div>
@@ -472,7 +472,7 @@ export default function PricingPage() {
         </div>
 
         {/* Bottom CTA */}
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-8 text-center">
+        <div className="rounded-xl border border-card-border bg-card p-8 text-center shadow-xs">
           <p className="text-xl font-bold text-foreground mb-2">Ready to run your first screen?</p>
           <p className="text-sm text-muted-foreground mb-6">
             Start with the free preview. No payment required.
@@ -488,7 +488,7 @@ export default function PricingPage() {
               href={BOOK_INTRO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center text-sm font-medium border border-primary/40 bg-transparent hover:bg-primary/5 h-10 px-6 rounded-md transition-colors text-foreground"
+              className="inline-flex items-center justify-center text-sm font-medium border border-input bg-card hover:bg-accent h-10 px-6 rounded-md transition-colors text-foreground"
             >
               Book intro
             </a>

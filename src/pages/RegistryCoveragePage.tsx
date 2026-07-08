@@ -97,10 +97,10 @@ const REGISTRIES: Registry[] = [
 ];
 
 const STATUS_CONFIG: Record<RegistryStatus, { icon: React.ElementType; chip: string; iconColor: string }> = {
-  active:    { icon: CheckCircle2, chip: 'bg-green-500/10 text-green-700 border-green-500/20',  iconColor: 'text-green-500' },
-  connector: { icon: CheckCircle2, chip: 'bg-blue-500/10  text-blue-700  border-blue-500/20',   iconColor: 'text-blue-500' },
-  manual:    { icon: AlertCircle,  chip: 'bg-amber-500/10 text-amber-700 border-amber-500/20',  iconColor: 'text-amber-500' },
-  planned:   { icon: Clock,        chip: 'bg-muted/30 text-muted-foreground border-border',     iconColor: 'text-muted-foreground' },
+  active:    { icon: CheckCircle2, chip: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',  iconColor: 'text-green-500' },
+  connector: { icon: CheckCircle2, chip: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',   iconColor: 'text-blue-500' },
+  manual:    { icon: AlertCircle,  chip: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',  iconColor: 'text-amber-500' },
+  planned:   { icon: Clock,        chip: 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',     iconColor: 'text-muted-foreground' },
 };
 
 export default function RegistryCoveragePage() {

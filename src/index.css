@@ -72,20 +72,20 @@
 
 /* Light finance-grade enterprise theme */
 :root {
-  --button-outline: rgba(100, 116, 139, 0.28);
-  --badge-outline: rgba(100, 116, 139, 0.22);
+  --button-outline: rgba(100, 116, 139, 0.34);
+  --badge-outline: rgba(203, 213, 225, 1);
 
   --opaque-button-border-intensity: 9;
 
   --elevate-1: rgba(15, 23, 42, 0.035);
   --elevate-2: rgba(15, 23, 42, 0.06);
 
-  --background: 210 33% 98%;
+  --background: 210 40% 98%;
   --foreground: 222 47% 11%;
 
   --border: 214 32% 88%;
   --input: 214 32% 84%;
-  --ring: 217 91% 52%;
+  --ring: 221 83% 53%;
 
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
@@ -104,22 +104,22 @@
   --popover-foreground: 222 47% 11%;
   --popover-border: 214 32% 88%;
 
-  --primary: 217 91% 45%;
+  --primary: 221 83% 53%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 214 48% 95%;
+  --secondary: 210 40% 96%;
   --secondary-foreground: 222 47% 18%;
 
-  --muted: 214 48% 95%;
-  --muted-foreground: 215 18% 40%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
 
-  --accent: 213 94% 94%;
+  --accent: 214 100% 97%;
   --accent-foreground: 222 47% 14%;
 
   --destructive: 0 72% 45%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 217 91% 45%;
+  --chart-1: 221 83% 53%;
   --chart-2: 38 92% 45%;
   --chart-3: 142 72% 32%;
   --chart-4: 0 72% 45%;
@@ -169,6 +169,22 @@
   --muted-border: hsl(var(--muted));
   --accent-border: hsl(var(--accent));
   --destructive-border: hsl(var(--destructive));
+
+  --semantic-verified-bg: #ECFDF3;
+  --semantic-verified-text: #027A48;
+  --semantic-verified-border: #ABEFC6;
+  --semantic-claim-bg: #FFFAEB;
+  --semantic-claim-text: #B54708;
+  --semantic-claim-border: #FEDF89;
+  --semantic-blocker-bg: #FEF3F2;
+  --semantic-blocker-text: #B42318;
+  --semantic-blocker-border: #FECDCA;
+  --semantic-info-bg: #EFF6FF;
+  --semantic-info-text: #175CD3;
+  --semantic-info-border: #B2DDFF;
+  --semantic-unknown-bg: #F8FAFC;
+  --semantic-unknown-text: #475569;
+  --semantic-unknown-border: #CBD5E1;
 }
 
 [data-theme='dark'],
@@ -248,6 +264,22 @@
   --muted-border: hsl(var(--muted));
   --accent-border: hsl(var(--accent));
   --destructive-border: hsl(var(--destructive));
+
+  --semantic-verified-bg: rgba(2, 122, 72, 0.14);
+  --semantic-verified-text: #6CE9A6;
+  --semantic-verified-border: rgba(108, 233, 166, 0.28);
+  --semantic-claim-bg: rgba(181, 71, 8, 0.14);
+  --semantic-claim-text: #FDB022;
+  --semantic-claim-border: rgba(253, 176, 34, 0.28);
+  --semantic-blocker-bg: rgba(180, 35, 24, 0.16);
+  --semantic-blocker-text: #FDA29B;
+  --semantic-blocker-border: rgba(253, 162, 155, 0.28);
+  --semantic-info-bg: rgba(23, 92, 211, 0.16);
+  --semantic-info-text: #84CAFF;
+  --semantic-info-border: rgba(132, 202, 255, 0.30);
+  --semantic-unknown-bg: rgba(148, 163, 184, 0.10);
+  --semantic-unknown-text: #CBD5E1;
+  --semantic-unknown-border: rgba(203, 213, 225, 0.22);
 }
 
 @layer base {

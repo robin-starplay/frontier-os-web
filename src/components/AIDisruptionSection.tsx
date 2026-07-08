@@ -5,18 +5,18 @@ import { AI_DISRUPTION_CARDS, type AICard, type EvidenceStatus } from '@/data/ai
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const ACCENT_CLASSES = {
-  blue:   { border: 'border-blue-500/30',   icon: 'bg-blue-500/10 text-blue-500',   badge: 'bg-blue-500/10 text-blue-700',   dot: 'bg-blue-500' },
-  red:    { border: 'border-red-500/30',    icon: 'bg-red-500/10 text-red-500',     badge: 'bg-red-500/10 text-red-700',     dot: 'bg-red-500' },
+  blue:   { border: 'border-[var(--semantic-info-border)]',   icon: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)]',   badge: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border border-[var(--semantic-info-border)]',   dot: 'bg-blue-500' },
+  red:    { border: 'border-[var(--semantic-blocker-border)]', icon: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)]', badge: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-[var(--semantic-blocker-border)]', dot: 'bg-red-500' },
   green:  { border: 'border-green-500/30',  icon: 'bg-green-500/10 text-green-500', badge: 'bg-green-500/10 text-green-700', dot: 'bg-green-500' },
-  amber:  { border: 'border-amber-500/30',  icon: 'bg-amber-500/10 text-amber-500', badge: 'bg-amber-500/10 text-amber-700', dot: 'bg-amber-500' },
+  amber:  { border: 'border-[var(--semantic-claim-border)]',  icon: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]', badge: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-[var(--semantic-claim-border)]', dot: 'bg-amber-500' },
   purple: { border: 'border-purple-500/30', icon: 'bg-purple-500/10 text-purple-500', badge: 'bg-purple-500/10 text-purple-400', dot: 'bg-purple-500' },
 };
 
 const STATUS_COLORS: Record<EvidenceStatus, string> = {
   Fact:       'bg-green-500/10 text-green-700',
-  Claim:      'bg-amber-500/10 text-amber-700',
+  Claim:      'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-[var(--semantic-claim-border)]',
   Unknown:    'bg-muted/40 text-muted-foreground',
-  Gap:        'bg-red-500/10 text-red-700',
+  Gap:        'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-[var(--semantic-blocker-border)]',
 };
 
 const CARD_ICONS = [BrainCircuit, ShieldAlert, Lock, BarChart3, TrendingUp, HelpCircle];

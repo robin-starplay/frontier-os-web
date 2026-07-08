@@ -310,7 +310,7 @@ export default function SettingsPage() {
               <p className="text-[10px] font-semibold tracking-normal text-primary">Backend connection</p>
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium border ${
                 isBackendConfigured()
-                  ? 'bg-green-500/10 text-green-700 border-green-500/20'
+                  ? 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]'
                   : 'bg-muted/20 text-muted-foreground border-border'
               }`}>
                 {isBackendConfigured() ? 'CONFIGURED' : 'NOT SET'}

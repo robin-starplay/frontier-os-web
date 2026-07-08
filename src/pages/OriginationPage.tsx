@@ -10,9 +10,9 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
 
 const LEVEL_CLASSES: Record<string, string> = {
-  green: 'bg-green-500/10 text-green-700 border-green-500/20',
-  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-700   border-red-500/20',
+  green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
 };
 
 // ─── Origination API call ─────────────────────────────────────────────────────
@@ -878,7 +878,7 @@ Example format:
       </button>
 
       {state.kind === 'submitting' && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-start gap-3">
+        <div className="rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 shadow-xs">
           <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-foreground">Previewing origination workflow…</p>
@@ -967,7 +967,7 @@ export default function OriginationPage() {
           ))}
         </div>
 
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
+        <div className="rounded-lg border border-card-border bg-card px-5 py-4 shadow-xs">
           <p className="text-sm font-semibold text-foreground mb-1">Private-beta origination workflow</p>
           <p className="text-xs text-muted-foreground leading-relaxed">
             This page calls the backend origination endpoint when available. It does not show static target lists or save illustrative candidates to Cockpit.
