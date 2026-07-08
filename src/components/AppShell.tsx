@@ -41,15 +41,15 @@ function WorkspaceGate() {
           </svg>
         </div>
 
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">
-          Private beta · free access
+        <p className="text-xs font-medium text-primary mb-3">
+          Pilot workspace
         </p>
         <h1 className="text-2xl font-bold text-foreground mb-3">
-          Create a private beta workspace
+          Create a diligence workspace
         </h1>
         <p className="text-muted-foreground mb-8 leading-relaxed text-sm">
-          Run acquisition screens, compare targets and track IC readiness in the Deal Cockpit.
-          No payment required. Public-source screening only.
+          Run acquisition screens, compare targets and track IC readiness in the deal pipeline.
+          No payment required. Public-source screening is available immediately.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -61,10 +61,10 @@ function WorkspaceGate() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/run?mode=sample"
+            href="/app/run"
             className="inline-flex items-center justify-center gap-1.5 text-sm font-medium border border-input bg-background hover:bg-accent h-10 px-5 rounded-md transition-colors text-foreground"
           >
-            Run sample screen
+            Start public-source screen
           </Link>
           <a
             href={BOOK_INTRO_URL}
@@ -77,7 +77,7 @@ function WorkspaceGate() {
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground/50">
-          No payment required · public-source screening only
+          No payment required · public-source screening available immediately
         </p>
       </div>
     </div>

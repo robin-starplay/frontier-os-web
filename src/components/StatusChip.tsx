@@ -13,7 +13,7 @@ export function StatusChip({ status, variant, className }: StatusChipProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-semibold",
+        "inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium",
         {
           "border-green-500/20 bg-green-500/10 text-green-500": variant === "verified" || variant === "completed",
           "border-amber-500/20 bg-amber-500/10 text-amber-500": variant === "caveat" || variant === "diligence" || variant === "warning",

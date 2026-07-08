@@ -159,10 +159,10 @@ function EvidenceChip({
   const safe = safeEvidenceStatus(status, source, confidence);
   const DISPLAY: Record<EvidenceStatus, string> = {
     verified: 'Verified',
-    caveat:   'Caveated',
-    claim:    'Claim',
-    blocking: 'Blocking',
-    unknown:  'Not verified in this run',
+    caveat:   'Company claim',
+    claim:    'Company claim',
+    blocking: 'Blocker',
+    unknown:  'Not independently verified',
   };
   return (
     <span className={cn(
@@ -439,7 +439,7 @@ function CoveragePill({ status }: { status: 'checked' | 'not_checked' | 'private
   const label = status === 'checked'
     ? 'Checked'
     : status === 'private_beta'
-      ? 'Private beta'
+      ? 'Pilot access'
       : status === 'requires_documents'
         ? 'Requires documents'
         : 'Not checked in this preview';
@@ -650,7 +650,7 @@ function ScenarioSelector({ activeId, onSelect }: { activeId: string; onSelect: 
   return (
     <div className="mb-8">
       <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Sample scenarios</p>
-      <p className="text-xs text-muted-foreground mb-4">Select a scenario to pre-fill the form with a private-beta example analysis.</p>
+      <p className="text-xs text-muted-foreground mb-4">Select a scenario to pre-fill the form with an example acquisition screen.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {DEMO_SCENARIOS.map((scenario) => {
           const isActive = scenario.id === activeId;
@@ -739,12 +739,6 @@ function StepIndicator({ step }: { step: Step }) {
 }
 
 // ─── URL helpers ─────────────────────────────────────────────────────────────
-
-const REVIEWER_SUGGESTIONS: { company: string; website: string }[] = [
-  { company: 'Acme Software Ltd',            website: 'https://example.com' },
-  { company: 'Northstar Workflow Systems',   website: '' },
-  { company: 'Example Vertical SaaS Co',     website: '' },
-];
 
 /** Prepends https:// when the user omits the scheme. */
 function normaliseUrl(val: string): string {
@@ -855,11 +849,11 @@ function Step1({
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-10">
         {/* Left: form */}
         <div className="lg:col-span-3">
-          <Card className="border-border">
+          <Card className="border-border bg-card/90">
             <CardHeader className="pb-5">
-              <CardTitle className="text-lg">Run an evidence-first acquisition screen.</CardTitle>
+              <CardTitle className="text-lg">Set up an evidence-first acquisition screen.</CardTitle>
               <CardDescription>
-                Start with a company website and, where available, one non-confidential deck or teaser. Frontier OS extracts claims, checks public evidence, flags gaps and prepares the IC-readiness view.
+                Start with a company website and, where available, one non-confidential deck or teaser. Frontier OS separates verified facts, company claims, unknowns and diligence blockers for IC readiness.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -902,30 +896,15 @@ function Step1({
                         else setUrlError('');
                       }}
                       className={cn('bg-background', urlError ? 'border-destructive focus-visible:ring-destructive' : '')}
-                      placeholder="https://example.com"
+                      placeholder="https://company.com"
                     />
                     {urlError ? (
                       <p className="text-xs text-destructive">{urlError}</p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Enter a public company website, for example https://example.com
+                        Enter the target company's public website.
                       </p>
                     )}
-                    {/* Neutral sample helpers; these populate the form only and do not start analysis. */}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] text-muted-foreground/50">Try:</span>
-                      {REVIEWER_SUGGESTIONS.map(s => (
-                        <button
-                          key={s.company}
-                          type="button"
-                          onClick={() => { setCompany(s.company); setWebsite(s.website); setUrlError(''); }}
-                          className="inline-flex items-center text-[11px] font-medium text-primary/80 hover:text-primary border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 rounded px-2 py-0.5 transition-colors"
-                        >
-                          {s.website ? 'Use sample company' : s.company === 'Northstar Workflow Systems' ? 'Try website-only' : 'Try document-assisted'}
-                        </button>
-                      ))}
-                      <span className="text-[10px] text-muted-foreground/60">Static example — not a real company.</span>
-                    </div>
                   </div>
                 </div>
 
@@ -942,12 +921,12 @@ function Step1({
 
                 <div className="space-y-2">
                   <Label htmlFor="buyer_thesis">
-                    Buyer thesis <span className="text-muted-foreground font-normal">(optional, improves strategic fit analysis)</span>
+                    Buyer thesis <span className="text-muted-foreground font-normal">(optional, improves strategic fit)</span>
                   </Label>
                   <textarea
                     id="buyer_thesis"
                     rows={3}
-                    placeholder="e.g. PE platform add-on — recurring revenue, EBITDA quality, ARR confirmation"
+                    placeholder="Platform add-on criteria, strategic fit, revenue quality thresholds, diligence focus..."
                     value={buyerThesis}
                     onChange={e => setBuyerThesis(e.target.value)}
                     className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
@@ -1084,7 +1063,7 @@ function Step1({
                 {(
                   <div className="rounded-lg border border-border bg-card/30 px-4 py-3.5 space-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-1">
-                      <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Investment lens</p>
+                      <p className="text-xs font-semibold text-primary">Investment lens</p>
                       <span className="text-[10px] text-muted-foreground/60 leading-none">
                         Guides scores, caveats and management questions
                       </span>
@@ -1136,7 +1115,7 @@ function Step1({
                     'Free preview limit reached'
                   ) : (
                     <>
-                      {documentMode ? 'Run document-assisted screen' : 'Run public-source preview'} <ArrowRight className="w-4 h-4 ml-2" />
+                      {documentMode ? 'Run document-assisted review' : 'Run public-source screen'} <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
@@ -1146,7 +1125,7 @@ function Step1({
                     <div>
                       <p className="text-sm font-semibold text-amber-300">Free preview limit reached.</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Start beta to continue, or reset local workspace for local testing.
+                        Start access to continue, or reset local workspace for local testing.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -1155,7 +1134,7 @@ function Step1({
                         onClick={openStarterGrowthCta}
                         className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                       >
-                        Start beta <ExternalLink className="w-3 h-3" />
+                        Start access <ExternalLink className="w-3 h-3" />
                       </button>
                       <Link
                         href="/pricing"
@@ -1194,7 +1173,7 @@ function Step1({
         {/* Right: what it checks */}
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-border bg-card h-full p-6 flex flex-col">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-5">What Frontier OS will check</p>
+            <p className="text-xs font-semibold text-primary mb-5">Review scope</p>
             <div className="flex-1 space-y-3.5">
               {CHECK_LIST.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -1376,7 +1355,7 @@ function Step2({
               {documentUnavailable.message}
             </p>
             <details className="mt-2">
-              <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Developer diagnostics</summary>
+              <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Technical details</summary>
               <p className="text-[10px] font-mono text-muted-foreground/60 mt-1">
                 Reason: {documentUnavailable.reason}
               </p>
@@ -1393,7 +1372,7 @@ function Step2({
                 href="/request-pilot"
                 className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                Request private beta access
+                Request pilot access
               </Link>
             </div>
           </div>
@@ -1467,7 +1446,7 @@ function LockedFeature({ title, description }: { title: string; description: str
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
           onClick={() => console.log('[analytics] clicked_request_private_beta_locked_feature')}
         >
-          Request private beta access <ArrowRight className="w-3 h-3" />
+          Request pilot access <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
     </div>
@@ -1592,10 +1571,10 @@ function DocumentAssistedResultDisplay({
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
           <p className="text-sm font-semibold text-amber-300">Document-assisted review is not enabled in this workspace yet.</p>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-            Use website-only preview, or request private beta access.
+            Use website-only preview, or request pilot access.
           </p>
           <details className="mt-2">
-            <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Developer diagnostics</summary>
+            <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Technical details</summary>
             <p className="text-[10px] font-mono text-muted-foreground/60 mt-1">Reason: {result.reason || 'document_uploads_disabled'}</p>
           </details>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1610,7 +1589,7 @@ function DocumentAssistedResultDisplay({
               href="/request-pilot"
               className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Request private beta access
+              Request pilot access
             </Link>
           </div>
         </div>
@@ -1862,15 +1841,12 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
   const readinessSummary = asRecord(rawResult.acquisition_readiness_summary);
   const isSampleFallback = result.__sample_fallback === true || result.fallback_used === true;
 
-  // Hero metric cards — 5 key acquisition signals
-  const financialStatus = financialStatusCard(result.evidence_cards);
+  // Hero metric cards — key acquisition signals for committee triage.
   const topCards = [
-    { label: 'Recommendation',     value: result.recommendation,       level: result.recommendation_level },
-    { label: 'IC readiness',        value: result.ic_readiness,         level: result.ic_readiness === 'Not ready' ? 'red' : result.ic_readiness === 'Ready' ? 'green' : 'amber' },
-    { label: 'Valuation readiness', value: result.valuation_readiness,  level: result.valuation_readiness.startsWith('Block') ? 'red' : result.valuation_readiness.startsWith('Unknown') ? 'grey' : 'amber' },
-    { label: 'Financial status',    value: financialStatus.value,       level: financialStatus.level },
-    { label: 'Evidence confidence', value: result.evidence_confidence,  level: result.evidence_confidence === 'High' ? 'green' : result.evidence_confidence === 'Low' ? 'red' : 'amber' },
-    { label: 'AI replica risk',     value: result.ai_replica_risk,      level: result.ai_replica_risk === 'High' ? 'red' : result.ai_replica_risk.startsWith('Low') ? 'green' : 'amber' },
+    { label: 'Recommendation',     value: result.recommendation,      level: result.recommendation_level },
+    { label: 'IC readiness',        value: result.ic_readiness,        level: result.ic_readiness === 'Not ready' ? 'red' : result.ic_readiness === 'Ready' ? 'green' : 'amber' },
+    { label: 'Evidence confidence', value: result.evidence_confidence, level: result.evidence_confidence === 'High' ? 'green' : result.evidence_confidence === 'Low' ? 'red' : 'amber' },
+    { label: 'AI replica risk',     value: result.ai_replica_risk,     level: result.ai_replica_risk === 'High' ? 'red' : result.ai_replica_risk.startsWith('Low') ? 'green' : 'amber' },
   ] as const;
 
   const sf = result.strategic_fit;
@@ -1886,6 +1862,9 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
     ?? actionableBlockers[0]
     ?? blockerCards[0]
     ?? null;
+  const primaryBlockerText = primaryBlocker
+    ? `${blockerTitle(primaryBlocker)}${blockerSummary(primaryBlocker) ? ` - ${blockerSummary(primaryBlocker)}` : ''}`
+    : 'No blocker identified from public sources';
   const icNotReady    = !['Ready', 'IC-ready'].includes(result.ic_readiness);
 
   // IC gaps — derive from evidence cards; fall back to canonical gaps
@@ -1906,7 +1885,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {isSampleFallback && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
-          Example screen only. Run a target from the form for live backend analysis.
+          Example screen only. Run a target from the form for a live acquisition screen.
         </div>
       )}
 
@@ -1925,34 +1904,32 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
       {/* ─── Hero: acquisition screen verdict ─────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Executive acquisition screen · {resultModeLabel(result.data_mode)}</p>
-          <span className="text-xs font-mono text-muted-foreground">{result.company}</span>
+        <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-primary">Evidence-first acquisition screen · {resultModeLabel(result.data_mode)}</p>
+          <span className="text-xs text-muted-foreground">{result.company}</span>
         </div>
-        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {topCards.map(card => (
-            <div key={card.label}>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{card.label}</p>
+            <div key={card.label} className="rounded-md border border-border/70 bg-background/45 px-3 py-2.5">
+              <p className="text-[11px] font-medium text-muted-foreground mb-1">{card.label}</p>
               <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium border',
+                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
                 levelClass(card.level),
               )}>
                 {card.value}
               </span>
             </div>
           ))}
-        </div>
-        {primaryBlocker && (
-          <div className="px-4 py-3 border-t border-border/60 bg-red-500/[0.03]">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-red-400/70 mb-1">Main blocker</p>
-            <p className="text-xs text-foreground leading-snug">
-              {blockerTitle(primaryBlocker)}{blockerSummary(primaryBlocker) ? ` — ${blockerSummary(primaryBlocker)}` : ''}
+          <div className="rounded-md border border-border/70 bg-background/45 px-3 py-2.5">
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Main blocker</p>
+            <p className={cn('text-xs leading-snug', primaryBlocker ? 'text-foreground' : 'text-muted-foreground')}>
+              {primaryBlockerText}
             </p>
           </div>
-        )}
-        <div className="px-4 py-3 border-t border-border bg-card/30">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Next action</p>
-          <p className="text-xs text-foreground leading-snug">{result.next_action}</p>
+          <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5">
+            <p className="text-[11px] font-medium text-primary mb-1">Next action</p>
+            <p className="text-xs text-foreground leading-snug">{result.next_action}</p>
+          </div>
         </div>
       </div>
 
@@ -2024,7 +2001,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       <PackSection
         title="Public Signals"
         empty={publicSignals.length === 0}
-        emptyMessage="Limited public operating signals found. Run document-assisted review or request job-posting/product/news checks in private beta."
+        emptyMessage="Limited public operating signals found. Run document-assisted review or request job-posting/product/news checks during pilot setup."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {publicSignals.map((item, i) => {
@@ -2133,7 +2110,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             {runLog.length > 0 && (
               <details className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
                 <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
-                  Developer diagnostics
+                  Technical details
                 </summary>
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {Object.keys(analysisQuality).length > 0 && (
@@ -2170,7 +2147,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <div className="px-4 py-3 border-b border-green-500/20 bg-green-500/[0.03] flex items-center gap-2">
             <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
             <p className="text-[10px] font-mono uppercase tracking-widest text-green-400">
-              1 · Verified facts ({verifiedCards.length})
+              Verified facts ({verifiedCards.length})
             </p>
           </div>
           <div className="divide-y divide-border/50">
@@ -2200,7 +2177,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <div className="px-4 py-3 border-b border-blue-500/20 bg-blue-500/[0.03] flex items-center gap-2">
             <Info className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <p className="text-[10px] font-mono uppercase tracking-widest text-blue-400">
-              2 · Claims ({claimCards.length})
+              Company claims ({claimCards.length})
             </p>
             <span className="ml-auto text-[10px] font-mono text-muted-foreground/50">Not independently verified</span>
           </div>
@@ -2231,7 +2208,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center gap-2">
             <AlertCircle className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
             <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-              3 · Unknowns ({unknownCards.length})
+              Unknowns ({unknownCards.length})
             </p>
             <span className="ml-auto text-[10px] font-mono text-muted-foreground/50">Not available from public sources</span>
           </div>
@@ -2263,7 +2240,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             : <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
           }
           <p className={cn('text-[10px] font-mono uppercase tracking-widest', icNotReady ? 'text-amber-400' : 'text-green-400')}>
-            4 · {icNotReady ? 'Why this is not IC-ready yet' : 'IC readiness'}
+            {icNotReady ? 'Diligence blockers to resolve' : 'IC readiness'}
           </p>
         </div>
         <div className="p-4">
@@ -2304,7 +2281,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── 5. Diligence blockers ────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">5 · Diligence blockers</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Diligence blockers</p>
           {blockerCards.length > 0 && (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border bg-red-500/10 text-red-400 border-red-500/20">
               {blockerCards.length} blocking
@@ -2340,7 +2317,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── 6. AI defensibility ──────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">6 · AI defensibility</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">AI defensibility</p>
         </div>
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -2388,7 +2365,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── 7. Strategic fit ─────────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">7 · Strategic fit</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Strategic fit</p>
         </div>
         <div className="p-4 space-y-4">
           {!hasBuyerThesis && (
@@ -2495,11 +2472,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── D. Innovation & operating signals ──────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Available in private beta · Innovation signals</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Pilot access · Innovation signals</p>
           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">
             {textValue(innovationSignals.status, '') === 'not_checked'
               ? 'Roadmap · Not checked'
-              : textValue(innovationSignals.status, 'Roadmap · Private beta')}
+              : textValue(innovationSignals.status, 'Roadmap · Pilot access')}
           </span>
         </div>
         <div className="px-4 py-3">
@@ -2507,7 +2484,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             Innovation and operating signals are not checked in this public preview.
           </p>
           <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-            Private beta can review job postings, technology signals, traffic signals and product-launch cadence.
+            Pilot access can include job postings, technology signals, traffic signals and product-launch cadence.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             {[
@@ -2529,7 +2506,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
               onClick={() => console.log('[analytics] clicked_request_beta_innovation_sample')}
             >
-              Request private beta access <ArrowRight className="w-3 h-3" />
+              Request pilot access <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
@@ -2537,7 +2514,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
       {/* ─── D. Locked premium sections ──────────────────────────────── */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Available in private beta</p>
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Available with pilot access</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <LockedFeature
             title="Document-assisted review"
@@ -2574,7 +2551,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-5">
         <p className="text-sm font-semibold text-foreground mb-1">Unlock the full acquisition screen.</p>
         <p className="text-xs text-muted-foreground mb-4">
-          Private beta access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
+          Pilot access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <button
@@ -2582,7 +2559,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             onClick={() => openGate('full-screen')}
             className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors"
           >
-            Request private beta access <ArrowRight className="w-3.5 h-3.5" />
+            Request pilot access <ArrowRight className="w-3.5 h-3.5" />
           </button>
           <a
             href={BOOK_INTRO_URL}
@@ -2665,7 +2642,7 @@ function AnalysisResultDisplay({
         </div>
         {result.demo_mode && (
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/20 shrink-0">
-            SAMPLE SCREEN
+            Example screen
           </span>
         )}
       </div>
@@ -2674,7 +2651,7 @@ function AnalysisResultDisplay({
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
           <p className="text-[10px] font-mono uppercase tracking-widest text-primary">
-            Acquisition screen · {result.analysis_mode ? formatLabel(result.analysis_mode) : 'URL-only'}
+            Acquisition screen · {result.analysis_mode ? formatLabel(result.analysis_mode) : 'Public-source screen'}
           </p>
         </div>
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -2763,10 +2740,10 @@ function AnalysisResultDisplay({
               const safeStatus = safeEvidenceStatus(c.status as string | undefined, c.source as string | undefined, c.confidence as string | undefined);
               const DISPLAY_LABEL: Record<EvidenceStatus, string> = {
                 verified: 'Verified',
-                caveat:   'Caveated',
-                claim:    'Claim',
-                blocking: 'Blocking',
-                unknown:  'Not verified in this run',
+                caveat:   'Company claim',
+                claim:    'Company claim',
+                blocking: 'Blocker',
+                unknown:  'Not independently verified',
               };
               const conf = displayValue(c.confidence, '');
               return (
@@ -2811,7 +2788,7 @@ function AnalysisResultDisplay({
       {events.length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Analysis log</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Review log</p>
           </div>
           <div className="divide-y divide-border">
             {events.slice(-6).map(ev => (
@@ -2968,15 +2945,15 @@ function AnalysisResultDisplay({
         return (
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Available in private beta · Innovation signals</p>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">Roadmap · Private beta</span>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Pilot access · Innovation signals</p>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">Roadmap · Pilot access</span>
             </div>
             <div className="px-4 py-3">
               <p className="text-xs text-foreground mb-1 leading-relaxed">
                 Innovation and operating signals are not checked in this public preview.
               </p>
               <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                Private beta can review job postings, technology signals, traffic signals and product-launch cadence.
+                Pilot access can include job postings, technology signals, traffic signals and product-launch cadence.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                 {[
@@ -2998,7 +2975,7 @@ function AnalysisResultDisplay({
                   className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                   onClick={() => console.log('[analytics] clicked_request_beta_innovation_signals')}
                 >
-                  Request private beta access <ArrowRight className="w-3 h-3" />
+                  Request pilot access <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
@@ -3008,7 +2985,7 @@ function AnalysisResultDisplay({
 
       {/* ── Locked premium sections ──────────────────────────────── */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Available in private beta</p>
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Available with pilot access</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <LockedFeature
             title="Document-assisted review"
@@ -3041,7 +3018,7 @@ function AnalysisResultDisplay({
       <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-5">
         <p className="text-sm font-semibold text-foreground mb-1">Unlock the full acquisition screen.</p>
         <p className="text-xs text-muted-foreground mb-4">
-          Private beta access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
+          Pilot access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <button
@@ -3049,7 +3026,7 @@ function AnalysisResultDisplay({
             onClick={() => openGate('full-screen')}
             className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors"
           >
-            Request private beta access <ArrowRight className="w-3.5 h-3.5" />
+            Request pilot access <ArrowRight className="w-3.5 h-3.5" />
           </button>
           <a
             href={BOOK_INTRO_URL}
@@ -3095,15 +3072,15 @@ function AnalysisResultDisplay({
 // ─── Live progress pipeline ───────────────────────────────────────────────────
 
 const PIPELINE_STAGES = [
-  { key: 'entity_resolver',     label: 'Entity Resolver',     explainer: 'Matching the company website to the most likely legal entity.' },
-  { key: 'website_collector',   label: 'Website Collector',   explainer: 'Extracting public-facing claims and product descriptions from the company website.' },
-  { key: 'registry_connector',  label: 'Registry Connector',  explainer: 'Checking official filings and registry records.' },
-  { key: 'evidence_ranker',     label: 'Evidence Ranker',     explainer: 'Separating verified facts from claims and assumptions.' },
-  { key: 'financial_extractor', label: 'Financial Extractor', explainer: 'Locating and verifying revenue, growth, and unit economics signals.' },
-  { key: 'ai_risk_assessor',    label: 'AI Risk Assessor',    explainer: 'Testing whether the workflow could be replicated or disrupted by AI.' },
-  { key: 'strategic_fit',       label: 'Strategic Fit',       explainer: 'Scoring alignment with the buyer thesis and acquisition criteria.' },
-  { key: 'ic_readiness',        label: 'IC Readiness',        explainer: 'Assessing whether evidence is sufficient for an investment committee presentation.' },
-  { key: 'report_writer',       label: 'Report Writer',       explainer: 'Compiling all findings into a structured acquisition screen.' },
+  { key: 'entity_resolver',     label: 'Entity match',        explainer: 'Matching the company website to the most likely legal entity.' },
+  { key: 'website_collector',   label: 'Public-source review', explainer: 'Reviewing public-facing claims and product descriptions from the company website.' },
+  { key: 'registry_connector',  label: 'Registry checks',      explainer: 'Checking official filings and registry records.' },
+  { key: 'evidence_ranker',     label: 'Evidence ranking',     explainer: 'Separating verified facts from claims and assumptions.' },
+  { key: 'financial_extractor', label: 'Financial evidence',   explainer: 'Locating and verifying revenue, growth, and unit economics signals.' },
+  { key: 'ai_risk_assessor',    label: 'AI replica risk',      explainer: 'Testing whether the workflow could be replicated or disrupted by AI.' },
+  { key: 'strategic_fit',       label: 'Strategic fit',        explainer: 'Scoring alignment with the buyer thesis and acquisition criteria.' },
+  { key: 'ic_readiness',        label: 'IC readiness',         explainer: 'Assessing whether evidence is sufficient for an investment committee presentation.' },
+  { key: 'report_writer',       label: 'Acquisition summary',  explainer: 'Compiling all findings into a structured acquisition screen.' },
 ] as const;
 
 type PipelineStageStatus = 'pending' | 'running' | 'complete' | 'failed';
@@ -3661,7 +3638,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
         setIsTimelineComplete(false);
         setDocumentUnavailable({
           title: 'Document-assisted review is not enabled in this workspace yet.',
-          message: 'Use website-only preview, or request private beta access.',
+          message: 'Use website-only preview, or request pilot access.',
           reason: textValue(apiResult.reason ?? apiResult.error_code, 'document_uploads_disabled'),
         });
         return;
@@ -3795,7 +3772,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       {/* Page header */}
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-10">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">
+          <p className="text-xs font-semibold text-primary mb-2">
             {sampleMode ? 'Example screen' : 'Evidence-first acquisition screen'}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
@@ -3804,18 +3781,18 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
           <p className="text-base text-muted-foreground">
             {sampleMode
               ? 'This static example shows how Frontier OS separates facts, claims and unknowns. Create a free account to run website-only analysis on your own targets.'
-              : 'Start with a company website and, where available, one non-confidential PDF. Frontier OS extracts claims, checks public evidence, flags gaps and prepares the IC-readiness view.'}
+              : 'Start with a company website and, where available, one non-confidential PDF. Frontier OS separates verified facts, company claims, unknowns and diligence blockers for IC readiness.'}
           </p>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col w-full max-w-5xl mx-auto px-4 md:px-8 py-8">
 
-        {/* ── Backend / beta notice ──────────────────────────────────── */}
+        {/* ── Screen note ──────────────────────────────────── */}
         {sampleMode ? (
           <div className="mb-6 bg-primary/5 border border-primary/20 px-4 py-3 rounded-md flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
-              EXAMPLE
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
+              Example
             </span>
             <span className="text-muted-foreground">
               Example screen. Static output only.{' '}
@@ -3827,8 +3804,8 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
           </div>
         ) : (
           <div className="mb-6 bg-primary/5 border border-primary/20 px-4 py-3 rounded-md flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
-              FRONTIER OS
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
+              Evidence-first
             </span>
             <span className="text-muted-foreground">
               Evidence-first acquisition screen. Verified facts, claims, unknowns and blockers stay separate.
@@ -3853,9 +3830,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
               <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 <p className="text-sm">Submitting analysis…</p>
-                <p className="text-xs text-muted-foreground/60 font-mono">
-                  POST {getBackendBaseUrl()}/analysis
-                </p>
+                <p className="text-xs text-muted-foreground/60">Preparing the evidence review.</p>
               </div>
             )}
 
@@ -3882,11 +3857,10 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                   {/* Top status strip */}
                   <div className="rounded-lg border border-border bg-card/50 px-4 py-3 space-y-2">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-500/10 text-green-400 border border-green-500/20 shrink-0">
-                        LIVE ANALYSIS
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                        Review in progress
                       </span>
                       <span className="text-sm font-medium text-foreground">{company.trim() || 'target'}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground/50">run_id: {railwayPhase.runId}</span>
                       <span className="text-[10px] font-mono text-muted-foreground tabular-nums ml-auto">
                         {formatElapsed(elapsedSecs)} · {pct}%
                       </span>
@@ -3902,7 +3876,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                     {/* LEFT — Agent pipeline */}
                     <div className="rounded-lg border border-border overflow-hidden">
                       <div className="px-4 py-2.5 border-b border-border bg-card/50">
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Evidence pipeline</p>
+                        <p className="text-xs font-semibold text-muted-foreground">Evidence review</p>
                       </div>
                       <div className="divide-y divide-border/60">
                         {PIPELINE_STAGES.map((stage, i) => {
@@ -3948,14 +3922,14 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                     <div className="space-y-3">
                       {activeStage && (
                         <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-                          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Now working on</p>
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Now reviewing</p>
                           <p className="text-sm font-medium text-foreground">{activeStage.label}</p>
                           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{activeStage.explainer}</p>
                         </div>
                       )}
                       <div className="rounded-lg border border-border overflow-hidden">
                         <div className="px-4 py-2.5 border-b border-border bg-card/50">
-                          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Event log</p>
+                          <p className="text-xs font-semibold text-muted-foreground">Review log</p>
                         </div>
                         {(sd.events ?? []).length === 0 ? (
                           <div className="px-4 py-6 flex items-center gap-2 text-muted-foreground/50">
@@ -4002,19 +3976,19 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                     {/* RIGHT — Run context / expectations */}
                     <div className="space-y-3">
                       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Elapsed</p>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Elapsed</p>
                         <p className="text-2xl font-mono text-foreground tabular-nums">{formatElapsed(elapsedSecs)}</p>
-                        <p className="text-[11px] text-muted-foreground/70 mt-2">Usually 2–7 minutes for free beta URL-only screens.</p>
+                        <p className="text-[11px] text-muted-foreground/70 mt-2">Usually 2-7 minutes for public-source screens.</p>
                         <p className="text-[10px] text-muted-foreground/50 mt-1 leading-relaxed">Large or ambiguous targets can take longer while registry and evidence checks complete.</p>
                       </div>
                       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1.5">Account tier</p>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/20">
-                          Free beta
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Workspace</p>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                          Free preview
                         </span>
                       </div>
                       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2.5">Expected outputs</p>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2.5">Expected outputs</p>
                         <div className="space-y-1.5">
                           {EXPECTED_OUTPUTS.map(label => (
                             <div key={label} className="flex items-center gap-2">
@@ -4040,9 +4014,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 <p className="text-sm">Compiling acquisition screen…</p>
                 <p className="text-xs text-muted-foreground/50">Almost done. Fetching result.</p>
-                <p className="text-xs text-muted-foreground/40 font-mono">
-                  GET {getBackendBaseUrl()}/analysis/{railwayPhase.runId}/result
-                </p>
+                <p className="text-xs text-muted-foreground/40">Preparing the dashboard.</p>
               </div>
             )}
 
@@ -4164,7 +4136,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                     <div className="py-10 text-center">
                       <p className="text-lg font-semibold text-foreground mb-2">Run your own acquisition screen.</p>
                       <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-                        Create a free workspace to run URL-only analysis on your own targets.
+                        Create a free workspace to run public-source analysis on your own targets.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
                         <Link

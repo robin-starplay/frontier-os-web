@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle2, AlertTriangle, Calendar } from 'lucide-react';
+import { Send, CheckCircle2, Calendar } from 'lucide-react';
 import { BookIntroButton, BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,16 @@ import { cn } from '@/lib/utils';
 import { getBackendBaseUrl } from '@/lib/frontierApi';
 
 const PILOT_FEATURES = [
-  { label: 'UK company screening', note: 'Companies House, audited accounts, HMRC references' },
+  { label: 'UK company screening', note: 'Registry checks, audited accounts and public-source evidence' },
   { label: 'US company screening',  note: 'SEC EDGAR filings (public companies)' },
-  { label: 'German company screening', note: 'Handelsregister connector (manual v1)' },
+  { label: 'German company screening', note: 'Registry and public-source workflow scoping' },
   { label: 'Document-assisted review', note: 'Pitch decks, CIMs, management packs, Excel exports' },
   { label: 'AI defensibility analysis', note: 'Replica risk, moat evidence, inference economics' },
-  { label: 'IC-readiness output', note: 'Evidence pack and diligence gap list' },
-  { label: 'Deal cockpit', note: 'Pipeline tracking and decision history' },
+  { label: 'IC readiness output', note: 'Evidence pack and diligence blocker list' },
+  { label: 'Deal pipeline', note: 'Pipeline tracking and decision history' },
 ];
 
-const UPLOAD_PREFS = ['Yes', 'Maybe after data terms', 'No, URL-only first'];
+const UPLOAD_PREFS = ['Yes', 'Maybe after data terms', 'No, public-source first'];
 
 const DOC_TYPES = [
   'pitch deck', 'CIM', 'financial model', 'board deck',
@@ -143,11 +143,10 @@ export default function RequestPilotPage() {
       {/* header */}
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Pilot</p>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Request a pilot.</h1>
+          <p className="text-xs font-semibold text-primary mb-2">Pilot intake</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Request a Frontier OS pilot.</h1>
           <p className="text-base text-muted-foreground">
-            Pilot conversations can define screen scope, document handling, retention and deletion requirements
-            before any confidential material is processed.
+            Share your screening workflow, target volume and document handling requirements so we can scope a serious diligence pilot.
           </p>
         </div>
       </div>
@@ -156,7 +155,7 @@ export default function RequestPilotPage() {
 
         {/* what's included */}
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">What a pilot includes</p>
+          <p className="text-xs font-semibold text-primary mb-4">What a pilot can include</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PILOT_FEATURES.map(({ label, note }) => (
               <div key={label} className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
@@ -168,15 +167,6 @@ export default function RequestPilotPage() {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* delivery notice */}
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/8 border border-amber-500/20 text-amber-400 text-xs">
-          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          Private beta request is stored after submission. If email notification fails, use{' '}
-          <a href="mailto:contact@getfrontieros.com" className="underline underline-offset-2 ml-0.5">
-            contact@getfrontieros.com
-          </a>.
         </div>
 
         {submitState === 'success' ? (
@@ -213,7 +203,7 @@ export default function RequestPilotPage() {
                   <p className="text-sm font-semibold text-foreground">Prefer to talk first?</p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                  Book a 30-minute intro to discuss your screening workflow, target volume, document sensitivity and whether Frontier OS is a fit for a private beta pilot.
+                  Book a 30-minute intro to discuss your screening workflow, target volume, document sensitivity and pilot fit.
                 </p>
                 <BookIntroButton
                   eventName="clicked_book_intro_request_pilot"
@@ -261,7 +251,7 @@ export default function RequestPilotPage() {
 
             {/* contact details */}
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">Your details</p>
+              <p className="text-xs font-semibold text-primary mb-4">Your details</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Name</Label>
@@ -284,7 +274,7 @@ export default function RequestPilotPage() {
 
             {/* deal workflow */}
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">Deal workflow</p>
+              <p className="text-xs font-semibold text-primary mb-4">Deal workflow</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Team size</Label>
@@ -314,7 +304,7 @@ export default function RequestPilotPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-card/50 p-5">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Document-assisted review — pilot interest</p>
+              <p className="text-xs font-semibold text-primary mb-1">Document-assisted review</p>
               <p className="text-xs text-muted-foreground mb-5">
                 Pilot conversations can define document handling, retention and deletion requirements before any confidential material is processed.
               </p>
@@ -399,7 +389,7 @@ export default function RequestPilotPage() {
             </div>
 
             <p className="text-xs text-muted-foreground/70">
-              Pilot conversations can define document handling, retention and deletion requirements.{' '}
+              Pilot setup can define document handling, retention and deletion requirements.{' '}
               <Link href="/privacy" className="text-primary/80 hover:text-primary underline underline-offset-2">Privacy Notice</Link>
               {' · '}
               <Link href="/terms" className="text-primary/80 hover:text-primary underline underline-offset-2">Terms of Use</Link>

@@ -35,10 +35,10 @@ export function EvidenceCard({ field, value, source, confidence, status, classNa
 
     if (weakSource) {
       effectiveStatus = 'pending';
-      displayLabel = 'Not verified in this run';
+      displayLabel = 'Not independently verified';
     } else if (weakConfidence) {
       effectiveStatus = 'candidate';
-      displayLabel = 'Claim';
+      displayLabel = 'Company claim';
     }
   }
   // ── End defensive rendering ─────────────────────────────────────────────────
@@ -56,12 +56,12 @@ export function EvidenceCard({ field, value, source, confidence, status, classNa
   };
 
   return (
-    <div className={cn("relative flex items-center overflow-hidden rounded-md border border-border bg-card p-4 shadow-sm", className)}>
+    <div className={cn("relative flex items-center overflow-hidden rounded-md border border-border bg-card/80 p-4 shadow-sm", className)}>
       <div className={cn("absolute bottom-0 left-0 top-0 w-1", statusColors[effectiveStatus])} />
       <div className="ml-2 flex-1 space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{field}</p>
-        <p className="font-mono text-lg font-bold text-foreground">{value}</p>
-        <p className="text-[10px] text-muted-foreground">Source: {source || 'Not verified in this run'}</p>
+        <p className="text-lg font-semibold text-foreground">{value}</p>
+        <p className="text-[10px] text-muted-foreground">Source: {source || 'Not independently verified'}</p>
       </div>
       <div className="flex flex-col items-end gap-2">
         <StatusChip status={displayLabel} variant={effectiveStatus} />

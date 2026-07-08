@@ -18,11 +18,11 @@ const variantStyles: Record<string, string> = {
 export function TrustBadge({ label, value, variant = 'default', className }: TrustBadgeProps) {
   return (
     <div className={cn(
-      "flex items-center gap-1.5 px-2 py-1 rounded border text-[10px] font-mono",
+      "flex items-center gap-1.5 px-2 py-1 rounded border text-[10px]",
       variantStyles[variant],
       className
     )}>
-      <span className="opacity-60 uppercase tracking-wide">{label}</span>
+      <span className="opacity-70">{label}</span>
       <span className="font-semibold">{value}</span>
     </div>
   );

@@ -32,18 +32,18 @@ const STATIC_TIERS: Tier[] = [
     plan_id: 'free_preview',
     name: 'Free Preview',
     price_label: 'Free',
-    audience: 'Try public-source acquisition screening.',
+    audience: 'Run public-source acquisition screens before a pilot conversation.',
     cta_label: 'Start free',
     cta_url: '/app/run',
     payment_mode: 'none',
     ctaVariant: 'primary',
     features: [
-      '5 URL-only acquisition screens',
-      'Full on-screen result',
-      'Basic evidence cards',
-      'Basic AI disruption view',
-      'Basic saved runs',
-      '1 document-assisted review (prototype)',
+      '5 public-source acquisition screens',
+      'On-screen acquisition dashboard',
+      'Evidence cards',
+      'AI replica risk view',
+      'Saved runs in pipeline',
+      '1 document-assisted review',
       'Non-confidential PDF only',
       'Claims extracted, not independently verified',
     ],
@@ -51,29 +51,29 @@ const STATIC_TIERS: Tier[] = [
   {
     plan_id: 'starter_growth',
     name: 'Starter / Growth',
-    badge: 'Private beta',
+    badge: 'Pilot access',
     price_label: '£99/month',
     audience: 'For founders, searchers, independent sponsors and solo operators.',
-    cta_label: 'Start beta',
+    cta_label: 'Start access',
     cta_url: STARTER_GROWTH_STRIPE_FALLBACK,
     payment_mode: 'stripe_payment_link',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_starter',
-    manual_activation_note: 'Paid beta access is currently activated manually after payment.',
+    manual_activation_note: 'Access is currently activated manually after payment.',
     features: [
-      'More URL screens',
+      'More public-source screens',
       'Compare targets',
-      'Deal Cockpit',
-      'Document-assisted review prototype',
-      'Save summaries to Cockpit',
-      'Export-ready markdown-style summaries',
+      'Deal pipeline',
+      'Document-assisted review',
+      'Save summaries to pipeline',
+      'Export-ready summaries',
     ],
   },
   {
     plan_id: 'team_platform',
     name: 'Team / Platform',
-    badge: 'Private beta',
+    badge: 'Pilot access',
     price_label: 'Pricing on request',
     audience: 'For advisors, small funds, corp dev and software roll-ups.',
     cta_label: 'Request pilot',
@@ -96,7 +96,7 @@ const STATIC_TIERS: Tier[] = [
     name: 'Enterprise',
     badge: 'Custom',
     price_label: 'Pricing on request',
-    audience: 'For confidential workflows, evidence retention rules, custom integrations and private pilot setup.',
+    audience: 'For confidential workflows, evidence retention rules, custom integrations and pilot setup.',
     cta_label: 'Discuss access',
     cta_url: '/request-pilot',
     payment_mode: 'request_access',
@@ -109,7 +109,7 @@ const STATIC_TIERS: Tier[] = [
       'Custom data and retention rules',
       'CRM integrations',
       'Dedicated onboarding',
-      'Private pilot setup',
+      'Pilot setup',
     ],
   },
 ];
@@ -119,18 +119,18 @@ const STATIC_TIERS: Tier[] = [
 const TIER_NAMES = ['Free Preview', 'Starter / Growth', 'Team / Platform', 'Enterprise'];
 
 const COMPARISON_ROWS: { label: string; vals: string[] }[] = [
-  { label: 'URL-only screens',            vals: ['5 screens', 'More screens',  'Volume',    'Volume+'] },
+  { label: 'Public-source screens',       vals: ['5 screens', 'More screens',  'Volume',    'Volume+'] },
   { label: 'Full on-screen result',       vals: ['✓', '✓', '✓', '✓'] },
   { label: 'Compare targets',             vals: ['—', '✓', '✓', '✓'] },
-  { label: 'Deal Cockpit',                vals: ['—', '✓', '✓', '✓'] },
-  { label: 'Document-assisted review',    vals: ['1 (prototype)', '✓', '✓', '✓'] },
-  { label: 'Save summaries to Cockpit',   vals: ['—', '✓', '✓', '✓'] },
+  { label: 'Deal pipeline',               vals: ['—', '✓', '✓', '✓'] },
+  { label: 'Document-assisted review',    vals: ['1 review', '✓', '✓', '✓'] },
+  { label: 'Save summaries to pipeline',  vals: ['—', '✓', '✓', '✓'] },
   { label: 'Export-ready summaries',      vals: ['—', '✓', '✓', '✓'] },
   { label: 'Buyer thesis templates',      vals: ['—', '—', '✓', '✓'] },
   { label: 'PowerPoint IC pack',          vals: ['—', '—', '✓', '✓'] },
   { label: 'API access',                  vals: ['—', '—', '—', '✓'] },
   { label: 'Custom data / retention',     vals: ['—', '—', '—', '✓'] },
-  { label: 'Private pilot setup',         vals: ['—', '—', '—', '✓'] },
+  { label: 'Pilot setup',                 vals: ['—', '—', '—', '✓'] },
 ];
 
 // ─── Backend plan shape ───────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ interface PricingResponse {
 type PricingLoadState = 'loading' | 'loaded' | 'fallback';
 
 function tierBadge(planId: string): string | undefined {
-  if (planId === 'starter_growth' || planId === 'team_platform') return 'Private beta';
+  if (planId === 'starter_growth' || planId === 'team_platform') return 'Pilot access';
   if (planId === 'enterprise') return 'Custom';
   return undefined;
 }
@@ -192,7 +192,7 @@ function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
     badge: tierBadge(plan.plan_id),
     price_label: normalisePriceLabel(plan, currency),
     audience: plan.audience,
-    cta_label: plan.cta_label || (plan.plan_id === 'starter_growth' ? 'Start beta' : 'Request pilot'),
+    cta_label: plan.cta_label || (plan.plan_id === 'starter_growth' ? 'Start access' : 'Request pilot'),
     cta_url: ctaUrl,
     payment_mode: plan.payment_mode,
     ctaVariant: tierVariant(plan.plan_id),
@@ -239,7 +239,7 @@ function TierCard({
         <div className="flex items-center gap-2 mb-1.5">
           <p className="text-sm font-bold text-foreground">{tier.name}</p>
           {tier.badge && (
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary whitespace-nowrap shrink-0">
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary whitespace-nowrap shrink-0">
               {tier.badge}
             </span>
           )}
@@ -367,11 +367,11 @@ export default function PricingPage() {
             Start free. Scale as you screen.
           </h1>
           <p className="text-base text-muted-foreground max-w-xl mx-auto">
-            Free preview includes one document-assisted review. Starter / Growth is £99/month in private beta.
+            Free preview includes one document-assisted review. Starter / Growth is £99/month during pilot access.
             Team and Enterprise pricing available on request.
           </p>
           <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary/80 text-xs">
-            Private beta · Do not upload confidential information in the public preview
+            Pilot access · Do not upload confidential information in the public preview
           </div>
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function PricingPage() {
         {/* Trust / safety copy */}
         <div className="mb-12 rounded-lg border border-border bg-muted/20 px-5 py-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Payments support paid beta access. Confidential document workflows require a private pilot setup.
+            Payments support Starter / Growth access. Confidential document workflows require a pilot setup.
             Do not upload confidential information in the public preview.
           </p>
         </div>
@@ -448,19 +448,19 @@ export default function PricingPage() {
             {[
               {
                 q: 'Do I need to pay to try Frontier OS?',
-                a: 'No. The free preview includes 5 URL-only screens. No payment required.',
+                a: 'No. The free preview includes 5 public-source screens. No payment required.',
               },
               {
                 q: 'What happens after I pay for Starter / Growth?',
-                a: 'Paid beta access is activated manually after payment. We will confirm your access within one business day.',
+                a: 'Access is activated manually after payment. We will confirm your access within one business day.',
               },
               {
                 q: 'Can I run without uploading documents?',
-                a: 'Yes. URL-only mode uses public sources and registry data. Document upload is optional.',
+                a: 'Yes. Public-source mode uses public sources and registry data. Document upload is optional.',
               },
               {
-                q: 'What does "private beta" mean?',
-                a: 'The product is live but access is limited. Paid plans are available now; Team and Enterprise pricing is agreed directly.',
+                q: 'How do Team and Enterprise plans work?',
+                a: 'Starter / Growth opens the Stripe checkout link provided by pricing. Team and Enterprise route to pilot intake so scope, data handling and workflow requirements can be agreed directly.',
               },
             ].map(({ q, a }) => (
               <div key={q}>

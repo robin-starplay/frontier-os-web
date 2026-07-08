@@ -24,10 +24,10 @@ type FilterKey = 'all' | 'financials' | 'monitor' | 'high-ai-risk' | 'evidence-g
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all',           label: 'All' },
-  { key: 'financials',    label: 'Request Financials' },
+  { key: 'financials',    label: 'Financial evidence needed' },
   { key: 'monitor',       label: 'Monitor' },
-  { key: 'high-ai-risk',  label: 'High AI Risk' },
-  { key: 'evidence-gaps', label: 'Evidence Gaps' },
+  { key: 'high-ai-risk',  label: 'High AI risk' },
+  { key: 'evidence-gaps', label: 'Diligence blockers' },
 ];
 
 function applyFilter(runs: RunEntry[], filter: FilterKey): RunEntry[] {
@@ -53,13 +53,13 @@ function formatTs(iso: string): string {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function chip(level: RecommendationLevel, label: string) {
-  const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium whitespace-nowrap';
+  const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border';
   const map: Record<RecommendationLevel, string> = {
-    green: 'bg-green-500/10 text-green-400 border border-green-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-    red:   'bg-red-500/10   text-red-400   border border-red-500/20',
-    blue:  'bg-blue-500/10  text-blue-400  border border-blue-500/20',
-    grey:  'bg-muted/40     text-muted-foreground border border-border',
+    green: 'bg-green-500/10 text-green-400 border-green-500/20',
+    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    red:   'bg-red-500/10   text-red-400   border-red-500/20',
+    blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+    grey:  'bg-muted/40     text-muted-foreground border-border',
   };
   return <span className={cn(base, map[level])}>{label}</span>;
 }
@@ -105,7 +105,7 @@ function sourceTypeLabel(type: RunEntry['type']): string {
   if (type === 'compare') return 'Compare';
   if (type === 'document') return 'Document-assisted';
   if (type === 'origination') return 'Origination signal';
-  return 'URL screen';
+  return 'Public-source screen';
 }
 
 function companyDedupeKey(company: string): string {
@@ -166,8 +166,8 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
         {/* header */}
         <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-border shrink-0 bg-card">
           <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">
-              {run.type === 'compare' ? 'Comparison target' : run.type === 'document' ? 'Document review' : 'URL screen'}
+            <p className="text-[11px] font-medium text-primary mb-1">
+              {run.type === 'compare' ? 'Comparison target' : run.type === 'document' ? 'Document-assisted review' : 'Public-source screen'}
             </p>
             <p className="text-sm font-semibold text-foreground leading-snug">{run.company}</p>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -184,7 +184,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'px-3 py-2.5 text-[11px] font-mono uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors',
+                'px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors',
                 activeTab === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -222,20 +222,20 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
                   <ChevronRight className="w-3.5 h-3.5 text-primary" />
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Next action</p>
+                  <p className="text-[11px] font-medium text-muted-foreground">Next action</p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">{cockpitNextAction(run)}</p>
               </div>
               {run.website && (
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1.5">Website</p>
+                  <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Website</p>
                   <a href={run.website.startsWith('http') ? run.website : `https://${run.website}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
                     {run.website} <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
               )}
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Screened</p>
+                <p className="text-[11px] font-medium text-muted-foreground mb-1">Screened</p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" /> {formatTs(run.timestamp)}
                 </p>
@@ -265,7 +265,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   {run.result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; }).length > 0 && (
                     <div>
                       <p className="text-[10px] font-mono uppercase tracking-widest text-blue-400 mb-2">
-                        Claims ({run.result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; }).length})
+                        Company claims ({run.result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; }).length})
                       </p>
                       <div className="space-y-2">
                         {run.result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; }).map((ev, i) => {
@@ -340,7 +340,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   )}
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground/60">Full AI risk detail available after a URL screen run on this target.</p>
+                  <p className="text-xs text-muted-foreground/60">Full AI risk detail is available after a public-source screen on this target.</p>
               )}
             </div>
           )}
@@ -428,7 +428,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                     Run screen <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-md transition-colors text-primary">
-                    Request Financials
+                    Request diligence support
                   </Link>
                 </div>
               </div>
@@ -462,7 +462,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                 </div>
               </div>
               <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors">
-                Request private beta access
+                Request pilot access
               </Link>
             </div>
           )}
@@ -471,7 +471,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
           {activeTab === 'exports' && (
             <div className="px-5 py-4 space-y-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Available in private beta</p>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Available with pilot access</p>
                 <div className="space-y-2">
                   {[
                     { label: 'Markdown report',         hint: 'Structured acquisition screen as plain text' },
@@ -490,7 +490,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                 </div>
               </div>
               <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors">
-                Request private beta access
+                Request pilot access
               </Link>
             </div>
           )}
@@ -498,8 +498,8 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
         </div>
 
         <div className="shrink-0 px-5 py-3 border-t border-border bg-card">
-          <p className="text-[10px] font-mono text-muted-foreground/50 text-center">
-            {run.type === 'compare' ? 'Comparison run · local browser storage' : run.type === 'document' ? 'Document review summary · local browser storage' : 'URL screen · local browser storage'}
+        <p className="text-[10px] text-muted-foreground/50 text-center">
+            {run.type === 'compare' ? 'Comparison run · local browser storage' : run.type === 'document' ? 'Document-assisted review · local browser storage' : 'Public-source screen · local browser storage'}
           </p>
         </div>
       </div>
@@ -607,7 +607,7 @@ function SavedRunCard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className={cn(
-                'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-mono',
+                'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-medium',
                 run.type === 'compare' ? 'text-blue-400' : run.type === 'document' ? 'text-violet-400' : run.type === 'origination' ? 'text-cyan-400' : 'text-primary',
               )}>
                 {sourceTypeLabel(run.type)}
@@ -624,7 +624,7 @@ function SavedRunCard({
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {chip(safeLevel(run.recommendation_level), runRecommendation(run))}
             {run.blockers.length > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 whitespace-nowrap">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap">
                 {run.blockers.length} blocker{run.blockers.length === 1 ? '' : 's'}
               </span>
             )}
@@ -634,19 +634,19 @@ function SavedRunCard({
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {icReadiness && (
             <div className="rounded-md border border-border/70 bg-background/60 p-3">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-1">IC readiness</p>
+              <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">IC readiness</p>
               <p className="text-sm text-foreground leading-snug">{icReadiness}</p>
             </div>
           )}
           {confidence && (
             <div className="rounded-md border border-border/70 bg-background/60 p-3">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-1">Evidence confidence</p>
+              <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">Evidence confidence</p>
               <div>{confidenceChip(confidence)}</div>
             </div>
           )}
           {blocker && (
             <div className="rounded-md border border-border/70 bg-background/60 p-3 sm:col-span-2 xl:col-span-1">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-1">Main blocker</p>
+              <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">Main blocker</p>
               <p className="text-sm text-foreground leading-snug">{blocker}</p>
             </div>
           )}
@@ -654,7 +654,7 @@ function SavedRunCard({
 
         <div className="rounded-md border border-primary/15 bg-primary/5 p-3 flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Next action</p>
+            <p className="text-[11px] font-medium text-primary mb-1">Next action</p>
             <p className="text-sm text-muted-foreground leading-relaxed">{nextAction}</p>
           </div>
           {!compact && <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0 mt-0.5" />}
@@ -731,17 +731,17 @@ export default function DealCockpitPage() {
 
       {/* ── Header ── */}
       <div className="mb-8">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Deal Cockpit</p>
+        <p className="text-xs font-semibold text-primary mb-2">Deal pipeline</p>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Deal Cockpit</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Deal pipeline</h1>
             <p className="text-base text-muted-foreground">
               {hasRealRuns
-                ? 'Your screened targets — track IC readiness, evidence quality and next actions.'
+                ? 'Your screened targets: track recommendation, evidence confidence, blockers and next action.'
                 : 'Track screened targets, compare evidence quality and turn gaps into next actions.'}
             </p>
             <p className="text-xs text-muted-foreground/60 mt-1">
-              Public-source screen only. Financials and document evidence must be verified before IC/client use.
+              Public-source screens are decision support. Financials and document evidence must be verified before IC or client use.
             </p>
           </div>
           <Link
@@ -768,7 +768,7 @@ export default function DealCockpitPage() {
               Create workspace
             </Link>
             <Link href="/request-pilot" className="inline-flex items-center justify-center h-8 px-3 text-xs font-medium border border-border bg-background hover:bg-accent rounded-md transition-colors text-muted-foreground hover:text-foreground whitespace-nowrap">
-              Request private beta
+              Request pilot
             </Link>
           </div>
         </div>
@@ -779,7 +779,7 @@ export default function DealCockpitPage() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
           {[
             { label: 'Runs saved',        value: stats.total,      level: 'grey' as RecommendationLevel },
-            { label: 'Request Financials', value: stats.financials, level: 'amber' as RecommendationLevel },
+            { label: 'Financial evidence needed', value: stats.financials, level: 'amber' as RecommendationLevel },
             { label: 'High AI risk',       value: stats.highAiRisk, level: 'red' as RecommendationLevel },
             { label: 'Evidence blockers',  value: stats.blockers,   level: 'amber' as RecommendationLevel },
             { label: 'Compared targets',   value: stats.compared,   level: 'blue' as RecommendationLevel },
@@ -795,7 +795,7 @@ export default function DealCockpitPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 opacity-30 pointer-events-none select-none">
           {[
             { label: 'Runs saved', value: '0', level: 'grey' },
-            { label: 'Request Financials', value: '0', level: 'amber' },
+            { label: 'Financial evidence needed', value: '0', level: 'grey' },
             { label: 'High AI risk', value: '0', level: 'red' },
             { label: 'Evidence blockers', value: '0', level: 'grey' },
           ].map(({ label, value, level }) => (
@@ -823,7 +823,7 @@ export default function DealCockpitPage() {
             }).slice(0, 3);
             return (
               <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-5">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">Priority next actions</p>
+                <p className="text-xs font-semibold text-primary mb-4">Priority next actions</p>
                 <div className="space-y-3">
                   {deduped.map(r => (
                     <div key={r.id} className="flex items-start gap-3">
@@ -948,12 +948,12 @@ export default function DealCockpitPage() {
             <div>
               <p className="text-base font-semibold text-foreground mb-1">No saved runs yet.</p>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Run a screen to start building your Deal Cockpit.
+                Run a screen to start building your deal pipeline.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               <Link href="/app/run" className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-md transition-colors">
-                Run first screen <ArrowRight className="w-3.5 h-3.5" />
+                Run first acquisition screen <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-foreground">
                 View pricing
@@ -966,7 +966,7 @@ export default function DealCockpitPage() {
             <div className="mb-6 flex items-center gap-3 text-xs text-muted-foreground px-4 py-3 rounded-lg border border-border bg-card/30">
               <Lock className="w-3.5 h-3.5 shrink-0 text-muted-foreground/50" />
               <span>
-                Cockpit is stored locally in this browser.{' '}
+                Deal pipeline is stored locally in this browser.{' '}
                 <Link href="/create-workspace" className="text-primary hover:underline transition-colors">Create a workspace</Link>
                 {' '}to save across devices.
               </span>
@@ -979,8 +979,8 @@ export default function DealCockpitPage() {
       {/* Feedback CTA */}
       <div className="mt-10 py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-foreground mb-0.5">Found this useful? Let us know.</p>
-          <p className="text-xs text-muted-foreground">Takes 3 minutes — helps us prioritise the right features.</p>
+          <p className="text-sm font-medium text-foreground mb-0.5">Share product feedback.</p>
+          <p className="text-xs text-muted-foreground">Takes 3 minutes and helps prioritise diligence workflow improvements.</p>
         </div>
         <SendFeedbackButton
           label="Send feedback"
@@ -989,9 +989,9 @@ export default function DealCockpitPage() {
       </div>
 
       <BetaCTA
-        title="Want to test this on your own pipeline?"
-        body="Run a sample screen, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
-        primaryLabel="Request private beta access"
+        title="Want to evaluate this on your own pipeline?"
+        body="Request pilot access or book a 30-minute intro to discuss acquisition screening, evidence confidence and IC workflow."
+        primaryLabel="Request pilot access"
         primaryHref="/request-pilot"
         secondaryLabel=""
         secondaryHref=""

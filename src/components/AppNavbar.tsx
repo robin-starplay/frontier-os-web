@@ -11,12 +11,12 @@ import { OptionalUserButton } from '@/lib/optionalClerk';
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
 const APP_NAV = [
-  { label: 'Run',         href: '/app/run' },
-  { label: 'Cockpit',     href: '/app/cockpit' },
+  { label: 'Screen',      href: '/app/run' },
+  { label: 'Pipeline',    href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
   { label: 'Origination', href: '/app/origination' },
   { label: 'Pricing',     href: '/pricing' },
-  { label: 'AI Risk',     href: '/app/ai-risk' },
+  { label: 'AI risk',     href: '/app/ai-risk' },
   { label: 'Trust',       href: '/trust' },
 ];
 
@@ -24,11 +24,11 @@ const APP_NAV = [
 // Secondary informational links (trust, pricing, faq) are intentionally included
 // so signed-in users can access them without leaving the app shell.
 const APP_MORE = [
-  { label: 'Workspace',              href: '/app/settings' },
-  { label: 'Exports · team beta',     href: '/app/exports' },
-  { label: 'Evidence workflow · beta', href: '/app/evidence' },
-  { label: 'Request pilot',           href: '/request-pilot' },
-  { label: 'FAQ',                     href: '/faq' },
+  { label: 'Workspace',         href: '/app/settings' },
+  { label: 'Exports',           href: '/app/exports' },
+  { label: 'Evidence workflow', href: '/app/evidence' },
+  { label: 'Request pilot',     href: '/request-pilot' },
+  { label: 'FAQ',               href: '/faq' },
 ];
 
 // ── Trial usage badge ─────────────────────────────────────────────────────────
@@ -47,12 +47,12 @@ function TrialBadge() {
   const isLow = remaining <= 1;
   return (
     <span className={cn(
-      'hidden lg:inline-flex items-center text-[11px] font-mono px-2 py-0.5 rounded-md border whitespace-nowrap',
+      'hidden lg:inline-flex items-center text-[11px] px-2 py-0.5 rounded-md border whitespace-nowrap',
       isLow
         ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
         : 'bg-green-500/5 text-green-400/80 border-green-500/15',
     )}>
-      {remaining}/{limit} screens left
+      {remaining}/{limit} screens available
     </span>
   );
 }
@@ -143,13 +143,13 @@ export function AppNavbar() {
 
   return (
     <>
-      <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 sticky top-0 z-50">
         <div className="w-full max-w-7xl mx-auto flex h-14 items-center px-4 md:px-8 gap-3">
 
           {/* Logo → cockpit */}
           <Link href="/app/cockpit" className="flex items-center gap-2 shrink-0">
             <Activity className="h-4 w-4 text-primary" />
-            <span className="font-bold text-sm tracking-widest uppercase text-foreground">
+            <span className="font-semibold text-sm tracking-normal text-foreground">
               Frontier OS
             </span>
           </Link>
