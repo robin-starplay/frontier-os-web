@@ -16,6 +16,7 @@ import { DEMO_SCENARIOS, DEFAULT_SCENARIO, NEUTRAL_STAGES, type DemoScenario, ty
 import { useAccess } from '@/contexts/AccessContext';
 import { saveUrlRun, saveDocumentRun, getRuns } from '@/lib/runHistory';
 import { getWorkspaceId, getUserId, createBackendAccount, getTrialAccount } from '@/lib/trialAccount';
+import { normalizeWebsiteUrl, isValidWebsiteUrl } from '@/lib/urlUtils';
 import {
   runUrlAnalysis,
   runDocumentAssistedAnalysis,
@@ -39,6 +40,7 @@ import {
 } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
+import { SemanticBadge } from '@/components/SemanticBadge';
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -746,20 +748,12 @@ function StepIndicator({ step }: { step: Step }) {
 
 /** Prepends https:// when the user omits the scheme. */
 function normaliseUrl(val: string): string {
-  const t = val.trim();
-  if (!t) return t;
-  if (/^https?:\/\//i.test(t)) return t;
-  return `https://${t}`;
+  return normalizeWebsiteUrl(val);
 }
 
 /** Returns true when val looks like a real URL with a host. */
 function isValidUrl(val: string): boolean {
-  try {
-    const u = new URL(normaliseUrl(val));
-    return u.hostname.includes('.');
-  } catch {
-    return false;
-  }
+  return isValidWebsiteUrl(val);
 }
 
 function analysisPayloadError(value: unknown, fallback = 'Backend analysis failed.'): string {
@@ -1269,6 +1263,16 @@ function Step2({
               ? 'Finalising evidence screen…'
               : 'Public-source preview. Evidence checked. Gaps flagged.'}
           </p>
+          {!error && !documentUnavailable && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <SemanticBadge tone="info" className="text-[11px]">
+                Evidence depth: medium
+              </SemanticBadge>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Preview depth indicates how much source evidence was available in this run; it is not an investment recommendation.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="divide-y divide-border">
@@ -1307,14 +1311,9 @@ function Step2({
                   )}
                 </div>
 
-                {stage.status !== 'queued' && (
+                {stage.status !== 'queued' && stage.evidenceFound > 0 && (
                   <div className="text-right shrink-0 space-y-0.5 ml-2">
-                    {stage.evidenceFound > 0 && (
-                      <p className="text-[10px] font-medium text-muted-foreground">+{stage.evidenceFound}</p>
-                    )}
-                    <p className={cn('text-[10px] font-medium', confidenceColor(stage.confidence))}>
-                      {stage.confidence.toLowerCase()}
-                    </p>
+                    <p className="text-[10px] font-medium text-muted-foreground">+{stage.evidenceFound}</p>
                   </div>
                 )}
               </div>
@@ -3436,8 +3435,13 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
    */
   async function handleRailwaySubmit() {
     const companyTrimmed = company.trim();
-    const websiteTrimmed = website.trim();
+    const websiteTrimmed = normaliseUrl(website);
     if (!companyTrimmed || !websiteTrimmed) return;
+    if (!isValidUrl(websiteTrimmed)) {
+      setRailwayPhase({ kind: 'error', message: 'Please enter a valid company website URL.' });
+      return;
+    }
+    if (websiteTrimmed !== website) setWebsite(websiteTrimmed);
 
     const token = { cancelled: false };
     cancelRef.current = token;
@@ -3503,6 +3507,11 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       const workspaceId = getWorkspaceId();
       const userId = getUserId();
       const normalizedWebsite = normaliseUrl(website);
+      if (!isValidUrl(normalizedWebsite)) {
+        setUrlError('Please enter a valid company website URL.');
+        throw new Error('Please enter a valid company website URL.');
+      }
+      if (normalizedWebsite !== website) setWebsite(normalizedWebsite);
       let apiSettled = false;
       const apiPromise = runUrlAnalysis({
         company_name: company.trim(),
@@ -3585,6 +3594,11 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       const workspaceId = getWorkspaceId();
       const userId = getUserId();
       const normalizedWebsite = normaliseUrl(website);
+      if (!isValidUrl(normalizedWebsite)) {
+        setUrlError('Please enter a valid company website URL.');
+        throw new Error('Please enter a valid company website URL.');
+      }
+      if (normalizedWebsite !== website) setWebsite(normalizedWebsite);
       let apiSettled = false;
       const apiPromise = runDocumentAssistedAnalysis({
         company_name: company.trim(),

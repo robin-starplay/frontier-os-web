@@ -9,6 +9,7 @@ import { getBackendBaseUrl } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
 import { SemanticBadge, semanticBadgeClass } from '@/components/SemanticBadge';
+import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
 
 const LEVEL_CLASSES: Record<string, string> = {
   green: semanticBadgeClass('green'),
@@ -85,21 +86,24 @@ function humanLabel(value: string): string {
 }
 
 function parseKnownTargetUniverse(value: string): KnownTarget[] {
-  return value
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
-      const [company, website, jurisdiction, ...sectorParts] = line.split(',').map(part => part.trim());
-      return {
+  const targets: KnownTarget[] = [];
+  for (const line of value.split(/\r?\n/).map(item => item.trim()).filter(Boolean)) {
+    const [company, website, jurisdiction, ...sectorParts] = line.split(',').map(part => part.trim());
+    const normalizedWebsite = normalizeWebsiteUrl(website || '');
+    if (normalizedWebsite && !isValidWebsiteUrl(normalizedWebsite)) {
+      throw new Error(WEBSITE_URL_VALIDATION_MESSAGE);
+    }
+    if (company && normalizedWebsite) {
+      targets.push({
         company_name: company || '',
-        website: website || '',
+        website: normalizedWebsite,
         jurisdiction: jurisdiction || '',
         sector: sectorParts.join(', ').trim(),
         source_label: 'User supplied target universe' as const,
-      };
-    })
-    .filter(target => target.company_name && target.website);
+      });
+    }
+  }
+  return targets;
 }
 
 function titleCaseWords(value: string): string {

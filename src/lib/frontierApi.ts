@@ -19,6 +19,8 @@
  * layer should show "Unavailable in this preview" — not this adapter.
  */
 
+import { WEBSITE_URL_VALIDATION_MESSAGE } from './urlUtils';
+
 const TIMEOUT_MS = 8_000;
 const URL_ANALYSIS_TIMEOUT_MS = 120_000;
 
@@ -303,6 +305,7 @@ function parseJsonText(text: string): unknown {
 }
 
 function backendErrorMessage(body: unknown, httpStatus: number): string {
+  if (httpStatus === 422) return WEBSITE_URL_VALIDATION_MESSAGE;
   if (!body || typeof body !== 'object') return `Backend returned status ${httpStatus}.`;
   const b = body as Record<string, unknown>;
   const detail = typeof b.detail === 'string' ? b.detail : undefined;
@@ -527,7 +530,10 @@ export async function compareCompanies(payload: ComparePayload): Promise<Compare
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 422) throw new Error(WEBSITE_URL_VALIDATION_MESSAGE);
+    throw new Error(`Backend returned ${res.status}`);
+  }
   return await res.json() as CompareResult;
 }
 

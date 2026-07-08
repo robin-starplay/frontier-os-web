@@ -16,6 +16,7 @@ import { saveCompareRun } from '@/lib/runHistory';
 import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAccount';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { SemanticBadge } from '@/components/SemanticBadge';
+import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -575,6 +576,21 @@ export default function CompareTargetsPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
+    const normalizedCompanies = companies.map(company => ({
+      ...company,
+      name: company.name.trim(),
+      url: normalizeWebsiteUrl(company.url),
+    }));
+    const submittedCompanies = normalizedCompanies.filter(company => company.name);
+    const hasInvalidTarget = submittedCompanies.length < 2
+      || submittedCompanies.some(company => !company.url || !isValidWebsiteUrl(company.url));
+    setCompanies(normalizedCompanies);
+    if (hasInvalidTarget) {
+      setError(WEBSITE_URL_VALIDATION_MESSAGE);
+      setPhase('form');
+      return;
+    }
+
     // Reset progress
     const fresh: ProgressStage[] = PROGRESS_STEPS.map(label => ({ label, status: 'queued' }));
     setProgress(fresh);
@@ -590,7 +606,7 @@ export default function CompareTargetsPage() {
     const apiPromise = compareCompanies({
       buyer,
       buyer_thesis: buyerThesis,
-      companies: companies.filter(c => c.name.trim()).map(c => ({
+      companies: submittedCompanies.map(c => ({
         name: c.name,
         url: c.url,
         jurisdiction: c.jurisdiction,
@@ -676,6 +692,11 @@ export default function CompareTargetsPage() {
               companies={companies}     setCompanies={setCompanies}
               onSubmit={handleSubmit}
             />
+            {error && (
+              <div className="mt-4 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-4 py-3 text-sm text-[var(--semantic-claim-text)]">
+                {error}
+              </div>
+            )}
           </>
         )}
 
