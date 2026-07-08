@@ -66,6 +66,37 @@ npm run preview
 
 ---
 
+## End-to-end smoke tests
+
+Playwright smoke tests cover routing, primary navigation, URL screen submission,
+compare handoff, origination known-target ranking, request-pilot submission, and
+mobile navigation.
+
+```bash
+npm run test:e2e
+```
+
+The suite defaults to the deployed website:
+
+```bash
+PLAYWRIGHT_BASE_URL=https://www.getfrontieros.com npm run test:e2e
+```
+
+For local debugging:
+
+```bash
+npm run test:e2e:headed
+npm run test:e2e:ui
+```
+
+Install browsers before the first run:
+
+```bash
+npx playwright install --with-deps
+```
+
+---
+
 ## Environment variables
 
 | Variable | Required | Description |

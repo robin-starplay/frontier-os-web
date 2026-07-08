@@ -10,7 +10,10 @@ export default defineConfig({
   },
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list'], ['html', { open: 'never' }]],
+  outputDir: '.playwright/test-results',
+  reporter: process.env.CI
+    ? [['github'], ['html', { open: 'never', outputFolder: '.playwright/report' }]]
+    : [['list'], ['html', { open: 'never', outputFolder: '.playwright/report' }]],
   use: {
     baseURL,
     trace: 'retain-on-failure',

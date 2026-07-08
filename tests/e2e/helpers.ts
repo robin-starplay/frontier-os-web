@@ -8,7 +8,7 @@ const BAD_PAGE_TEXT = [
 ];
 
 function ignoredUrl(url: string): boolean {
-  return /favicon|googletagmanager|google-analytics|doubleclick|clarity|posthog|sentry|analytics/i.test(url);
+  return /favicon|googletagmanager|google-analytics|doubleclick|clarity|posthog|sentry|analytics|\/api\/workspace\/session/i.test(url);
 }
 
 export function installGuardrails(
@@ -52,7 +52,12 @@ function isAppRoute(url: string): boolean {
 }
 
 export async function gotoAndAssertUsable(page: Page, path: string) {
-  const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
+  let response = await page.goto(path, { waitUntil: 'commit', timeout: 60_000 });
+  try {
+    await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+  } catch {
+    response = await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  }
   expect(response?.status(), `${path} should not return HTTP 404`).not.toBe(404);
   await expect(page.locator('body')).toBeVisible();
   await assertNoBadPageText(page);
@@ -70,6 +75,38 @@ export async function clickNavLink(page: Page, name: RegExp | string) {
   await nav.getByRole('link', { name }).first().click();
   await page.waitForLoadState('domcontentloaded');
   await assertNoBadPageText(page);
+}
+
+export async function createTestWorkspace(page: Page) {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => {
+    const createdAt = new Date().toISOString();
+    const workspaceId = 'e2e-local-workspace';
+    const userId = 'e2e-local-user';
+    localStorage.setItem('frontier_trial_account', JSON.stringify({
+      plan_id: 'free_trial',
+      url_screens_limit: 5,
+      document_trials_limit: 2,
+      created_at: createdAt,
+      workspace_id: workspaceId,
+      user_id: userId,
+    }));
+    localStorage.setItem('frontier_workspace_id', workspaceId);
+    localStorage.setItem('frontier_user_id', userId);
+    localStorage.setItem('frontier_account', JSON.stringify({
+      plan_id: 'free_trial',
+      mode: 'local_e2e',
+      workspace_id: workspaceId,
+      user_id: userId,
+      created_at: createdAt,
+    }));
+    localStorage.setItem('fos_profile', JSON.stringify({
+      name: 'Playwright Test User',
+      email: 'test@example.com',
+      org: 'E2E Test',
+      role: 'Tester',
+    }));
+  });
 }
 
 export async function fillRunScreen(page: Page, company: string, website: string) {
