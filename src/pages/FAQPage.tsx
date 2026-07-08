@@ -5,7 +5,7 @@ import { Link } from 'wouter';
 import { BetaCTA } from '@/components/BetaCTA';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">{children}</p>;
+  return <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">{children}</p>;
 }
 
 interface FAQItem {

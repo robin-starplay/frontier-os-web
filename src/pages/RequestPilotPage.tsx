@@ -221,7 +221,7 @@ export default function RequestPilotPage() {
                 'rounded-lg border px-4 py-3 text-sm',
                 submitState === 'error'
                   ? 'border-destructive/30 bg-destructive/10 text-destructive'
-                  : 'border-amber-500/25 bg-amber-500/10 text-amber-300',
+                  : 'border-amber-500/25 bg-amber-500/10 text-amber-700',
               )}>
                 <p className="font-semibold text-foreground mb-1">
                   {submitState === 'error' ? 'Request could not be submitted' : 'Request received'}
@@ -232,7 +232,7 @@ export default function RequestPilotPage() {
                 <div className="mt-3 flex flex-col sm:flex-row gap-2">
                   <a
                     href={`mailto:${fallbackEmail}`}
-                    className="inline-flex items-center justify-center text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+                    className="inline-flex items-center justify-center text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
                   >
                     Email {fallbackEmail}
                   </a>
@@ -240,7 +240,7 @@ export default function RequestPilotPage() {
                     href={bookIntroUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
                   >
                     <Calendar className="w-3.5 h-3.5" />
                     Book intro
@@ -383,7 +383,7 @@ export default function RequestPilotPage() {
                 rows={4}
                 value={form.notes}
                 onChange={e => set('notes', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                 placeholder="Sector focus, existing tools, timing..."
               />
             </div>

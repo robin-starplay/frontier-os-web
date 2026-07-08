@@ -135,7 +135,7 @@ export function FeedbackModal({ open, onClose }: FeedbackModalProps) {
           /* Thank-you state */
           <div className="flex flex-col items-center justify-center gap-4 py-16 px-8 text-center">
             <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-              <CheckCircle2 className="w-6 h-6 text-green-400" />
+              <CheckCircle2 className="w-6 h-6 text-green-700" />
             </div>
             <div>
               <p className="text-base font-semibold text-foreground mb-1">Your mail client should have opened</p>

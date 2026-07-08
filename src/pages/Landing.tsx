@@ -12,16 +12,16 @@ import { useOptionalUser } from '@/lib/optionalClerk';
 type ChipVariant = 'green' | 'amber' | 'red' | 'blue' | 'muted';
 
 const CHIP: Record<ChipVariant, string> = {
-  green: 'bg-green-500/10 text-green-400 border-green-500/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-400   border-red-500/20',
-  blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+  green: 'bg-green-50 text-green-700 border-green-200',
+  amber: 'bg-amber-50 text-amber-700 border-amber-200',
+  red:   'bg-red-50   text-red-700   border-red-200',
+  blue:  'bg-blue-50  text-blue-700  border-blue-200',
   muted: 'bg-muted/30     text-muted-foreground border-border',
 };
 
 function Chip({ label, variant }: { label: string; variant: ChipVariant }) {
   return (
-    <span className={`inline-flex items-center text-xs font-mono font-semibold px-2.5 py-1 rounded-md border ${CHIP[variant]}`}>
+    <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md border ${CHIP[variant]}`}>
       {label}
     </span>
   );
@@ -70,19 +70,19 @@ function AcquisitionScreenCard() {
   return (
     <div className="w-full rounded-xl border border-border bg-card overflow-hidden shadow-lg">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/20">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-green-500" />
-          <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="text-xs font-semibold text-muted-foreground">
             Acquisition screen
           </span>
         </div>
-        <span className="text-[11px] text-muted-foreground font-mono">Private beta · example screen</span>
+        <span className="text-[11px] text-muted-foreground">Private beta · example screen</span>
       </div>
 
       {/* Company name */}
       <div className="px-5 py-4 border-b border-border/60">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Target</p>
+        <p className="text-xs font-medium text-muted-foreground mb-1">Target</p>
         <p className="text-base font-semibold text-foreground">Illustrative Target Co.</p>
       </div>
 
@@ -246,7 +246,7 @@ export default function Landing() {
 
             {/* Left: title + CTA */}
             <div className="md:w-64 shrink-0">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">3-minute review</p>
+              <p className="text-xs font-semibold text-primary mb-2">3-minute review</p>
               <h2 className="text-xl font-bold text-foreground mb-2">Try Frontier OS in 3 minutes</h2>
               <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
                 Run a sample acquisition screen to see the workflow before using your own target.
@@ -300,7 +300,7 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════ WORKFLOW STRIP */}
       <div className="w-full border-y border-border bg-card/20 py-12">
         <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2 text-center">How it works</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2 text-center">How it works</p>
           <h2 className="text-xl font-bold text-foreground mb-8 text-center">Origination → Screen → Evidence → Compare → Cockpit → IC pack</h2>
           <div className="relative">
             {/* connector line — desktop */}
@@ -329,7 +329,7 @@ export default function Landing() {
 
       {/* ══════════════════════════════════════════════ SCREEN ONE · COMPARE MANY */}
       <div className="w-full max-w-6xl mx-auto px-4 md:px-8 py-16">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Core features</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Core features</p>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 leading-tight">Screen one target. Compare many.</h2>
         <p className="text-base text-muted-foreground mb-10 max-w-2xl">
           Frontier OS is not just a report generator. Run URL-only acquisition screens, compare targets against a buyer thesis, and build a pipeline of evidence-backed next actions.
@@ -399,7 +399,7 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════ WHO IT IS FOR */}
       <div className="w-full bg-card/40 border-y border-border py-16">
         <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Who uses it</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Who uses it</p>
           <h2 className="text-2xl font-bold text-foreground mb-10">Who it is for</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {PERSONAS.map(({ title, desc, action, href }) => (
@@ -420,7 +420,7 @@ export default function Landing() {
 
       {/* ══════════════════════════════════════════════ WHAT IT CHECKS */}
       <div className="w-full max-w-6xl mx-auto px-4 md:px-8 py-16">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Modules</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Modules</p>
         <h2 className="text-2xl font-bold text-foreground mb-10">What it checks</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {MODULES.map(({ name, desc }) => (
@@ -445,7 +445,7 @@ export default function Landing() {
         <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-10">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">Data handling</p>
+              <p className="text-[10px] font-semibold tracking-normal text-primary mb-4">Data handling</p>
               <div className="flex flex-wrap gap-x-6 gap-y-2.5 mb-4">
                 {TRUST_ITEMS.map((item) => (
                   <div key={item} className="flex items-center gap-2">
@@ -478,7 +478,7 @@ export default function Landing() {
       <div className="w-full border-t border-border py-16">
         <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
           <div className="flex flex-col items-center text-center mb-10">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">Private beta workflow</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">Private beta workflow</p>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
               One system. End-to-end acquisition workflow.
             </h2>
@@ -501,7 +501,7 @@ export default function Landing() {
                 key={label}
                 className={`flex-1 min-w-0 px-5 py-5 flex flex-col gap-1 border-b sm:border-b-0 sm:border-r border-border last:border-0 ${idx % 2 === 0 ? 'bg-card' : 'bg-muted/10'}`}
               >
-                <span className="text-[10px] font-mono text-muted-foreground/50">{step}</span>
+                <span className="text-[10px] font-medium text-muted-foreground/50">{step}</span>
                 <p className="text-sm font-semibold text-foreground">{label}</p>
                 <p className="text-xs text-muted-foreground leading-snug">{desc}</p>
               </div>
@@ -521,7 +521,7 @@ export default function Landing() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <p className="text-sm font-semibold text-foreground">Document-assisted review</p>
-                <span className="text-[10px] font-mono border border-primary/30 text-primary/80 rounded px-1.5 py-0.5 bg-primary/5">
+                <span className="text-[10px] font-medium border border-primary/30 text-primary/80 rounded px-1.5 py-0.5 bg-primary/5">
                   Document-assisted
                 </span>
               </div>

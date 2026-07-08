@@ -107,7 +107,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-3xl mx-auto px-4 md:px-8 py-10">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Workspace</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Workspace</p>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Workspace</h1>
           <p className="text-sm text-muted-foreground mt-2">
             Manage your reviewer workspace, saved screens and private beta usage.
@@ -120,16 +120,16 @@ export default function SettingsPage() {
         {/* Account */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Your account</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Your account</p>
           </div>
           <div className="px-5 py-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Name</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Name</p>
                 <p className="text-sm text-foreground">{user?.fullName ?? 'Private beta reviewer'}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Email</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Email</p>
                 <p className="text-sm text-foreground">{user?.primaryEmailAddress?.emailAddress ?? 'Local workspace'}</p>
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function SettingsPage() {
         {/* Workspace */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Workspace</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Workspace</p>
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium border ${
               workspaceId
                 ? 'bg-primary/10 text-primary border-primary/20'
@@ -156,25 +156,25 @@ export default function SettingsPage() {
           <div className="px-5 py-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Workspace name</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Workspace name</p>
                 <p className="text-sm text-foreground">
                   {trial?.workspace_name ?? user?.fullName ?? 'Private beta workspace'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Account</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Account</p>
                 <p className="text-sm text-foreground">
                   {user?.primaryEmailAddress?.emailAddress ?? trial?.email ?? 'Local reviewer workspace'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Account mode</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Account mode</p>
                 <p className="text-sm text-foreground">
                   {workspaceId ? 'Backend workspace available' : 'Local browser workspace'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Plan</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Plan</p>
                 <p className="text-sm text-foreground">Free Preview</p>
               </div>
             </div>
@@ -187,12 +187,12 @@ export default function SettingsPage() {
             )}
 
             {workspaceCleared ? (
-              <p className="text-xs text-green-400">Workspace cleared. Reloading…</p>
+              <p className="text-xs text-green-700">Workspace cleared. Reloading…</p>
             ) : (
               <div className="pt-1">
                 <button
                   onClick={handleClearWorkspace}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 h-8 px-3 rounded-md transition-colors text-red-400"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 h-8 px-3 rounded-md transition-colors text-red-700"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Clear local workspace
@@ -208,7 +208,7 @@ export default function SettingsPage() {
         {/* Plan */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Private beta plan</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Private beta plan</p>
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
               FREE TRIAL
             </span>
@@ -216,19 +216,19 @@ export default function SettingsPage() {
           <div className="px-5 py-5 space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">URL screens used</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">URL screens used</p>
                 <p className="text-lg font-bold text-foreground">{urlScreensUsed}<span className="text-muted-foreground font-normal text-sm">/{urlScreensLimit}</span></p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Screens left</p>
-                <p className={`text-lg font-bold ${urlScreensLeft <= 1 ? 'text-amber-400' : 'text-green-400'}`}>{urlScreensLeft}</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Screens left</p>
+                <p className={`text-lg font-bold ${urlScreensLeft <= 1 ? 'text-amber-700' : 'text-green-700'}`}>{urlScreensLeft}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Compare runs</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Compare runs</p>
                 <p className="text-lg font-bold text-foreground">{compareRunsUsed}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Total runs saved</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Total runs saved</p>
                 <p className="text-lg font-bold text-foreground">{runs.length}</p>
               </div>
             </div>
@@ -251,7 +251,7 @@ export default function SettingsPage() {
         {/* Run history */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Run history</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Run history</p>
           </div>
           <div className="px-5 py-5">
             <p className="text-xs text-muted-foreground mb-4">
@@ -266,7 +266,7 @@ export default function SettingsPage() {
               {runs.length > 0 && (
                 <button
                   onClick={handleClearHistory}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 h-8 px-3 rounded-md transition-colors text-red-400"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 h-8 px-3 rounded-md transition-colors text-red-700"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Clear run history
@@ -279,7 +279,7 @@ export default function SettingsPage() {
         {/* Feedback */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Private beta feedback</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Private beta feedback</p>
           </div>
           <div className="px-5 py-5">
             <p className="text-xs text-muted-foreground mb-4">
@@ -298,7 +298,7 @@ export default function SettingsPage() {
         <details className="group rounded-lg border border-border bg-card overflow-hidden">
           <summary className="px-5 py-3.5 bg-muted/20 cursor-pointer list-none flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Developer diagnostics</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Developer diagnostics</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
                 API connection details and local identifiers for debugging.
               </p>
@@ -307,10 +307,10 @@ export default function SettingsPage() {
           </summary>
           <div className="px-5 py-5 space-y-5 border-t border-border">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Backend connection</p>
+              <p className="text-[10px] font-semibold tracking-normal text-primary">Backend connection</p>
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium border ${
                 isBackendConfigured()
-                  ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                  ? 'bg-green-500/10 text-green-700 border-green-500/20'
                   : 'bg-muted/20 text-muted-foreground border-border'
               }`}>
                 {isBackendConfigured() ? 'CONFIGURED' : 'NOT SET'}
@@ -326,10 +326,10 @@ export default function SettingsPage() {
                 {localApi.status === 'checking'
                   ? <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                   : localApi.status === 'ok'
-                    ? <Activity className="w-3 h-3 text-green-400" />
+                    ? <Activity className="w-3 h-3 text-green-700" />
                     : <WifiOff className="w-3 h-3 text-muted-foreground" />}
                 <span className={`font-medium ${
-                  localApi.status === 'ok' ? 'text-green-400' : 'text-muted-foreground'
+                  localApi.status === 'ok' ? 'text-green-700' : 'text-muted-foreground'
                 }`}>
                 {localApi.status === 'ok' ? 'Configured Frontier OS backend healthy' :
                    localApi.status === 'error' ? 'Configured backend health check did not respond' : 'Checking configured Frontier OS backend…'}
@@ -354,23 +354,23 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Configured backend</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Configured backend</p>
               <BackendStatusBadge showUrl={import.meta.env.DEV} showCheckTime />
             </div>
 
             <div className="grid grid-cols-1 gap-3">
               {apiBaseUrl && (
                 <div className="rounded-md bg-muted/10 border border-border px-4 py-3 space-y-1">
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">API base URL</p>
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">API base URL</p>
                   <p className="text-xs font-mono text-foreground break-all">{apiBaseUrl}</p>
                 </div>
               )}
               <div className="rounded-md bg-muted/10 border border-border px-4 py-3 space-y-1">
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">Workspace ID</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Workspace ID</p>
                 <p className="text-xs font-mono text-foreground/80 break-all">{workspaceId ?? 'Not provisioned'}</p>
               </div>
               <div className="rounded-md bg-muted/10 border border-border px-4 py-3 space-y-1">
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">User ID</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">User ID</p>
                 <p className="text-xs font-mono text-foreground/80 break-all">{userId ?? 'Local browser user'}</p>
               </div>
             </div>
@@ -381,7 +381,7 @@ export default function SettingsPage() {
         {/* Data & legal */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Data &amp; legal</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Data &amp; legal</p>
           </div>
           <div className="px-5 py-5">
             <p className="text-xs text-muted-foreground mb-4">
@@ -409,7 +409,7 @@ export default function SettingsPage() {
           <div className="pb-6">
             <button
               onClick={handleSignOut}
-              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-red-400 border border-border hover:border-red-500/20 h-9 px-4 rounded-md transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-red-700 border border-border hover:border-red-500/20 h-9 px-4 rounded-md transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
               Sign out

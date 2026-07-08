@@ -28,7 +28,7 @@ export function EvidenceQuality() {
 
       <div className="flex-1 overflow-auto -mx-2">
         <table className="w-full text-sm text-left">
-          <thead className="text-xs text-muted-foreground uppercase tracking-wider bg-secondary/50 sticky top-0">
+          <thead className="text-xs text-muted-foreground tracking-normal bg-secondary/50 sticky top-0">
             <tr>
               <th className="px-4 py-2.5 font-medium rounded-tl">Document</th>
               <th className="px-4 py-2.5 font-medium">Coverage</th>

@@ -20,8 +20,8 @@ export default function ICMemo() {
 
   return (
     <div className="flex-1 flex flex-col w-full max-w-7xl mx-auto p-4 md:p-8">
-      <div className="mb-4 px-3 py-2 rounded-md border border-amber-500/20 bg-amber-500/5 text-xs text-amber-400">
-        <span className="font-mono font-semibold uppercase tracking-widest">Example screen</span>
+      <div className="mb-4 px-3 py-2 rounded-md border border-amber-500/20 bg-amber-500/5 text-xs text-amber-700">
+        <span className="font-semibold tracking-normal">Example screen</span>
         {' · '}This is a static illustrative preview — not a live analysis result. Financial figures are not independently verified.
       </div>
       <div className="mb-6">
@@ -191,7 +191,7 @@ export default function ICMemo() {
                   </div>
                   <div className="p-6 rounded-md border border-blue-500/30 bg-blue-500/5 text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-md">BASE</div>
-                    <div className="text-sm text-blue-400 mb-1">Base Case (4.5x)</div>
+                    <div className="text-sm text-blue-700 mb-1">Base Case (4.5x)</div>
                     <div className="font-mono text-3xl font-bold text-blue-500 mb-2">Not available</div>
                   </div>
                   <div className="p-6 rounded-md border border-border bg-card text-center">
@@ -262,7 +262,7 @@ export default function ICMemo() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-blue-400">Executive AI View</CardTitle>
+                    <CardTitle className="text-blue-700">Executive AI View</CardTitle>
                     <CardDescription>Source-based AI disruption assessment — medium confidence</CardDescription>
                   </div>
                   <RiskBadge level="moderate" className="shrink-0" />
@@ -278,11 +278,11 @@ export default function ICMemo() {
             {/* Score grid */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
-                { label: 'AI Disruption Score', value: '6/10', color: 'text-amber-400' },
-                { label: 'AI Replica Risk',     value: '7/10', color: 'text-red-400' },
-                { label: 'AI Moat',             value: '4/10', color: 'text-amber-400' },
-                { label: 'AI Opportunity',      value: '8/10', color: 'text-green-400' },
-                { label: 'Defensibility',       value: '5/10', color: 'text-amber-400' },
+                { label: 'AI Disruption Score', value: '6/10', color: 'text-amber-700' },
+                { label: 'AI Replica Risk',     value: '7/10', color: 'text-red-700' },
+                { label: 'AI Moat',             value: '4/10', color: 'text-amber-700' },
+                { label: 'AI Opportunity',      value: '8/10', color: 'text-green-700' },
+                { label: 'Defensibility',       value: '5/10', color: 'text-amber-700' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="p-3 rounded-md border border-border bg-card text-center">
                   <div className={`text-xl font-mono font-bold ${color}`}>{value}</div>
@@ -298,9 +298,9 @@ export default function ICMemo() {
                 <CardHeader className="pb-2"><CardTitle className="text-sm">AI Already Used?</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {[
-                    { label: 'Product AI claim',        status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-400' },
-                    { label: 'AI workflow assistant',   status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-400' },
-                    { label: 'Roadmap AI features',     status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-400' },
+                    { label: 'Product AI claim',        status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-700' },
+                    { label: 'AI workflow assistant',   status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-700' },
+                    { label: 'Roadmap AI features',     status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-700' },
                     { label: 'Live AI module revenue',  status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
                     { label: 'Customer-facing AI',      status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
                   ].map(({ label, status, cls }) => (
@@ -319,9 +319,9 @@ export default function ICMemo() {
                   {[
                     { label: 'Proprietary data',        status: 'UNKNOWN',    cls: 'bg-muted/40 text-muted-foreground' },
                     { label: 'Feedback loops',          status: 'UNKNOWN',    cls: 'bg-muted/40 text-muted-foreground' },
-                    { label: 'Embedded workflows',      status: 'CLAIM',      cls: 'bg-amber-500/10 text-amber-400' },
-                    { label: 'Distribution advantage',  status: 'CLAIM',      cls: 'bg-amber-500/10 text-amber-400' },
-                    { label: 'Domain-specific models',  status: 'GAP',        cls: 'bg-red-500/10 text-red-400' },
+                    { label: 'Embedded workflows',      status: 'CLAIM',      cls: 'bg-amber-500/10 text-amber-700' },
+                    { label: 'Distribution advantage',  status: 'CLAIM',      cls: 'bg-amber-500/10 text-amber-700' },
+                    { label: 'Domain-specific models',  status: 'GAP',        cls: 'bg-red-500/10 text-red-700' },
                   ].map(({ label, status, cls }) => (
                     <div key={label} className="flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground">{label}</span>
@@ -338,8 +338,8 @@ export default function ICMemo() {
                   {[
                     { label: 'AI feature COGS',          status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
                     { label: 'Gross margin drag',        status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
-                    { label: 'Vendor dependency',        status: 'GAP',     cls: 'bg-red-500/10 text-red-400' },
-                    { label: 'Pricing power',            status: 'GAP',     cls: 'bg-red-500/10 text-red-400' },
+                    { label: 'Vendor dependency',        status: 'GAP',     cls: 'bg-red-500/10 text-red-700' },
+                    { label: 'Pricing power',            status: 'GAP',     cls: 'bg-red-500/10 text-red-700' },
                     { label: 'AI module monetised',      status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
                   ].map(({ label, status, cls }) => (
                     <div key={label} className="flex items-center justify-between gap-2">
@@ -355,7 +355,7 @@ export default function ICMemo() {
             <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 p-4 rounded-md">
               <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-amber-400 mb-1">AI-related valuation caveat</p>
+                <p className="text-sm font-semibold text-amber-700 mb-1">AI-related valuation caveat</p>
                 <p className="text-sm text-amber-500/80 leading-relaxed">
                   AI upside should not increase the base valuation until management proves live monetised AI modules, inference cost control, and measurable customer adoption.
                 </p>

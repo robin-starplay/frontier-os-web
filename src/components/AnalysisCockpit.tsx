@@ -51,26 +51,26 @@ const PROCESS_COLOR: Record<ProcessStatus, string> = {
 };
 
 const STATUS_CHIP: Record<EvidenceStatus, string> = {
-  Verified:  'bg-green-500/10 text-green-400 border-green-500/20',
-  Caveated:  'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  Candidate: 'bg-blue-500/10  text-blue-400  border-blue-500/20',
-  Blocking:  'bg-red-500/10   text-red-400   border-red-500/20',
-  Diligence: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  Verified:  'bg-green-500/10 text-green-700 border-green-500/20',
+  Caveated:  'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  Candidate: 'bg-blue-500/10  text-blue-700  border-blue-500/20',
+  Blocking:  'bg-red-500/10   text-red-700   border-red-500/20',
+  Diligence: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
   Unknown:   'bg-muted/30     text-muted-foreground border-border',
 };
 
 const IMPACT_COLOR: Record<string, string> = {
-  green: 'text-green-400',
-  amber: 'text-amber-400',
-  red:   'text-red-400',
-  blue:  'text-blue-400',
+  green: 'text-green-700',
+  amber: 'text-amber-700',
+  red:   'text-red-700',
+  blue:  'text-blue-700',
   muted: 'text-muted-foreground',
 };
 
 function PanelHeader({ title }: { title: string }) {
   return (
     <div className="px-4 py-2.5 border-b border-border bg-muted/20">
-      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{title}</span>
+      <span className="text-[10px] font-semibold tracking-normal text-muted-foreground">{title}</span>
     </div>
   );
 }
@@ -156,7 +156,7 @@ export function AnalysisCockpit() {
               </div>
             ))}
             <div className="px-4 py-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-mono mb-1.5">Next action</p>
+              <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-1.5">Next action</p>
               <p className="text-xs text-foreground leading-snug">
                 Request financials, ARR definition and product AI evidence before IC.
               </p>

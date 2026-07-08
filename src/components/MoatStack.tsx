@@ -21,7 +21,7 @@ const MODULES: Module[] = [
     subtitle: 'Facts, claims, assumptions, unknowns and conflicts.',
     description: 'Every material point is classified before it reaches the memo.',
     accent: 'border-blue-500/30 hover:border-blue-500/60',
-    iconBg: 'bg-blue-500/10 text-blue-400',
+    iconBg: 'bg-blue-500/10 text-blue-700',
   },
   {
     icon: Layers,
@@ -66,7 +66,7 @@ const MODULES: Module[] = [
     subtitle: 'What do we need before IC?',
     description: 'Turns uncertainty into specific data requests, DD questions and next actions.',
     accent: 'border-red-500/30 hover:border-red-500/60',
-    iconBg: 'bg-red-500/10 text-red-400',
+    iconBg: 'bg-red-500/10 text-red-700',
   },
 ];
 

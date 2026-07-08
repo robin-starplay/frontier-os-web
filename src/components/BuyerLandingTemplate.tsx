@@ -8,10 +8,10 @@ import type { BuyerPageData, ChipColor } from '@/data/buyerPages';
 // ── Chip ──────────────────────────────────────────────────────────────────────
 
 const CHIP_CLS: Record<ChipColor, string> = {
-  green: 'bg-green-500/10 text-green-400 border-green-500/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-400   border-red-500/20',
-  blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+  green: 'bg-green-500/10 text-green-700 border-green-500/20',
+  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  red:   'bg-red-500/10   text-red-700   border-red-500/20',
+  blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
   muted: 'bg-muted/30     text-muted-foreground border-border',
 };
 
@@ -35,7 +35,7 @@ function SampleCard({ data }: { data: BuyerPageData }) {
       <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/20">
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-green-500" />
-          <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="text-xs font-semibold text-muted-foreground tracking-normal">
             Acquisition screen
           </span>
         </div>
@@ -44,7 +44,7 @@ function SampleCard({ data }: { data: BuyerPageData }) {
 
       {/* Target */}
       <div className="px-5 py-4 border-b border-border/60">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Target</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Target</p>
         <p className="text-base font-semibold text-foreground">{data.sampleCardTarget}</p>
       </div>
 
@@ -138,7 +138,7 @@ export function BuyerLandingTemplate({ data }: { data: BuyerPageData }) {
 
         {/* ── 1. Hero ── */}
         <section className="pt-14 pb-12">
-          <p className="text-[10px] font-mono font-semibold tracking-widest text-primary uppercase mb-4">
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-4">
             {data.badge} · PRIVATE BETA
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight max-w-2xl mb-4">
@@ -181,7 +181,7 @@ export function BuyerLandingTemplate({ data }: { data: BuyerPageData }) {
 
           {/* Pain points */}
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-5">
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-5">
               What this audience needs to know before IC
             </p>
             <ul className="space-y-3">
@@ -196,7 +196,7 @@ export function BuyerLandingTemplate({ data }: { data: BuyerPageData }) {
 
           {/* How Frontier OS helps */}
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-5">
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-5">
               How Frontier OS helps
             </p>
             <ul className="space-y-3">
@@ -214,7 +214,7 @@ export function BuyerLandingTemplate({ data }: { data: BuyerPageData }) {
 
         {/* ── 4. Sample output card ── */}
         <section className="py-12">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-6">
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-6">
             Sample acquisition screen · private beta
           </p>
           <div className="max-w-2xl">
@@ -226,7 +226,7 @@ export function BuyerLandingTemplate({ data }: { data: BuyerPageData }) {
 
         {/* ── 5. Workflow steps ── */}
         <section className="py-12">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-8">
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-8">
             Workflow
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -246,7 +246,7 @@ export function BuyerLandingTemplate({ data }: { data: BuyerPageData }) {
 
         {/* ── 6. Locked / private-beta features ── */}
         <section className="py-12">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-6">
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-6">
             Coming in private beta
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

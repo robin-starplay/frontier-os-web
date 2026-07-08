@@ -23,7 +23,7 @@ const MODES: ModeConfig[] = [
     subtitle: 'Public URLs only',
     description: 'Best for first screens and early market mapping. No confidential documents required.',
     badge: 'Lowest friction',
-    badgeClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    badgeClass: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
   },
   {
     id: 'private-doc',
@@ -32,7 +32,7 @@ const MODES: ModeConfig[] = [
     subtitle: 'Upload diligence materials',
     description: 'Analyse management packs, CIMs, annual reports and board decks inside a company-scoped workspace.',
     badge: 'Higher confidence',
-    badgeClass: 'bg-green-500/10 text-green-400 border-green-500/20',
+    badgeClass: 'bg-green-500/10 text-green-700 border-green-500/20',
   },
   {
     id: 'hybrid',
@@ -41,7 +41,7 @@ const MODES: ModeConfig[] = [
     subtitle: 'Public sources + documents',
     description: 'Combine filings, websites, registry data and uploaded documents to reconcile claims and surface diligence gaps.',
     badge: 'Most complete',
-    badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    badgeClass: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
   },
 ];
 
@@ -76,7 +76,7 @@ export function AnalysisModeSelector({ value, onChange }: AnalysisModeSelectorPr
                 <Icon className="h-4 w-4" />
               </div>
               <span className={cn(
-                "text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded border ml-2",
+                "text-[9px] font-semibold tracking-normal px-1.5 py-0.5 rounded border ml-2",
                 mode.badgeClass
               )}>
                 {mode.badge}

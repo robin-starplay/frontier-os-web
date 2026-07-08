@@ -16,9 +16,9 @@ export default function ResultsPreview() {
   return (
     <div className="flex-1 flex flex-col w-full max-w-7xl mx-auto pb-12">
       {/* Example screen notice */}
-      <div className="border-b border-amber-500/20 bg-amber-500/5 px-6 py-2 text-xs text-amber-400 flex items-center gap-2">
-        <span className="font-mono font-semibold uppercase tracking-widest">Example screen</span>
-        <span className="text-amber-400/60">·</span>
+      <div className="border-b border-amber-500/20 bg-amber-500/5 px-6 py-2 text-xs text-amber-700 flex items-center gap-2">
+        <span className="font-semibold tracking-normal">Example screen</span>
+        <span className="text-amber-700/60">·</span>
         <span>Static example — not a real company. Public-source facts require source metadata.</span>
       </div>
 

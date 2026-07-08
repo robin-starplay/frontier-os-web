@@ -80,7 +80,7 @@ export function DocumentUpload() {
   return (
     <div className="space-y-3">
       {/* demo warning — compact amber bar */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded bg-amber-500/8 border border-amber-500/20 text-amber-400 text-xs">
+      <div className="flex items-center gap-2 px-3 py-2 rounded bg-amber-500/8 border border-amber-500/20 text-amber-700 text-xs">
         <Info className="w-3.5 h-3.5 shrink-0" />
         Upload is simulated in the private beta sample workflow. Do not upload confidential documents here.
       </div>
@@ -129,7 +129,7 @@ export function DocumentUpload() {
 
       {/* confidential warning */}
       {hasConfidential && (
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           Confidential documents should only be processed in a controlled pilot with agreed retention, deletion and provider data-use settings.
         </div>

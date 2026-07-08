@@ -6,7 +6,7 @@ import { BetaCTA } from '@/components/BetaCTA';
 import { DocumentReviewPanel } from '@/components/DocumentReviewPanel';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">{children}</p>;
+  return <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">{children}</p>;
 }
 
 // ─── source hierarchy (6 tiers) ───────────────────────────────────────────────
@@ -90,25 +90,25 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     status: 'Unknown',
     statusColor: 'bg-muted/40 text-muted-foreground border-border',
     confidence: 'Blocking gap',
-    confidenceColor: 'text-red-400',
+    confidenceColor: 'text-red-700',
     note: 'Not filed or disclosed — blocks valuation readiness',
   },
   {
     field: 'Adjusted EBITDA',
     value: '[illustrative]',
     status: 'Caveated',
-    statusColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
     confidence: 'Medium',
-    confidenceColor: 'text-amber-400',
+    confidenceColor: 'text-amber-700',
     note: 'Non-GAAP — requires statutory reconciliation',
   },
   {
     field: 'AI assistant',
     value: 'Claimed',
     status: 'Claim',
-    statusColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
     confidence: 'Medium',
-    confidenceColor: 'text-amber-400',
+    confidenceColor: 'text-amber-700',
     note: 'Product page only — no usage, adoption or revenue proof',
   },
   {
@@ -117,7 +117,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     status: 'Unknown',
     statusColor: 'bg-muted/40 text-muted-foreground border-border',
     confidence: 'High severity',
-    confidenceColor: 'text-red-400',
+    confidenceColor: 'text-red-700',
     note: 'No data from any source — blocking gap for IC',
   },
 ];
@@ -152,7 +152,7 @@ export default function EvidenceWorkflowPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Before */}
           <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-7">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-red-400 mb-5">Before Frontier OS — deck says</p>
+            <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-5">Before Frontier OS — deck says</p>
             <div className="space-y-4">
               {[
                 { label: 'Revenue',            value: '£50m' },
@@ -172,11 +172,11 @@ export default function EvidenceWorkflowPage() {
 
           {/* After */}
           <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-7">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-green-400 mb-5">After Frontier OS — evidence workflow</p>
+            <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-5">After Frontier OS — evidence workflow</p>
             <div className="space-y-3">
               {[
-                { label: 'Revenue',            value: 'Conflict detected — figures differ between Tier 1 and Tier 3', chip: 'bg-red-500/10 text-red-400 border-red-500/20', chipLabel: 'Conflict' },
-                { label: 'AI assistant',       value: 'Claim, not verified adoption — product page only', chip: 'bg-amber-500/10 text-amber-400 border-amber-500/20', chipLabel: 'Claim' },
+                { label: 'Revenue',            value: 'Conflict detected — figures differ between Tier 1 and Tier 3', chip: 'bg-red-500/10 text-red-700 border-red-500/20', chipLabel: 'Conflict' },
+                { label: 'AI assistant',       value: 'Claim, not verified adoption — product page only', chip: 'bg-amber-500/10 text-amber-700 border-amber-500/20', chipLabel: 'Claim' },
                 { label: 'Recurring revenue',  value: 'ARR definition missing — blocks valuation readiness', chip: 'bg-muted/40 text-muted-foreground border-border', chipLabel: 'Unknown' },
               ].map(({ label, value, chip, chipLabel }) => (
                 <div key={label} className="flex items-start gap-3">
@@ -249,10 +249,10 @@ export default function EvidenceWorkflowPage() {
         {/* Desktop table */}
         <div className="hidden md:block rounded-xl border border-border overflow-hidden">
           <div className="grid grid-cols-12 bg-muted/30 px-5 py-3 border-b border-border">
-            <div className="col-span-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Field</div>
-            <div className="col-span-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Value</div>
-            <div className="col-span-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Status</div>
-            <div className="col-span-4 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Confidence / note</div>
+            <div className="col-span-3 text-[10px] font-semibold tracking-normal text-muted-foreground">Field</div>
+            <div className="col-span-2 text-[10px] font-semibold tracking-normal text-muted-foreground">Value</div>
+            <div className="col-span-3 text-[10px] font-semibold tracking-normal text-muted-foreground">Status</div>
+            <div className="col-span-4 text-[10px] font-semibold tracking-normal text-muted-foreground">Confidence / note</div>
           </div>
           <div className="divide-y divide-border/50 bg-card">
             {EXAMPLE_ROWS.map(({ field, value, status, statusColor, confidence, confidenceColor, note }) => (
@@ -318,21 +318,21 @@ export default function EvidenceWorkflowPage() {
             <div className="space-y-2 mb-5">
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide mb-0.5">Tier 3 — Management pack</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 3 — Management pack</p>
                   <p className="text-base font-mono font-semibold text-foreground">Revenue £50m</p>
                 </div>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-amber-500/10 text-amber-400 border-amber-500/20 shrink-0">Claim</span>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-amber-500/10 text-amber-700 border-amber-500/20 shrink-0">Claim</span>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide mb-0.5">Tier 1 — Official filing</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 1 — Official filing</p>
                   <p className="text-base font-mono font-semibold text-foreground">Revenue [Tier 1 filing figure]</p>
                 </div>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-green-500/10 text-green-400 border-green-500/20 shrink-0">Tier 1</span>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-green-500/10 text-green-700 border-green-500/20 shrink-0">Tier 1</span>
               </div>
             </div>
             <div className="rounded-lg border border-border bg-card px-5 py-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Decision</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Decision</p>
               <p className="text-sm text-foreground leading-relaxed">
                 Do not overwrite. Retain as conflict. Management pack figure differs from the Tier 1 official filing.
                 Reconcile in diligence before IC.
@@ -374,8 +374,8 @@ export default function EvidenceWorkflowPage() {
                 ].map(({ gap, blocks, action }) => (
                   <div key={gap} className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
                     <div className="flex items-start gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                      <span className="text-sm font-medium text-red-400">{gap}</span>
+                      <AlertTriangle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+                      <span className="text-sm font-medium text-red-700">{gap}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-1.5 pl-6">Blocks: {blocks}</p>
                     <p className="text-sm text-foreground pl-6">{action}</p>
@@ -402,7 +402,7 @@ export default function EvidenceWorkflowPage() {
 
       {/* Document-assisted review prototype */}
       <div className="w-full max-w-6xl mx-auto px-4 md:px-8 pb-10">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-4">
           Document-assisted review prototype
         </p>
         <DocumentReviewPanel />

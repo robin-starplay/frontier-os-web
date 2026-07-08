@@ -4,7 +4,7 @@ import { Link } from 'wouter';
 import { cn } from '@/lib/utils';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">{children}</p>;
+  return <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">{children}</p>;
 }
 
 interface UseCase {
@@ -141,11 +141,11 @@ export default function UseCasesPage() {
           {/* Left column */}
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-card p-5">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-red-400/70 mb-2">Current pain</p>
+              <p className="text-[10px] font-semibold tracking-normal text-red-700/70 mb-2">Current pain</p>
               <p className="text-sm text-muted-foreground leading-relaxed">{current.pain}</p>
             </div>
             <div className="rounded-lg border border-border bg-card p-5">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-primary/60 mb-2">Workflow</p>
+              <p className="text-[10px] font-semibold tracking-normal text-primary/60 mb-2">Workflow</p>
               <p className="text-sm text-foreground leading-relaxed">{current.workflow}</p>
             </div>
           </div>
@@ -153,11 +153,11 @@ export default function UseCasesPage() {
           {/* Right column */}
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-card p-5">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-green-400/70 mb-2">Output</p>
+              <p className="text-[10px] font-semibold tracking-normal text-green-700/70 mb-2">Output</p>
               <p className="text-sm text-foreground leading-relaxed">{current.output}</p>
             </div>
             <div className="rounded-lg border border-border bg-card p-5">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-amber-400/70 mb-2">Why they would pay</p>
+              <p className="text-[10px] font-semibold tracking-normal text-amber-700/70 mb-2">Why they would pay</p>
               <p className="text-sm text-muted-foreground leading-relaxed">{current.whyPay}</p>
             </div>
           </div>

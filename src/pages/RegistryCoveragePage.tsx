@@ -4,7 +4,7 @@ import { Link } from 'wouter';
 import { BetaCTA } from '@/components/BetaCTA';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">{children}</p>;
+  return <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">{children}</p>;
 }
 
 type RegistryStatus = 'active' | 'connector' | 'manual' | 'planned';
@@ -97,9 +97,9 @@ const REGISTRIES: Registry[] = [
 ];
 
 const STATUS_CONFIG: Record<RegistryStatus, { icon: React.ElementType; chip: string; iconColor: string }> = {
-  active:    { icon: CheckCircle2, chip: 'bg-green-500/10 text-green-400 border-green-500/20',  iconColor: 'text-green-500' },
-  connector: { icon: CheckCircle2, chip: 'bg-blue-500/10  text-blue-400  border-blue-500/20',   iconColor: 'text-blue-500' },
-  manual:    { icon: AlertCircle,  chip: 'bg-amber-500/10 text-amber-400 border-amber-500/20',  iconColor: 'text-amber-500' },
+  active:    { icon: CheckCircle2, chip: 'bg-green-500/10 text-green-700 border-green-500/20',  iconColor: 'text-green-500' },
+  connector: { icon: CheckCircle2, chip: 'bg-blue-500/10  text-blue-700  border-blue-500/20',   iconColor: 'text-blue-500' },
+  manual:    { icon: AlertCircle,  chip: 'bg-amber-500/10 text-amber-700 border-amber-500/20',  iconColor: 'text-amber-500' },
   planned:   { icon: Clock,        chip: 'bg-muted/30 text-muted-foreground border-border',     iconColor: 'text-muted-foreground' },
 };
 
@@ -162,7 +162,7 @@ export default function RegistryCoveragePage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
                   {/* Uses */}
                   <div className="px-6 py-5">
-                    <p className="text-[10px] font-mono uppercase tracking-wide text-primary/60 mb-3">Used for</p>
+                    <p className="text-[10px] font-semibold tracking-normal text-primary/60 mb-3">Used for</p>
                     <ul className="space-y-2">
                       {reg.uses.map((u, i) => (
                         <li key={i} className="flex items-start gap-2">
@@ -175,7 +175,7 @@ export default function RegistryCoveragePage() {
 
                   {/* Limitations */}
                   <div className="px-6 py-5">
-                    <p className="text-[10px] font-mono uppercase tracking-wide text-amber-500/60 mb-3">Limitations</p>
+                    <p className="text-[10px] font-semibold tracking-normal text-amber-500/60 mb-3">Limitations</p>
                     <ul className="space-y-2">
                       {reg.limitations.map((l, i) => (
                         <li key={i} className="flex items-start gap-2">
@@ -188,7 +188,7 @@ export default function RegistryCoveragePage() {
 
                   {/* Access */}
                   <div className="px-6 py-5">
-                    <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-3">Access</p>
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-3">Access</p>
                     <p className="text-sm text-muted-foreground leading-relaxed">{reg.access}</p>
                   </div>
                 </div>

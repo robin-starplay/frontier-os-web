@@ -27,10 +27,10 @@ interface BetaGateProps {
 // ── Shared chip helper ────────────────────────────────────────────────────────
 type ChipColour = 'green' | 'amber' | 'red' | 'blue' | 'grey';
 const CHIP_CLASSES: Record<ChipColour, string> = {
-  green: 'bg-green-500/10 text-green-400 border-green-500/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-400   border-red-500/20',
-  blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+  green: 'bg-green-500/10 text-green-700 border-green-500/20',
+  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  red:   'bg-red-500/10   text-red-700   border-red-500/20',
+  blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
   grey:  'bg-muted/40     text-muted-foreground border-border',
 };
 function Chip({ colour, label }: { colour: ChipColour; label: string }) {
@@ -64,7 +64,7 @@ function RunPreview() {
 
       {/* Section header */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Sample preview</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Sample preview</p>
         <h2 className="text-lg font-bold text-foreground mb-1">What the sample screen shows</h2>
         <p className="text-sm text-muted-foreground">
           A preview of the acquisition screen using private beta example data.
@@ -82,7 +82,7 @@ function RunPreview() {
           { label: 'Evidence quality',     value: 'Caveated',                    colour: 'grey'  as ChipColour },
         ].map(({ label, value, colour }) => (
           <div key={label} className="rounded-lg border border-border bg-card p-3.5 space-y-2">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">{label}</p>
             <Chip colour={colour} label={value} />
           </div>
         ))}
@@ -94,7 +94,7 @@ function RunPreview() {
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-3.5 h-3.5 text-primary" />
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Strategic Fit</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Strategic Fit</p>
           </div>
           <div className="space-y-2">
             <div className="flex items-start gap-2">
@@ -116,7 +116,7 @@ function RunPreview() {
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5 text-primary" />
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">AI Disruption</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">AI Disruption</p>
           </div>
           <div className="space-y-2">
             <div className="flex items-start gap-2">
@@ -135,7 +135,7 @@ function RunPreview() {
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <FileText className="w-3.5 h-3.5 text-primary" />
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Evidence Quality</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Evidence Quality</p>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -157,8 +157,8 @@ function RunPreview() {
       {/* Blocking gaps */}
       <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-          <p className="text-[10px] font-mono uppercase tracking-widest text-red-400">Blocking Gaps</p>
+          <AlertCircle className="w-3.5 h-3.5 text-red-700" />
+          <p className="text-[10px] font-semibold tracking-normal text-red-700">Blocking Gaps</p>
         </div>
         <ul className="space-y-2">
           {[
@@ -176,7 +176,7 @@ function RunPreview() {
 
       {/* Locked feature cards */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-3">
           Included in private beta account
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -270,7 +270,7 @@ function CockpitPreview() {
 
       {/* Section header */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Sample preview</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Sample preview</p>
         <h2 className="text-lg font-bold text-foreground mb-1">What the Deal Cockpit shows</h2>
         <p className="text-sm text-muted-foreground">
           A sample pipeline view for tracking screened software targets.
@@ -283,7 +283,7 @@ function CockpitPreview() {
           <thead>
             <tr className="border-b border-border bg-muted/20">
               {['Company', 'Recommendation', 'IC Ready', 'Valuation', 'AI Risk', 'Confidence', 'Next action'].map(h => (
-                <th key={h} className="px-3 py-2.5 text-left text-[10px] font-mono uppercase tracking-widest text-muted-foreground font-normal whitespace-nowrap">
+                <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold tracking-normal text-muted-foreground font-normal whitespace-nowrap">
                   {h}
                 </th>
               ))}
@@ -325,7 +325,7 @@ function CockpitPreview() {
                 { lbl: 'Confidence',         chip: <Chip colour={t.confColour} label={t.confidence} /> },
               ].map(({ lbl, chip }) => (
                 <div key={lbl}>
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">{lbl}</p>
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{lbl}</p>
                   {chip}
                 </div>
               ))}
@@ -337,7 +337,7 @@ function CockpitPreview() {
 
       {/* Priority next actions */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Priority Next Actions</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Priority Next Actions</p>
         <ul className="space-y-2.5">
           {[
             { company: 'LedgerWorks',  action: 'Request revenue split and services breakdown before IC.' },
@@ -356,7 +356,7 @@ function CockpitPreview() {
 
       {/* Locked action row */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Actions</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Actions</p>
         <div className="flex flex-wrap gap-2">
           {LOCKED_ACTIONS.map(action => (
             <button

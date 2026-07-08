@@ -25,7 +25,7 @@ export function DocumentIngestion() {
       </div>
 
       <div className="space-y-2">
-        <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Processed Documents</h5>
+        <h5 className="text-xs font-semibold text-muted-foreground tracking-normal mb-3">Processed Documents</h5>
         {mockFiles.map((file, i) => {
           const Icon = file.icon;
           return (

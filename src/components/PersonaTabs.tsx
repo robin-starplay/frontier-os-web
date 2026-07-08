@@ -118,7 +118,7 @@ export function PersonaTabs() {
         <div className="p-5 rounded-lg bg-card border border-border">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="h-4 w-4 text-amber-500" />
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Pain</h4>
+            <h4 className="text-xs font-semibold tracking-normal text-muted-foreground">Pain</h4>
           </div>
           <ul className="space-y-2">
             {active.pain.map((item) => (
@@ -133,7 +133,7 @@ export function PersonaTabs() {
         <div className="p-5 rounded-lg bg-card border border-border">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="h-4 w-4 text-green-500" />
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Pays for</h4>
+            <h4 className="text-xs font-semibold tracking-normal text-muted-foreground">Pays for</h4>
           </div>
           <ul className="space-y-2">
             {active.paysFor.map((item) => (
@@ -148,7 +148,7 @@ export function PersonaTabs() {
         <div className="p-5 rounded-lg bg-card border border-primary/20 bg-primary/5">
           <div className="flex items-center gap-2 mb-4">
             <ArrowRight className="h-4 w-4 text-primary" />
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Best first workflow</h4>
+            <h4 className="text-xs font-semibold tracking-normal text-muted-foreground">Best first workflow</h4>
           </div>
           <p className="text-sm text-foreground font-medium leading-relaxed">{active.workflow}</p>
           <div className="mt-4 pt-4 border-t border-border">

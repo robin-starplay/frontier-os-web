@@ -30,7 +30,7 @@ const LEGAL_LINKS = [
 function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
     <div>
-      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-3">{title}</p>
+      <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-3">{title}</p>
       <ul className="space-y-2">
         {links.map(({ label, href }) => (
           <li key={label}>

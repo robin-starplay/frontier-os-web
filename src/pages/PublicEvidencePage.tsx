@@ -7,7 +7,7 @@ import { BetaCTA } from '@/components/BetaCTA';
 
 const EVIDENCE_TIERS = [
   {
-    icon: <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />,
+    icon: <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0" />,
     label: 'Verified facts',
     color: 'border-green-500/20 bg-green-500/[0.03]',
     badge: 'green',
@@ -21,7 +21,7 @@ const EVIDENCE_TIERS = [
     ],
   },
   {
-    icon: <MessageSquare className="w-4 h-4 text-amber-400 shrink-0" />,
+    icon: <MessageSquare className="w-4 h-4 text-amber-700 shrink-0" />,
     label: 'Company claims',
     color: 'border-amber-500/20 bg-amber-500/[0.03]',
     badge: 'amber',
@@ -49,7 +49,7 @@ const EVIDENCE_TIERS = [
     ],
   },
   {
-    icon: <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />,
+    icon: <AlertTriangle className="w-4 h-4 text-red-700 shrink-0" />,
     label: 'Diligence blockers',
     color: 'border-red-500/20 bg-red-500/[0.03]',
     badge: 'red',
@@ -92,7 +92,7 @@ export default function PublicEvidencePage() {
       {/* ── Hero ── */}
       <div className="w-full border-b border-border bg-card/20">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">Evidence workflow</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">Evidence workflow</p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 max-w-2xl leading-tight">
             Separate verified facts from claims before diligence gets expensive.
           </h1>
@@ -120,7 +120,7 @@ export default function PublicEvidencePage() {
 
       {/* ── Evidence tiers ── */}
       <div className="w-full max-w-5xl mx-auto px-4 md:px-8 py-12 space-y-6">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">
           Evidence classification
         </p>
         {EVIDENCE_TIERS.map(tier => (
@@ -134,7 +134,7 @@ export default function PublicEvidencePage() {
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4">{tier.description}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-3">
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-3">
                   Examples
                 </p>
                 <ul className="space-y-2">
@@ -154,7 +154,7 @@ export default function PublicEvidencePage() {
       {/* ── Why evidence confidence matters ── */}
       <div className="w-full border-t border-border bg-card/20">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-12">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">
             Why it matters
           </p>
           <h2 className="text-2xl font-bold text-foreground mb-8">
@@ -176,7 +176,7 @@ export default function PublicEvidencePage() {
 
       {/* ── Source hierarchy ── */}
       <div className="w-full max-w-5xl mx-auto px-4 md:px-8 py-10">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">
           Source hierarchy
         </p>
         <h2 className="text-xl font-bold text-foreground mb-6">How Frontier OS ranks sources</h2>

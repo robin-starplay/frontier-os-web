@@ -10,9 +10,9 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
 
 const LEVEL_CLASSES: Record<string, string> = {
-  green: 'bg-green-500/10 text-green-400 border-green-500/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-400   border-red-500/20',
+  green: 'bg-green-500/10 text-green-700 border-green-500/20',
+  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  red:   'bg-red-500/10   text-red-700   border-red-500/20',
 };
 
 // ─── Origination API call ─────────────────────────────────────────────────────
@@ -218,25 +218,25 @@ function OriginationResultView({
       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
         <div className="flex flex-wrap gap-2">
           {(isReferenceUniverse || sourceMode.includes('private_beta_reference_universe')) && (
-            <span className="inline-flex items-center rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-mono text-primary">
+            <span className="inline-flex items-center rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary">
               Private-beta reference universe
             </span>
           )}
           {sourceMode.includes('user_supplied_target_universe') && (
-            <span className="inline-flex items-center rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-mono text-primary">
+            <span className="inline-flex items-center rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary">
               Known target universe
             </span>
           )}
-          <span className="inline-flex items-center rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-mono text-amber-300">
+          <span className="inline-flex items-center rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-700">
             Validate before outreach
           </span>
-          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-mono text-muted-foreground">
+          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
             No live crawling
           </span>
-          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-mono text-muted-foreground">
+          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
             No paid data providers
           </span>
-          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-mono text-muted-foreground">
+          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
             No verified revenue/ARR/EBITDA/customer concentration
           </span>
         </div>
@@ -244,7 +244,7 @@ function OriginationResultView({
 
       {warnings.length > 0 && (
         <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Warnings</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Warnings</p>
           <ul className="space-y-1">
             {warnings.map((warning, i) => (
               <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(warning)}</li>
@@ -256,13 +256,13 @@ function OriginationResultView({
       {showDiagnostics && diagnostics.length > 0 && (
         <details className="group rounded-lg border border-border bg-card/40 overflow-hidden">
           <summary className="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-3">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Developer diagnostics</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Developer diagnostics</p>
             <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 transition-transform group-open:rotate-90" />
           </summary>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-border px-4 py-3">
             {diagnostics.map(([label, value]) => (
               <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/60 mb-0.5">
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-0.5">
                   {String(label)}
                 </p>
                 <p className="text-xs text-foreground break-words">{safeStr(value)}</p>
@@ -275,7 +275,7 @@ function OriginationResultView({
       {/* Thesis summary */}
       {summary && (
         <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Thesis summary</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Thesis summary</p>
           <p className="text-xs text-muted-foreground leading-relaxed">{summary}</p>
         </div>
       )}
@@ -284,10 +284,10 @@ function OriginationResultView({
       {candidates.length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">
+            <p className="text-[10px] font-semibold tracking-normal text-primary">
               Candidate targets ({candidates.length})
             </p>
-            <span className="text-[10px] font-mono text-muted-foreground/60">Public signals only · not verified</span>
+            <span className="text-[10px] font-medium text-muted-foreground/60">Public signals only · not verified</span>
           </div>
           <div className="divide-y divide-border">
             {candidates.map((c, i) => {
@@ -320,10 +320,10 @@ function OriginationResultView({
               return (
                 <div key={i} className="p-4">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className="text-[11px] font-mono text-muted-foreground/50">#{rank}</span>
+                    <span className="text-[11px] font-medium text-muted-foreground/50">#{rank}</span>
                     <p className="text-sm font-semibold text-foreground">{name}</p>
                     {verdict && (
-                      <span className={`inline-flex items-center text-[10px] font-mono px-2 py-0.5 rounded border ${LEVEL_CLASSES[lvl]}`}>
+                      <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded border ${LEVEL_CLASSES[lvl]}`}>
                         {verdict}
                       </span>
                     )}
@@ -336,38 +336,38 @@ function OriginationResultView({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2 text-xs">
                     {fit && (
                       <div>
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Fit score 100</p>
+                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit score 100</p>
                         <p className="font-semibold text-foreground">{fit}</p>
                       </div>
                     )}
                     {fitLabel && (
                       <div>
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Fit label</p>
+                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit label</p>
                         <p className="font-medium text-muted-foreground">{fitLabel}</p>
                       </div>
                     )}
                     {confidence && (
                       <div>
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Evidence confidence</p>
+                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Evidence confidence</p>
                         <p className="font-medium text-muted-foreground">{confidence}</p>
                       </div>
                     )}
                     {risk && (
                       <div>
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">AI risk</p>
+                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">AI risk</p>
                         <p className="font-medium text-muted-foreground">{risk}</p>
                       </div>
                     )}
                     {fits && (
                       <div className="col-span-2">
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-0.5">Why it fits</p>
+                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Why it fits</p>
                         <p className="text-muted-foreground leading-snug">{fits}</p>
                       </div>
                     )}
                   </div>
                   {missingItems.length > 0 && (
                     <div className="mb-2">
-                      <p className="font-mono uppercase tracking-wide text-[10px] text-amber-400/70 mb-1">Missing evidence</p>
+                      <p className="font-semibold tracking-normal text-[10px] text-amber-700/70 mb-1">Missing evidence</p>
                       <ul className="space-y-1">
                         {missingItems.slice(0, 4).map((item, idx) => (
                           <li key={idx} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -380,7 +380,7 @@ function OriginationResultView({
                   )}
                   {diligenceQuestions.length > 0 && (
                     <div className="mb-2">
-                      <p className="font-mono uppercase tracking-wide text-[10px] text-muted-foreground mb-1">Diligence questions</p>
+                      <p className="font-semibold tracking-normal text-[10px] text-muted-foreground mb-1">Diligence questions</p>
                       <ul className="space-y-1">
                         {diligenceQuestions.slice(0, 4).map((item, idx) => (
                           <li key={idx} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -395,21 +395,21 @@ function OriginationResultView({
                     {website ? (
                       <Link
                         href={`/app/run?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
-                        className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
                       >
                         Run screen →
                       </Link>
                     ) : (
                       <Link
                         href="/app/run"
-                        className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
                       >
                         Run screen →
                       </Link>
                     )}
                     <Link
                       href={`/compare?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
-                      className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
                     >
                       Add to Compare
                     </Link>
@@ -417,7 +417,7 @@ function OriginationResultView({
                       <button
                         type="button"
                         onClick={() => handleSaveCandidate(c)}
-                        className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
                       >
                         {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
                       </button>
@@ -426,7 +426,7 @@ function OriginationResultView({
                       <span className="text-[11px] text-muted-foreground/60">{action}</span>
                     )}
                   </div>
-                  <p className="text-[10px] font-mono text-muted-foreground/40 mt-2">
+                  <p className="text-[10px] font-medium text-muted-foreground/40 mt-2">
                     Source: {humanLabel(sourceLabel)} · Evidence status: {humanLabel(evidenceStatus)}
                   </p>
                   {sourceUrls.length > 0 && (
@@ -448,7 +448,7 @@ function OriginationResultView({
       {/* Match rationale */}
       {rationale && (
         <div className="rounded-lg border border-border bg-card/30 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Match rationale</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Match rationale</p>
           <p className="text-xs text-muted-foreground leading-relaxed">{rationale}</p>
         </div>
       )}
@@ -456,7 +456,7 @@ function OriginationResultView({
       {/* Evidence gaps */}
       {evidGaps && evidGaps.length > 0 && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.03] px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-amber-400/70 mb-2">Evidence gaps</p>
+          <p className="text-[10px] font-semibold tracking-normal text-amber-700/70 mb-2">Evidence gaps</p>
           <ul className="space-y-1">
             {evidGaps.map((g, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -471,11 +471,11 @@ function OriginationResultView({
       {/* Recommended next actions */}
       {nextActArr && nextActArr.length > 0 && (
         <div className="rounded-lg border border-border bg-card/30 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Recommended next actions</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Recommended next actions</p>
           <ol className="space-y-1.5">
             {nextActArr.map((a, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0 mt-0.5">
+                <span className="text-[10px] font-medium text-muted-foreground/50 shrink-0 mt-0.5">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 {safeStr(a)}
@@ -493,7 +493,7 @@ function OriginationResultView({
             onClick={() => setShowRejected(p => !p)}
             className="w-full flex items-center justify-between px-4 py-3 bg-card/40 text-left hover:bg-card/60 transition-colors"
           >
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60">
               Excluded targets ({rejected.length}) — why they were excluded
             </p>
             <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/40 transition-transform ${showRejected ? 'rotate-90' : ''}`} />
@@ -518,7 +518,7 @@ function OriginationResultView({
       {/* Limitations */}
       {limitations.length > 0 && (
         <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Limitations</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Limitations</p>
           <ul className="space-y-1">
             {limitations.map((limitation, i) => (
               <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(limitation)}</li>
@@ -540,19 +540,19 @@ function OriginationResultView({
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
           Run another origination screen
         </button>
         <Link
           href="/app/run"
-          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
           Run URL screen
         </Link>
         <Link
           href="/cockpit"
-          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
           Deal Cockpit
         </Link>
@@ -576,7 +576,7 @@ function OriginationLimitedPreview({
     <div className="space-y-4">
       <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.04] p-5">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-foreground">
               Live target discovery is not enabled. Provide known targets or run a URL screen.
@@ -593,14 +593,14 @@ function OriginationLimitedPreview({
               </Link>
               <Link
                 href="/request-pilot"
-                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
               >
                 Request private beta access
               </Link>
               <button
                 type="button"
                 onClick={onReset}
-                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
               >
                 Edit thesis
               </button>
@@ -611,14 +611,14 @@ function OriginationLimitedPreview({
 
       {summary && (
         <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Workflow preview</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Workflow preview</p>
           <p className="text-xs text-muted-foreground leading-relaxed">{polishOriginationPreviewSummary(summary)}</p>
         </div>
       )}
 
       {warnings && warnings.length > 0 && (
         <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Warnings</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Warnings</p>
           <ul className="space-y-1">
             {warnings.map((warning, i) => (
               <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(warning)}</li>
@@ -629,7 +629,7 @@ function OriginationLimitedPreview({
 
       {limitations && limitations.length > 0 && (
         <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Limitations</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Limitations</p>
           <ul className="space-y-1">
             {limitations.map((limitation, i) => (
               <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(limitation)}</li>
@@ -651,7 +651,7 @@ function OriginationUnavailable({
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-start gap-3">
-        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+        <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">
             Live target discovery is not enabled. Provide known targets or run a URL screen.
@@ -668,14 +668,14 @@ function OriginationUnavailable({
             </Link>
             <Link
               href="/request-pilot"
-              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
             >
               Request private beta access
             </Link>
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
             >
               Edit thesis
             </button>
@@ -750,7 +750,7 @@ function OriginationForm() {
           <button
             type="button"
             onClick={handleReset}
-            className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
           >
             Try again
           </button>
@@ -764,7 +764,7 @@ function OriginationForm() {
             href={BOOK_INTRO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
           >
             Book intro
           </a>
@@ -784,7 +784,7 @@ function OriginationForm() {
           onChange={e => setBuyerThesis(e.target.value)}
           rows={3}
           placeholder="e.g. Founder-owned UK vertical software with recurring revenue, low implementation complexity and low AI replica risk."
-          className="w-full px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors resize-none"
+          className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -797,7 +797,7 @@ function OriginationForm() {
             value={sector}
             onChange={e => setSector(e.target.value)}
             placeholder="e.g. UK vertical SaaS, telecoms BSS"
-            className="w-full h-9 px-3 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+            className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
           />
         </div>
         <div>
@@ -809,7 +809,7 @@ function OriginationForm() {
             value={geo}
             onChange={e => setGeo(e.target.value)}
             placeholder="e.g. UK, DACH, Nordic"
-            className="w-full h-9 px-3 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+            className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
           />
         </div>
       </div>
@@ -822,7 +822,7 @@ function OriginationForm() {
           value={sizeCriteria}
           onChange={e => setSizeCriteria(e.target.value)}
           placeholder="e.g. UK lower mid-market, profitable bootstrapped software"
-          className="w-full h-9 px-3 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+          className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
         />
       </div>
       <div>
@@ -834,7 +834,7 @@ function OriginationForm() {
           onChange={e => setRationale(e.target.value)}
           rows={3}
           placeholder="What makes this a compelling thesis? e.g. mission-critical vertical software with low churn, cross-sell to existing portfolio..."
-          className="w-full px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors resize-none"
+          className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
         />
       </div>
       <div>
@@ -850,7 +850,7 @@ Company name, website, country, brief description
 
 Example format:
 [Company name], [website URL], [country], [brief description]`}
-          className="w-full px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors resize-none"
+          className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
         />
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
           Paste one company per line. Frontier OS will rank only supplied/source-backed targets and will not invent acquisition targets.
@@ -930,8 +930,8 @@ export default function OriginationPage() {
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
           <div className="flex items-center gap-2 mb-3">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Origination</p>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Origination</p>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
               PRIVATE BETA
             </span>
           </div>
@@ -956,7 +956,7 @@ export default function OriginationPage() {
           ].map(({ icon, step, title, desc }) => (
             <div key={step} className="rounded-lg border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-3">
-                <span className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-[11px] font-bold font-mono">
+                <span className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-[11px] font-bold font-medium">
                   {step}
                 </span>
                 <span className="text-primary">{icon}</span>
@@ -977,7 +977,7 @@ export default function OriginationPage() {
         {/* Live origination thesis form */}
         <div className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-4 border-b border-border bg-muted/20">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-0.5">
+            <p className="text-[10px] font-semibold tracking-normal text-primary mb-0.5">
               Origination thesis
             </p>
             <p className="text-xs text-muted-foreground">
@@ -991,7 +991,7 @@ export default function OriginationPage() {
 
         {/* Available now in private beta */}
         <div className="rounded-lg border border-border bg-card/30 p-5">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-4">Available now in private beta</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-4">Available now in private beta</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {AVAILABLE_NOW.map(item => (
               <Link

@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2, XCircle, FileSearch, BarChart3, BrainCircuit,
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">{children}</p>;
+  return <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">{children}</p>;
 }
 
 // ─── 4 workflow blocks ────────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ export default function ProductPage() {
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="rounded-xl border border-border bg-card p-7">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-5">What it is</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-5">What it is</p>
               <div className="space-y-3">
                 {[
                   'Evidence-first screening workflow',
@@ -123,7 +123,7 @@ export default function ProductPage() {
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-7">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-5">What it is not</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-5">What it is not</p>
               <div className="space-y-3">
                 {[
                   'A company research database',
@@ -152,11 +152,11 @@ export default function ProductPage() {
           {CONTRASTS.map(({ bad, good }, i) => (
             <div key={i} className="grid grid-cols-1 md:grid-cols-2 rounded-xl border border-border overflow-hidden">
               <div className="flex items-start gap-4 px-6 py-5 bg-red-500/5 border-b md:border-b-0 md:border-r border-red-500/10">
-                <XCircle className="w-5 h-5 text-red-400/50 shrink-0 mt-0.5" />
+                <XCircle className="w-5 h-5 text-red-700/50 shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground">{bad}</p>
               </div>
               <div className="flex items-start gap-4 px-6 py-5 bg-green-500/5">
-                <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-green-700 shrink-0 mt-0.5" />
                 <p className="text-sm text-foreground">{good}</p>
               </div>
             </div>

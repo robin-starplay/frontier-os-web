@@ -16,6 +16,7 @@ import { X } from 'lucide-react';
 import { Footer } from '@/components/Footer';
 import { GateModal } from '@/components/GateModal';
 import { OAuthButtons } from '@/components/OAuthButtons';
+import { ThemeScript } from '@/components/ThemeToggle';
 import { AccessProvider } from '@/contexts/AccessContext';
 import { BetaGate } from '@/components/BetaGate';
 import Landing from '@/pages/Landing';
@@ -75,7 +76,7 @@ function stripBase(path: string): string {
     : path;
 }
 
-// ── Appearance: Frontier OS dark-navy theme ───────────────────────────────────
+// ── Appearance: Frontier OS light enterprise theme ────────────────────────────
 
 const clerkAppearance = {
   baseTheme:    shadcn,
@@ -88,41 +89,41 @@ const clerkAppearance = {
     socialButtonsVariant:   'blockButton' as const,
   },
   variables: {
-    colorPrimary:         'hsl(221, 83%, 53%)',
-    colorForeground:      'hsl(210, 40%, 98%)',
-    colorMutedForeground: 'hsl(215, 20%, 65%)',
-    colorDanger:          'hsl(0, 72%, 51%)',
-    colorBackground:      'hsl(222, 47%, 8%)',
-    colorInput:           'hsl(222, 30%, 13%)',
-    colorInputForeground: 'hsl(210, 40%, 98%)',
-    colorNeutral:         'hsl(222, 20%, 28%)',
+    colorPrimary:         'hsl(217, 91%, 45%)',
+    colorForeground:      'hsl(222, 47%, 11%)',
+    colorMutedForeground: 'hsl(215, 18%, 40%)',
+    colorDanger:          'hsl(0, 72%, 45%)',
+    colorBackground:      'hsl(0, 0%, 100%)',
+    colorInput:           'hsl(214, 32%, 84%)',
+    colorInputForeground: 'hsl(222, 47%, 11%)',
+    colorNeutral:         'hsl(215, 18%, 40%)',
     fontFamily:           '"Inter", system-ui, sans-serif',
-    borderRadius:         '0.5rem',
+    borderRadius:         '0.375rem',
   },
   elements: {
     rootBox:                      'w-full flex justify-center',
-    cardBox:                      'bg-[hsl(222,47%,11%)] rounded-2xl w-[440px] max-w-full overflow-hidden border border-[hsl(222,20%,20%)] shadow-2xl',
+    cardBox:                      'bg-white rounded-2xl w-[440px] max-w-full overflow-hidden border border-[hsl(214,32%,88%)] shadow-xl',
     card:                         '!shadow-none !border-0 !bg-transparent !rounded-none',
     footer:                       '!shadow-none !border-0 !bg-transparent !rounded-none',
-    headerTitle:                  'text-[hsl(210,40%,98%)] font-bold tracking-tight',
-    headerSubtitle:               'text-[hsl(215,20%,65%)]',
-    socialButtonsBlockButtonText: 'text-[hsl(210,40%,98%)] font-medium',
-    formFieldLabel:               'text-[hsl(210,40%,98%)] text-sm font-medium',
-    footerActionLink:             'text-[hsl(221,83%,65%)] hover:text-[hsl(221,83%,75%)]',
-    footerActionText:             'text-[hsl(215,20%,65%)]',
-    dividerText:                  'text-[hsl(215,20%,65%)] text-xs',
-    identityPreviewEditButton:    'text-[hsl(221,83%,65%)]',
-    formFieldSuccessText:         'text-green-400',
-    alertText:                    'text-[hsl(210,40%,98%)]',
+    headerTitle:                  'text-[hsl(222,47%,11%)] font-bold tracking-tight',
+    headerSubtitle:               'text-[hsl(215,18%,40%)]',
+    socialButtonsBlockButtonText: 'text-[hsl(222,47%,11%)] font-medium',
+    formFieldLabel:               'text-[hsl(222,47%,11%)] text-sm font-medium',
+    footerActionLink:             'text-[hsl(217,91%,45%)] hover:text-[hsl(217,91%,36%)]',
+    footerActionText:             'text-[hsl(215,18%,40%)]',
+    dividerText:                  'text-[hsl(215,18%,40%)] text-xs',
+    identityPreviewEditButton:    'text-[hsl(217,91%,45%)]',
+    formFieldSuccessText:         'text-green-700',
+    alertText:                    'text-[hsl(222,47%,11%)]',
     logoBox:                      'mb-1',
     logoImage:                    'h-7 w-auto',
-    socialButtonsBlockButton:     'border-[hsl(222,20%,22%)] bg-[hsl(222,30%,14%)] hover:bg-[hsl(222,30%,18%)] transition-colors',
-    formButtonPrimary:            'bg-[hsl(221,83%,53%)] hover:bg-[hsl(221,83%,46%)] text-white font-semibold transition-colors',
-    formFieldInput:               'bg-[hsl(222,30%,13%)] border-[hsl(222,20%,22%)] text-[hsl(210,40%,98%)] focus:border-[hsl(221,83%,53%)] transition-colors',
-    footerAction:                 'bg-[hsl(222,47%,9%)] border-t border-[hsl(222,20%,18%)]',
-    dividerLine:                  'bg-[hsl(222,20%,20%)]',
-    alert:                        'border-[hsl(222,20%,22%)] bg-[hsl(222,30%,13%)]',
-    otpCodeFieldInput:            'bg-[hsl(222,30%,13%)] border-[hsl(222,20%,22%)] text-[hsl(210,40%,98%)]',
+    socialButtonsBlockButton:     'border-[hsl(214,32%,88%)] bg-white hover:bg-[hsl(214,48%,95%)] transition-colors',
+    formButtonPrimary:            'bg-[hsl(217,91%,45%)] hover:bg-[hsl(217,91%,38%)] text-white font-semibold transition-colors',
+    formFieldInput:               'bg-white border-[hsl(214,32%,84%)] text-[hsl(222,47%,11%)] focus:border-[hsl(217,91%,45%)] transition-colors',
+    footerAction:                 'bg-[hsl(210,33%,98%)] border-t border-[hsl(214,32%,88%)]',
+    dividerLine:                  'bg-[hsl(214,32%,88%)]',
+    alert:                        'border-[hsl(214,32%,88%)] bg-[hsl(214,48%,95%)]',
+    otpCodeFieldInput:            'bg-white border-[hsl(214,32%,84%)] text-[hsl(222,47%,11%)]',
     formFieldRow:                 'gap-2',
     main:                         'gap-4',
   },
@@ -160,7 +161,7 @@ class AppErrorBoundary extends React.Component<
       <div className="min-h-screen flex flex-col bg-background text-foreground font-sans">
         <main className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="max-w-md text-center">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">
+            <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">
               Private beta workspace
             </p>
             <h1 className="text-2xl font-bold text-foreground mb-3">
@@ -572,6 +573,7 @@ function LocalWorkspaceProviderWithRoutes() {
 function App() {
   return (
     <AppErrorBoundary>
+      <ThemeScript />
       <WouterRouter base={basePath}>
         {clerkEnabled ? <ClerkProviderWithRoutes /> : <LocalWorkspaceProviderWithRoutes />}
       </WouterRouter>

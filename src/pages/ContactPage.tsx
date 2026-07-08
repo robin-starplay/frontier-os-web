@@ -36,7 +36,7 @@ export default function ContactPage() {
       {/* header */}
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Contact</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Contact</p>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Get in touch.</h1>
           <p className="text-base text-muted-foreground">
             Pilot enquiries, product questions, data handling or partnership conversations.
@@ -50,7 +50,7 @@ export default function ContactPage() {
           {/* company details */}
           <div className="lg:col-span-1 space-y-6">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-4">Company</p>
+              <p className="text-[10px] font-semibold tracking-normal text-primary mb-4">Company</p>
               <p className="text-sm font-semibold text-foreground mb-1">Frontier Intelligence Systems Ltd</p>
               <div className="flex items-start gap-2 text-sm text-muted-foreground mt-3">
                 <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground/60" />
@@ -98,7 +98,7 @@ export default function ContactPage() {
 
             {/* info notice */}
             <div className="flex items-start gap-2 px-3 py-2.5 mb-5 rounded bg-muted/20 border border-border text-muted-foreground text-xs">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-700" />
               For live enquiries, email{' '}
               <a href="mailto:contact@getfrontieros.com" className="underline underline-offset-2 ml-0.5 text-primary hover:opacity-80">
                 contact@getfrontieros.com

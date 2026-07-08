@@ -52,7 +52,7 @@ export function PricingHypothesisCards() {
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-8">
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-1">
-            <p className="text-xs font-mono uppercase tracking-widest text-primary mb-2">First paid workflow</p>
+            <p className="text-xs font-semibold tracking-normal text-primary mb-2">First paid workflow</p>
             <h3 className="text-2xl font-bold text-foreground mb-4">Deep Screen Sprint</h3>
             <p className="text-sm text-muted-foreground leading-relaxed mb-6">
               Before becoming another SaaS dashboard, Frontier OS can be used as an AI-enabled acquisition screen sprint: 3–5 targets, source-backed evidence, strategic-fit view, valuation caveats and diligence request list.
@@ -75,7 +75,7 @@ export function PricingHypothesisCards() {
           </div>
 
           <div className="w-full md:w-64 shrink-0">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Deliverables</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-normal mb-3">Deliverables</p>
             <ul className="space-y-2">
               {DELIVERABLES.map((d) => (
                 <li key={d} className="flex items-center gap-2 text-sm text-foreground">

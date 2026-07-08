@@ -6,10 +6,10 @@ import { BetaCTA } from '@/components/BetaCTA';
 // ─── Section data ─────────────────────────────────────────────────────────────
 
 const RISK_LEVELS = [
-  { level: 'High',        colour: 'text-red-400',    border: 'border-red-500/30 bg-red-500/[0.03]',   desc: 'Core capability can be replicated by a capable team using foundation models within 6–18 months. Moat relies on distribution or switching costs rather than technical differentiation.' },
-  { level: 'Medium-high', colour: 'text-orange-400', border: 'border-orange-500/30 bg-orange-500/[0.03]', desc: 'Partial replication risk. Some proprietary elements (data, integrations, workflow depth) create friction but do not prevent a well-resourced competitor from shipping a viable alternative.' },
-  { level: 'Medium',      colour: 'text-amber-400',  border: 'border-amber-500/30 bg-amber-500/[0.03]',  desc: 'Meaningful differentiation exists but AI tooling continues to close the gap. Moat durability depends on rate of proprietary data accumulation and regulatory complexity.' },
-  { level: 'Low',         colour: 'text-green-400',  border: 'border-green-500/30 bg-green-500/[0.03]',  desc: 'Strong technical moat. Proprietary data, deep workflow integration, regulatory lock-in, or inference economics make replication prohibitively expensive or slow.' },
+  { level: 'High',        colour: 'text-red-700',    border: 'border-red-500/30 bg-red-500/[0.03]',   desc: 'Core capability can be replicated by a capable team using foundation models within 6–18 months. Moat relies on distribution or switching costs rather than technical differentiation.' },
+  { level: 'Medium-high', colour: 'text-orange-700', border: 'border-orange-500/30 bg-orange-500/[0.03]', desc: 'Partial replication risk. Some proprietary elements (data, integrations, workflow depth) create friction but do not prevent a well-resourced competitor from shipping a viable alternative.' },
+  { level: 'Medium',      colour: 'text-amber-700',  border: 'border-amber-500/30 bg-amber-500/[0.03]',  desc: 'Meaningful differentiation exists but AI tooling continues to close the gap. Moat durability depends on rate of proprietary data accumulation and regulatory complexity.' },
+  { level: 'Low',         colour: 'text-green-700',  border: 'border-green-500/30 bg-green-500/[0.03]',  desc: 'Strong technical moat. Proprietary data, deep workflow integration, regulatory lock-in, or inference economics make replication prohibitively expensive or slow.' },
 ];
 
 const MOAT_SIGNALS = [
@@ -22,7 +22,7 @@ const MOAT_SIGNALS = [
 const INFERENCE_ECONOMICS = [
   { question: 'What is the estimated cost per inference at current volume?', why: 'High per-query cost limits margin at scale and creates vulnerability to lower-cost foundation model providers.' },
   { question: 'Has the company quantified its AI cost as a percentage of revenue?', why: 'Undisclosed AI COGS is a valuation risk — margin expansion assumptions may be unsupported.' },
-  { question: 'Is AI capability owned, licensed, or accessed via an API?', why: 'API-dependent AI creates price risk (OpenAI, Anthropic pricing changes) and replaceability risk.' },
+  { question: 'Is AI capability owned, licensed, or accessed via an API?', why: 'API-dependent AI creates third-party provider price risk and replaceability risk.' },
   { question: 'What is the infrastructure cost trajectory as foundation model prices fall?', why: 'If the core product is thin wrapper logic around commodity AI, falling API prices reduce switching costs for customers.' },
 ];
 
@@ -49,7 +49,7 @@ export default function PublicAIRiskPage() {
       {/* ── Hero ── */}
       <div className="w-full border-b border-border bg-card/20">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">AI replica risk</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">AI replica risk</p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 max-w-2xl leading-tight">
             Assess AI replica risk before assuming a software moat still exists.
           </h1>
@@ -77,12 +77,12 @@ export default function PublicAIRiskPage() {
 
       {/* ── Risk levels ── */}
       <div className="w-full max-w-5xl mx-auto px-4 md:px-8 py-12">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Risk levels</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Risk levels</p>
         <h2 className="text-xl font-bold text-foreground mb-6">AI replica risk</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {RISK_LEVELS.map(r => (
             <div key={r.level} className={`rounded-lg border ${r.border} p-5`}>
-              <p className={`text-sm font-bold font-mono mb-2 ${r.colour}`}>{r.level}</p>
+              <p className={`text-sm font-bold mb-2 ${r.colour}`}>{r.level}</p>
               <p className="text-xs text-muted-foreground leading-relaxed">{r.desc}</p>
             </div>
           ))}
@@ -92,7 +92,7 @@ export default function PublicAIRiskPage() {
       {/* ── AI moat evidence ── */}
       <div className="w-full border-t border-border bg-card/20">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-12">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Moat signals</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Moat signals</p>
           <h2 className="text-xl font-bold text-foreground mb-6">AI moat evidence</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {MOAT_SIGNALS.map(s => (
@@ -110,7 +110,7 @@ export default function PublicAIRiskPage() {
 
       {/* ── Inference economics ── */}
       <div className="w-full max-w-5xl mx-auto px-4 md:px-8 py-12">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Cost structure</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Cost structure</p>
         <h2 className="text-xl font-bold text-foreground mb-6">Inference economics</h2>
         <div className="rounded-lg border border-border bg-card/30 divide-y divide-border overflow-hidden">
           {INFERENCE_ECONOMICS.map((item, i) => (
@@ -128,12 +128,12 @@ export default function PublicAIRiskPage() {
       {/* ── Workflow defensibility ── */}
       <div className="w-full border-t border-border bg-card/20">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-12">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Structural factors</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Structural factors</p>
           <h2 className="text-xl font-bold text-foreground mb-6">Workflow defensibility</h2>
           <div className="space-y-3">
             {WORKFLOW_DEFENSIBILITY.map((q, i) => (
               <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3.5">
-                <span className="text-[10px] font-mono text-primary/60 shrink-0 mt-0.5">{String(i + 1).padStart(2, '0')}</span>
+                <span className="text-[10px] font-medium text-primary/60 shrink-0 mt-0.5">{String(i + 1).padStart(2, '0')}</span>
                 <p className="text-sm text-foreground leading-snug">{q}</p>
               </div>
             ))}
@@ -143,7 +143,7 @@ export default function PublicAIRiskPage() {
 
       {/* ── Diligence questions ── */}
       <div className="w-full max-w-5xl mx-auto px-4 md:px-8 py-12">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Pre-IC checklist</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Pre-IC checklist</p>
         <h2 className="text-xl font-bold text-foreground mb-6">Diligence questions</h2>
         <div className="space-y-6">
           {DILIGENCE_QUESTIONS.map(area => (

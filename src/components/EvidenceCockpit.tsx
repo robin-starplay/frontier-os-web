@@ -29,8 +29,8 @@ const SOURCE_TIERS = [
 const STATUS_CONFIG = {
   verified:   { label: 'Verified fact', icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-500/10 border-green-500/30', bar: 'bg-green-500' },
   caveated:   { label: 'Caveated',      icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/10 border-amber-500/30', bar: 'bg-amber-500' },
-  candidate:  { label: 'Candidate claim', icon: AlertTriangle, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30', bar: 'bg-blue-400' },
-  diligence:  { label: 'Diligence item', icon: HelpCircle, color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/30', bar: 'bg-amber-400' },
+  candidate:  { label: 'Candidate claim', icon: AlertTriangle, color: 'text-blue-700', bg: 'bg-blue-500/10 border-blue-500/30', bar: 'bg-blue-400' },
+  diligence:  { label: 'Diligence item', icon: HelpCircle, color: 'text-amber-700', bg: 'bg-amber-400/10 border-amber-400/30', bar: 'bg-amber-400' },
   blocking:   { label: 'Blocking gap',  icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10 border-red-500/30', bar: 'bg-red-500' },
   unknown:    { label: 'Unknown',       icon: HelpCircle, color: 'text-muted-foreground', bg: 'bg-muted/30 border-border', bar: 'bg-muted-foreground' },
 };
@@ -38,7 +38,7 @@ const STATUS_CONFIG = {
 const DECISION_IMPACT = [
   { label: 'IC readiness', value: 'Partially ready', color: 'text-amber-500' },
   { label: 'Valuation readiness', value: 'Financial evidence required', color: 'text-amber-500' },
-  { label: 'Strategic fit confidence', value: 'Adjacent. Needs verification.', color: 'text-blue-400' },
+  { label: 'Strategic fit confidence', value: 'Adjacent. Needs verification.', color: 'text-blue-700' },
   { label: 'Next best action', value: 'Request financials', color: 'text-foreground' },
 ];
 
@@ -49,7 +49,7 @@ export function EvidenceCockpit() {
       <div className="rounded-lg bg-card border border-border p-5">
         <div className="flex items-center gap-2 mb-4">
           <Layers className="h-4 w-4 text-primary" />
-          <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Source hierarchy</h4>
+          <h4 className="text-xs font-semibold tracking-normal text-muted-foreground">Source hierarchy</h4>
         </div>
         <div className="space-y-2.5">
           {SOURCE_TIERS.map(({ tier, label, color }) => (
@@ -69,7 +69,7 @@ export function EvidenceCockpit() {
       <div className="rounded-lg bg-card border border-border p-5">
         <div className="flex items-center gap-2 mb-4">
           <BookOpen className="h-4 w-4 text-primary" />
-          <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Evidence registry</h4>
+          <h4 className="text-xs font-semibold tracking-normal text-muted-foreground">Evidence registry</h4>
         </div>
         <div className="space-y-2">
           {EVIDENCE_ROWS.map((row) => {
@@ -96,7 +96,7 @@ export function EvidenceCockpit() {
 
       {/* Right: Decision impact */}
       <div className="rounded-lg bg-card border border-border p-5">
-        <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Decision impact</h4>
+        <h4 className="text-xs font-semibold tracking-normal text-muted-foreground mb-4">Decision impact</h4>
         <div className="space-y-4">
           {DECISION_IMPACT.map(({ label, value, color }) => (
             <div key={label}>

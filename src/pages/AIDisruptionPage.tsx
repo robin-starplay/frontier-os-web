@@ -28,12 +28,12 @@ const SCORECARD: ScorecardItem[] = [
 ];
 
 const SCORE_CHIP: Record<ScoreStatus, string> = {
-  'medium-high': 'bg-red-500/10 text-red-400 border-red-500/20',
+  'medium-high': 'bg-red-500/10 text-red-700 border-red-500/20',
   'unproven':    'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  'medium':      'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  'medium':      'bg-amber-500/10 text-amber-700 border-amber-500/20',
   'unknown':     'bg-muted/40 text-muted-foreground border-border',
-  'low':         'bg-green-500/10 text-green-400 border-green-500/20',
-  'high':        'bg-red-500/10 text-red-400 border-red-500/20',
+  'low':         'bg-green-500/10 text-green-700 border-green-500/20',
+  'high':        'bg-red-500/10 text-red-700 border-red-500/20',
 };
 
 // ─── evidence board (5 cards) ─────────────────────────────────────────────────
@@ -52,7 +52,7 @@ const EVIDENCE_BOARD: EvidenceBoardCard[] = [
   {
     title: 'AI adoption evidence',
     status: 'Claimed',
-    statusColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
     evidenceLine: 'Workflow assistant with AI claims mentioned on product page. No usage, adoption or revenue proof found.',
     verifyNext: [
       'Request live feature list from product team',
@@ -63,7 +63,7 @@ const EVIDENCE_BOARD: EvidenceBoardCard[] = [
   {
     title: 'Could this workflow be replicated?',
     status: 'Medium-high',
-    statusColor: 'bg-red-500/10 text-red-400 border-red-500/20',
+    statusColor: 'bg-red-500/10 text-red-700 border-red-500/20',
     evidenceLine: 'Generic workflow UI, limited proprietary data evidence. AI-native entrant replication exposure is elevated.',
     verifyNext: [
       'Assess proprietary dataset depth and uniqueness',
@@ -96,7 +96,7 @@ const EVIDENCE_BOARD: EvidenceBoardCard[] = [
   {
     title: 'P&L impact',
     status: 'Mixed',
-    statusColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    statusColor: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
     evidenceLine: 'Revenue expansion potential noted. Services cannibalisation and inference COGS drag unquantified. EBITDA impact uncertain.',
     verifyNext: [
       'Quantify services revenue at risk from AI automation',
@@ -156,10 +156,10 @@ const EVIDENCE_PANELS: { title: string; signals: EvidenceSignal[] }[] = [
 ];
 
 const CHIP: Record<DetailStatus, string> = {
-  Verified:  'bg-green-500/10 text-green-400 border-green-500/20',
-  Claim:     'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  Verified:  'bg-green-500/10 text-green-700 border-green-500/20',
+  Claim:     'bg-amber-500/10 text-amber-700 border-amber-500/20',
   Unknown:   'bg-muted/40 text-muted-foreground border-border',
-  Diligence: 'bg-red-500/10 text-red-400 border-red-500/20',
+  Diligence: 'bg-red-500/10 text-red-700 border-red-500/20',
 };
 
 const ICON: Record<DetailStatus, React.ElementType> = {
@@ -187,7 +187,7 @@ export default function AIDisruptionPage() {
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
           <div className="flex items-center gap-2 mb-4">
             <BrainCircuit className="w-5 h-5 text-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-widest text-primary">AI disruption</span>
+            <span className="text-[10px] font-semibold tracking-normal text-primary">AI disruption</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 max-w-2xl leading-tight">
             Does the software acquisition thesis survive AI?
@@ -199,7 +199,7 @@ export default function AIDisruptionPage() {
             <span className="text-sm text-muted-foreground">
               Indicative analysis — <span className="text-foreground font-medium">{AI_TARGET.name}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md">
+            <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md">
               <AlertCircle className="w-3 h-3" />
               Private beta · sample data, not real diligence
             </span>
@@ -213,22 +213,22 @@ export default function AIDisruptionPage() {
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="px-6 py-4 border-b border-border bg-muted/20 flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-0.5">Executive AI verdict</p>
+              <p className="text-[10px] font-semibold tracking-normal text-primary mb-0.5">Executive AI verdict</p>
               <p className="text-sm font-semibold text-foreground">Illustrative Target Co.</p>
             </div>
             <span className="text-[10px] font-mono text-muted-foreground/60">Sample data</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
             {[
-              { label: 'AI thesis',        value: 'Not yet proven',        chip: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-              { label: 'Replica risk',     value: 'Medium-high',           chip: 'bg-red-500/10 text-red-400 border-red-500/20' },
+              { label: 'AI thesis',        value: 'Not yet proven',        chip: 'bg-amber-500/10 text-amber-700 border-amber-500/20' },
+              { label: 'Replica risk',     value: 'Medium-high',           chip: 'bg-red-500/10 text-red-700 border-red-500/20' },
               { label: 'Moat evidence',    value: 'Unproven',              chip: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
               { label: 'P&L impact',       value: 'Potential upside, cost unknown', chip: 'bg-muted/40 text-muted-foreground border-border' },
               { label: 'AI moat evidence', value: 'Unproven',              chip: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
               { label: 'Investor action',  value: 'Verify live AI usage, data rights, model costs and customer willingness to pay.', chip: '' },
             ].map(({ label, value, chip }) => (
               <div key={label} className="px-6 py-5 flex flex-col gap-2">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">{label}</p>
                 {chip ? (
                   <span className={`inline-flex self-start text-xs font-mono font-semibold px-2.5 py-1 rounded-md border ${chip}`}>{value}</span>
                 ) : (
@@ -269,7 +269,7 @@ export default function AIDisruptionPage() {
                 <div className="px-5 py-4 flex-1 flex flex-col gap-4">
                   <p className="text-sm text-muted-foreground leading-relaxed">{card.evidenceLine}</p>
                   <div>
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-2">Verify next</p>
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-2">Verify next</p>
                     <ul className="space-y-1.5">
                       {card.verifyNext.map((item, i) => (
                         <li key={i} className="flex items-start gap-2">
@@ -289,7 +289,7 @@ export default function AIDisruptionPage() {
         <div className="flex items-start gap-4 bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
           <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
-            <p className="text-base font-semibold text-amber-400 mb-2">Missing proof becomes a diligence question</p>
+            <p className="text-base font-semibold text-amber-700 mb-2">Missing proof becomes a diligence question</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Frontier OS does not infer an AI moat from marketing language. Every claim without a Tier 1 or Tier 2 source is classified as a claim or unknown, not a verified fact. AI upside should not increase the base valuation until management proves live monetised AI modules, inference cost control and measurable customer adoption.
             </p>
@@ -299,7 +299,7 @@ export default function AIDisruptionPage() {
         {/* ── AI value and risk summary ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-5">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-green-400 mb-4">AI can create value in three ways</p>
+            <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-4">AI can create value in three ways</p>
             <div className="space-y-2.5">
               {[
                 'Product expansion — new AI-native features that expand the addressable market',
@@ -314,7 +314,7 @@ export default function AIDisruptionPage() {
             </div>
           </div>
           <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-5">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-red-400 mb-4">AI can create risk in three ways</p>
+            <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-4">AI can create risk in three ways</p>
             <div className="space-y-2.5">
               {[
                 'Workflow replication — AI-native entrants replicate core functionality at lower cost',

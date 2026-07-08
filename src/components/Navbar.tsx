@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { Activity, Menu, X, MessageSquare, ChevronDown, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FeedbackModal } from './FeedbackModal';
+import { ThemeToggle } from './ThemeToggle';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { clerkEnabled, OptionalUserButton, useOptionalUser } from '@/lib/optionalClerk';
 import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
@@ -79,10 +80,10 @@ function UseCasesDropdown({ isActive }: { isActive: (href: string) => boolean })
         aria-haspopup="true"
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+          'flex items-center gap-1 px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
           anyActive
-            ? 'bg-accent/60 text-foreground font-medium'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+            ? 'bg-primary/10 text-primary font-semibold'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
         )}
       >
         Use cases <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
@@ -95,10 +96,10 @@ function UseCasesDropdown({ isActive }: { isActive: (href: string) => boolean })
               href={href}
               role="menuitem"
               className={cn(
-                'block px-3 py-2 text-sm transition-colors',
+                'block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
                 isActive(href)
-                  ? 'text-foreground font-medium bg-accent/40'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
+                  ? 'text-primary font-semibold bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
               )}
               onClick={() => setOpen(false)}
             >
@@ -146,10 +147,10 @@ function MoreDropdown({
         aria-haspopup="true"
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+          'flex items-center gap-1 px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
           anyActive
-            ? 'bg-accent/60 text-foreground font-medium'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+            ? 'bg-primary/10 text-primary font-semibold'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
         )}
       >
         More <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
@@ -162,10 +163,10 @@ function MoreDropdown({
               href={href}
               role="menuitem"
               className={cn(
-                'block px-3 py-2 text-sm transition-colors',
+                'block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
                 isActive(href)
-                  ? 'text-foreground font-medium bg-accent/40'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
+                  ? 'text-primary font-semibold bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
               )}
               onClick={() => setOpen(false)}
             >
@@ -176,7 +177,7 @@ function MoreDropdown({
             <button
               onClick={() => { setOpen(false); onFeedback(); }}
               role="menuitem"
-              className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+              className="w-full text-left flex items-center gap-2 px-3 py-2 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
             >
               <MessageSquare className="w-3.5 h-3.5" />
               Feedback
@@ -233,7 +234,7 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <Activity className="h-4 w-4 text-primary" />
-            <span className="font-bold text-sm tracking-widest uppercase text-foreground">
+            <span className="font-semibold text-sm tracking-normal text-foreground">
               Frontier OS
             </span>
           </Link>
@@ -245,10 +246,10 @@ export function Navbar() {
                 <Link
                   href={href}
                   className={cn(
-                    'px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+                    'px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
                     isActive(href)
-                      ? 'bg-accent/60 text-foreground font-medium'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
                   )}
                 >
                   {label}
@@ -266,9 +267,10 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle compact className="hidden sm:inline-flex" />
 
             {!isLoaded && (
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
                 BETA
               </span>
             )}
@@ -278,7 +280,7 @@ export function Navbar() {
               <>
                 <Link
                   href={workspaceHref}
-                  className="hidden sm:inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
+                  className="hidden sm:inline-flex items-center justify-center gap-1.5 text-[var(--font-size-nav)] font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
                 >
                   Open workspace
                 </Link>
@@ -291,27 +293,27 @@ export function Navbar() {
             {isLoaded && !hasWorkspace && (
               /* Public / signed-out right rail */
               <>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
                   BETA
                 </span>
                 <a
                   href={BOOK_INTRO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden lg:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
+                  className="hidden lg:inline-flex items-center gap-1.5 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
                 >
                   <Calendar className="w-3.5 h-3.5" />
                   Intro
                 </a>
                 <Link
                   href={clerkEnabled ? '/sign-in' : '/create-workspace'}
-                  className="hidden sm:inline-flex items-center justify-center text-sm font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors"
+                  className="hidden sm:inline-flex items-center justify-center text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors"
                 >
                   {clerkEnabled ? 'Sign in' : 'Beta workspace'}
                 </Link>
                 <Link
                   href={clerkEnabled ? '/run?mode=sample' : '/create-workspace'}
-                  className="hidden sm:inline-flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
+                  className="hidden sm:inline-flex items-center justify-center text-[var(--font-size-nav)] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
                 >
                   {clerkEnabled ? 'Run screen' : 'Start free'}
                 </Link>
@@ -320,7 +322,7 @@ export function Navbar() {
 
             {/* Mobile hamburger */}
             <button
-              className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+              className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
               onClick={() => setMobileOpen(o => !o)}
               aria-label="Toggle navigation"
             >
@@ -339,10 +341,10 @@ export function Navbar() {
                   key={href}
                   href={href}
                   className={cn(
-                    'block px-3 py-2.5 rounded-md text-sm transition-colors',
+                    'block px-3 py-2.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
                     isActive(href)
-                      ? 'bg-accent/60 text-foreground font-medium'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
                   )}
                   onClick={() => setMobileOpen(false)}
                 >
@@ -353,12 +355,13 @@ export function Navbar() {
 
             {/* Auth section */}
             <div className="pt-3 flex flex-col gap-2 border-t border-border">
+              <ThemeToggle className="w-fit" />
               {isLoaded && hasWorkspace ? (
                 <div className="flex items-center gap-3 flex-wrap">
                   <OptionalUserButton />
                   <Link
                     href={workspaceHref}
-                    className="inline-flex items-center justify-center text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+                    className="inline-flex items-center justify-center text-[var(--font-size-nav)] font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
                     onClick={() => setMobileOpen(false)}
                   >
                     Open workspace
@@ -367,7 +370,7 @@ export function Navbar() {
               ) : isLoaded && !hasWorkspace ? (
                 <>
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
                       BETA
                     </span>
                     <a
@@ -384,21 +387,21 @@ export function Navbar() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
                       href={clerkEnabled ? '/sign-in' : '/create-workspace'}
-                      className="inline-flex items-center justify-center text-sm font-medium text-muted-foreground border border-border h-8 px-3 rounded-md"
+                      className="inline-flex items-center justify-center text-[var(--font-size-nav)] font-medium text-muted-foreground border border-border h-8 px-3 rounded-md"
                       onClick={() => setMobileOpen(false)}
                     >
                       {clerkEnabled ? 'Sign in' : 'Beta workspace'}
                     </Link>
                     <Link
                       href={clerkEnabled ? '/sign-up' : '/create-workspace'}
-                      className="inline-flex items-center justify-center text-sm font-medium border border-border h-8 px-3 rounded-md hover:bg-accent/40 transition-colors"
+                      className="inline-flex items-center justify-center text-[var(--font-size-nav)] font-medium border border-border h-8 px-3 rounded-md hover:bg-accent/70 transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
                       {clerkEnabled ? 'Create account' : 'Create workspace'}
                     </Link>
                     <Link
                       href={clerkEnabled ? '/run?mode=sample' : '/create-workspace'}
-                      className="inline-flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+                      className="inline-flex items-center justify-center text-[var(--font-size-nav)] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
                       {clerkEnabled ? 'Run screen' : 'Start free'}
@@ -409,7 +412,7 @@ export function Navbar() {
 
               <button
                 onClick={() => { setMobileOpen(false); setFeedbackOpen(true); }}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-accent/40 transition-colors"
+                className="inline-flex items-center gap-2 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-accent/70 transition-colors"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 Feedback

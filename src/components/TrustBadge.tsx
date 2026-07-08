@@ -9,9 +9,9 @@ interface TrustBadgeProps {
 }
 
 const variantStyles: Record<string, string> = {
-  default: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-  success: 'text-green-500 bg-green-500/10 border-green-500/20',
-  warning: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+  default: 'text-blue-700 bg-blue-50 border-blue-200',
+  success: 'text-green-700 bg-green-50 border-green-200',
+  warning: 'text-amber-700 bg-amber-50 border-amber-200',
   muted: 'text-muted-foreground bg-muted/30 border-border',
 };
 

@@ -46,7 +46,7 @@ const SOURCE_LABEL = 'Uploaded document · Status: Claim, not verified';
 
 function SectionBadge({ label, count }: { label: string; count: number }) {
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
       {label} · {count}
     </span>
   );
@@ -54,7 +54,7 @@ function SectionBadge({ label, count }: { label: string; count: number }) {
 
 function SourceBadge() {
   return (
-    <span className="inline-block text-[10px] font-mono text-muted-foreground/60 border border-border/60 rounded px-1.5 py-0.5 mt-1">
+    <span className="inline-block text-[10px] font-medium text-muted-foreground/60 border border-border/60 rounded px-1.5 py-0.5 mt-1">
       Source: {SOURCE_LABEL}
     </span>
   );
@@ -104,7 +104,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
       return;
     }
     if (f.size > MAX_BYTES) {
-      setFileError('PDF must be 10MB or smaller for this prototype.');
+      setFileError('PDF must be 10MB or smaller for document-assisted review.');
       return;
     }
     setFile(f);
@@ -169,7 +169,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
     >
       <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
       <p className="text-sm font-semibold text-foreground">Document-assisted review</p>
-      <span className="text-[10px] font-mono border border-primary/30 text-primary/80 rounded px-1.5 py-0.5 bg-primary/5">
+      <span className="text-[10px] font-medium border border-primary/30 text-primary/80 rounded px-1.5 py-0.5 bg-primary/5">
         Evidence-first screen
       </span>
       {collapsible && (
@@ -185,7 +185,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
   const idleForm = (
     <div className="space-y-4">
       {/* Warning */}
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
+      <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/5 border border-amber-500/20 text-xs text-amber-700">
         <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
         <span>Do not upload confidential information in this workspace.</span>
       </div>
@@ -251,7 +251,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           <select
             value={documentContext}
             onChange={e => setDocumentContext(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            className="w-full rounded-md border border-border bg-white px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
           >
             {DOC_CONTEXT_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -268,7 +268,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
               value={companyName}
               onChange={e => setCompanyName(e.target.value)}
               placeholder="Company name"
-              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full rounded-md border border-border bg-white px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>
           <div>
@@ -280,7 +280,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
               value={website}
               onChange={e => setWebsite(e.target.value)}
               placeholder="https://example.com"
-              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full rounded-md border border-border bg-white px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>
         </div>
@@ -295,7 +295,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           className="mt-0.5 h-3.5 w-3.5 rounded border-border accent-primary cursor-pointer shrink-0"
         />
         <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors leading-relaxed">
-          I confirm this document is non-confidential or approved for prototype review.
+          I confirm this document is non-confidential or approved for document-assisted review.
         </span>
       </label>
 
@@ -319,7 +319,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           href={BOOK_INTRO_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
         >
           Book intro for confidential workflows <ExternalLink className="w-3 h-3" />
         </a>
@@ -353,7 +353,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
       <div className="space-y-4">
         {/* Confidentiality warning — shown for flag OR warning string */}
         {(data.confidentiality_flag || data.confidentiality_warning) && (
-          <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-red-500/30 bg-red-500/5 text-xs text-red-400">
+          <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-red-500/30 bg-red-500/5 text-xs text-red-700">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <div>
               <p>
@@ -370,7 +370,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
         {/* Top summary card */}
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Document review — prototype</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Document-assisted review</p>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground/60 truncate max-w-[140px]">{fileName}</span>
               {!reviewDone && (
@@ -384,19 +384,19 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
             {[
               { label: 'Pages processed',    value: String(data.pages_processed || '—') },
               { label: 'Confidentiality',    value: data.confidentiality_flag ? 'Flagged' : 'Not detected',
-                extra: data.confidentiality_flag ? 'text-red-400' : 'text-green-400' },
+                extra: data.confidentiality_flag ? 'text-red-700' : 'text-green-700' },
               { label: 'Claims extracted',   value: String(data.claims_extracted) },
               { label: 'Metrics extracted',  value: String(data.metrics_extracted) },
               { label: 'Next action',        value: data.recommended_next_action },
             ].map(({ label, value, extra }) => (
               <div key={label}>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{label}</p>
                 <p className={cn('text-xs font-medium text-foreground leading-snug', extra)}>{value}</p>
               </div>
             ))}
           </div>
           <div className="px-4 py-3 border-t border-border bg-card/20">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Document summary</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Document summary</p>
             <p className="text-xs text-foreground leading-snug">{data.document_summary}</p>
           </div>
         </div>
@@ -409,7 +409,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'px-3 py-2.5 text-[11px] font-mono uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors',
+                  'px-3 py-2.5 text-[11px] font-semibold tracking-normal whitespace-nowrap border-b-2 transition-colors',
                   activeTab === tab.id
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -463,7 +463,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                       )}
                       <SourceBadge />
                     </div>
-                    <span className="text-sm font-mono font-bold text-foreground shrink-0">{m.value}</span>
+                    <span className="text-sm font-medium font-bold text-foreground shrink-0">{m.value}</span>
                   </div>
                 ))
             )}
@@ -477,10 +477,10 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-xs font-medium text-foreground leading-snug">{u.field || 'Diligence gap'}</p>
                       <div className="flex flex-wrap gap-1.5 justify-end shrink-0">
-                        <span className="inline-flex items-center text-[10px] font-mono text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
+                        <span className="inline-flex items-center text-[10px] font-medium text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
                           Unknown
                         </span>
-                        <span className="inline-flex items-center text-[10px] font-mono text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
+                        <span className="inline-flex items-center text-[10px] font-medium text-muted-foreground bg-muted/40 border border-border rounded px-1.5 py-0.5">
                           Diligence gap
                         </span>
                       </div>
@@ -500,16 +500,16 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                 ? <p className="text-xs text-muted-foreground py-4 text-center">No diligence questions generated.</p>
                 : data.diligence_questions.map((q, i) => (
                   <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-card/30 px-4 py-3">
-                    <span className="text-[10px] font-mono text-primary/60 shrink-0 mt-0.5">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="text-[10px] font-medium text-primary/60 shrink-0 mt-0.5">{String(i + 1).padStart(2, '0')}</span>
                     <div>
                       <p className="text-xs text-foreground leading-snug">{q.question}</p>
                       {q.priority && (
                         <span className={cn(
-                          'inline-block text-[10px] font-mono mt-1.5 px-1.5 py-0.5 rounded border',
+                          'inline-block text-[10px] font-medium mt-1.5 px-1.5 py-0.5 rounded border',
                           q.priority === 'high'
-                            ? 'text-red-400 border-red-500/20 bg-red-500/5'
+                            ? 'text-red-700 border-red-500/20 bg-red-500/5'
                             : q.priority === 'medium'
-                              ? 'text-amber-400 border-amber-500/20 bg-amber-500/5'
+                              ? 'text-amber-700 border-amber-500/20 bg-amber-500/5'
                               : 'text-muted-foreground border-border bg-muted/20',
                         )}>
                           {q.priority}
@@ -538,10 +538,10 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
               <div className="space-y-2">
                 {(data.limitations.length === 0
                   ? [
-                      'Extraction is based on a non-confidential prototype. No guarantee of completeness.',
+                      'Extraction is based on a non-confidential document-assisted review. No guarantee of completeness.',
                       'All extracted items are classified as claims — none have been independently verified.',
                       'Do not rely on this output for investment decisions without independent verification.',
-                      'This is a prototype workflow. Outputs require human review before use in IC.',
+                      'Outputs require human review before use in IC.',
                     ]
                   : data.limitations
                 ).map((lim, i) => (
@@ -564,8 +564,8 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
             className={cn(
               'inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border transition-colors',
               saved
-                ? 'border-green-500/30 text-green-400 bg-green-500/5 cursor-default'
-                : 'border-border bg-background hover:bg-accent text-foreground',
+                ? 'border-green-500/30 text-green-700 bg-green-500/5 cursor-default'
+                : 'border-border bg-white hover:bg-accent text-foreground',
             )}
           >
             {saved ? (
@@ -576,7 +576,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           </button>
           <Link
             href="/app/run"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
           >
             Run URL screen
           </Link>
@@ -584,7 +584,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
             href={BOOK_INTRO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
           >
             Book intro <ExternalLink className="w-3 h-3" />
           </a>
@@ -608,7 +608,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
               href={BOOK_INTRO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
             >
               Book intro <ExternalLink className="w-3 h-3" />
             </a>
@@ -651,20 +651,20 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           <div>
             <p>{friendlyMsg}</p>
             {status != null && !isValidationMsg && (
-              <p className="mt-1 opacity-70 font-mono">Status: {status}</p>
+              <p className="mt-1 opacity-70 font-medium">Status: {status}</p>
             )}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleReset}
-            className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-sm font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+            className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-sm font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
           >
             Try again
           </button>
           <Link
             href="/run"
-            className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-sm font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+            className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-sm font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
           >
             Run URL screen
           </Link>
@@ -672,7 +672,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
             href={BOOK_INTRO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-sm font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+            className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-sm font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
           >
             Book intro <ExternalLink className="w-3 h-3" />
           </a>

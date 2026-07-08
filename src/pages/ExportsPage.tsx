@@ -60,7 +60,7 @@ export default function ExportsPage() {
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
           <div className="flex items-center gap-2 mb-3">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Exports</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Exports</p>
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-muted/40 text-muted-foreground border border-border">
               <Lock className="w-2.5 h-2.5" /> Locked · Team plan
             </span>
@@ -79,7 +79,7 @@ export default function ExportsPage() {
 
         {/* Plan notice */}
         <div className="flex items-start gap-3 px-5 py-4 rounded-lg border border-amber-500/20 bg-amber-500/5">
-          <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-foreground mb-0.5">Exports require the Team plan.</p>
             <p className="text-sm text-muted-foreground">
@@ -126,7 +126,7 @@ export default function ExportsPage() {
 
         {/* How exports work */}
         <div className="rounded-lg border border-border bg-card/30 p-5">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-4">How exports work</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-4">How exports work</p>
           <div className="space-y-3">
             {[
               'Exports are generated from your saved Deal Cockpit runs — no re-processing required.',

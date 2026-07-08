@@ -5,10 +5,10 @@ import { ArrowRight } from 'lucide-react';
 type ChipVariant = 'green' | 'amber' | 'red' | 'blue' | 'muted';
 
 const CHIP: Record<ChipVariant, string> = {
-  green: 'bg-green-500/10 text-green-400 border-green-500/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-400   border-red-500/20',
-  blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+  green: 'bg-green-500/10 text-green-700 border-green-500/20',
+  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  red:   'bg-red-500/10   text-red-700   border-red-500/20',
+  blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
   muted: 'bg-muted/30     text-muted-foreground border-border',
 };
 
@@ -45,7 +45,7 @@ export function ProductSnapshot() {
       <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/20">
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-green-500" />
-          <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="text-xs font-semibold text-muted-foreground tracking-normal">
             Sample acquisition screen
           </span>
         </div>

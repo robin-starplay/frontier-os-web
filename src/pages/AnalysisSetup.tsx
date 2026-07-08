@@ -131,20 +131,20 @@ const DOCUMENT_ASSISTED_STAGES: AnalysisStageData[] = [
 
 function levelClass(level: Level | string) {
   switch (level) {
-    case 'amber': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-    case 'red':   return 'bg-red-500/10   text-red-400   border-red-500/20';
-    case 'green': return 'bg-green-500/10 text-green-400 border-green-500/20';
-    case 'blue':  return 'bg-blue-500/10  text-blue-400  border-blue-500/20';
+    case 'amber': return 'bg-amber-500/10 text-amber-700 border-amber-500/20';
+    case 'red':   return 'bg-red-500/10   text-red-700   border-red-500/20';
+    case 'green': return 'bg-green-500/10 text-green-700 border-green-500/20';
+    case 'blue':  return 'bg-blue-500/10  text-blue-700  border-blue-500/20';
     default:      return 'bg-muted/40 text-muted-foreground border-border';
   }
 }
 
 function evidenceChipClass(status: EvidenceStatus) {
   const map: Record<EvidenceStatus, string> = {
-    verified: 'bg-green-500/10 text-green-400 border-green-500/20',
-    caveat:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    claim:    'bg-blue-500/10  text-blue-400  border-blue-500/20',
-    blocking: 'bg-red-500/10   text-red-400   border-red-500/20',
+    verified: 'bg-green-500/10 text-green-700 border-green-500/20',
+    caveat:   'bg-amber-500/10 text-amber-700 border-amber-500/20',
+    claim:    'bg-blue-500/10  text-blue-700  border-blue-500/20',
+    blocking: 'bg-red-500/10   text-red-700   border-red-500/20',
     unknown:  'bg-muted/40     text-muted-foreground border-border',
   };
   return map[status] ?? map.unknown;
@@ -166,7 +166,7 @@ function EvidenceChip({
   };
   return (
     <span className={cn(
-      'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border shrink-0',
+      'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0',
       evidenceChipClass(safe),
     )}>
       {DISPLAY[safe]}
@@ -175,9 +175,9 @@ function EvidenceChip({
 }
 
 function confidenceColor(c: string) {
-  if (c === 'High')   return 'text-green-400';
-  if (c === 'Medium') return 'text-amber-400';
-  return 'text-red-400';
+  if (c === 'High')   return 'text-green-700';
+  if (c === 'Medium') return 'text-amber-700';
+  return 'text-red-700';
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -341,7 +341,7 @@ function PackSection({
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-card/50">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary">{title}</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
       </div>
       {empty ? (
         <div className="px-4 py-4 text-xs text-muted-foreground">
@@ -363,7 +363,7 @@ function StatusPill({ label }: { label: string }) {
     normalised.includes('signal') ? 'caveat' :
     'claim';
   return (
-    <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border shrink-0', evidenceChipClass(status))}>
+    <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0', evidenceChipClass(status))}>
       {label}
     </span>
   );
@@ -381,7 +381,7 @@ function SnapshotGrid({ snapshot }: { snapshot: Record<string, unknown> }) {
         const source = sourceLine(rec);
         return (
           <div key={key} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
-            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{formatLabel(key)}</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{formatLabel(key)}</p>
             <p className="text-xs text-foreground leading-snug">{displayValue(rec.value ?? value, 'Not found in public-source preview')}</p>
             {source && <p className="text-[10px] text-muted-foreground/50 mt-1">Source: {source}</p>}
           </div>
@@ -394,7 +394,7 @@ function SnapshotGrid({ snapshot }: { snapshot: Record<string, unknown> }) {
 function PositioningList({ title, items, empty }: { title: string; items: unknown[]; empty: string }) {
   return (
     <div>
-      <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">{title}</p>
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground">{empty}</p>
       ) : (
@@ -448,7 +448,7 @@ function CoveragePill({ status }: { status: 'checked' | 'not_checked' | 'private
         ? 'Requires documents'
         : 'Not checked in this preview';
   const level: Level = status === 'checked' ? 'green' : status === 'private_beta' ? 'blue' : status === 'requires_documents' ? 'amber' : 'grey';
-  return <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border shrink-0', levelClass(level))}>{label}</span>;
+  return <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0', levelClass(level))}>{label}</span>;
 }
 
 function CoverageList({
@@ -464,7 +464,7 @@ function CoverageList({
 }) {
   return (
     <div>
-      <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">{title}</p>
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground">{empty}</p>
       ) : (
@@ -653,7 +653,7 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
 function ScenarioSelector({ activeId, onSelect }: { activeId: string; onSelect: (s: DemoScenario) => void }) {
   return (
     <div className="mb-8">
-      <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Sample scenarios</p>
+      <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Sample scenarios</p>
       <p className="text-xs text-muted-foreground mb-4">Select a scenario to pre-fill the form with an example acquisition screen.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {DEMO_SCENARIOS.map((scenario) => {
@@ -672,7 +672,7 @@ function ScenarioSelector({ activeId, onSelect }: { activeId: string; onSelect: 
               <div className="flex items-start justify-between gap-2 mb-2">
                 <p className="text-xs font-semibold text-foreground leading-snug">{scenario.name}</p>
                 {isActive && (
-                  <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono border bg-primary/10 text-primary border-primary/20">
+                  <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium border bg-primary/10 text-primary border-primary/20">
                     active
                   </span>
                 )}
@@ -717,11 +717,11 @@ function StepIndicator({ step }: { step: Step }) {
         <React.Fragment key={s.n}>
           <div className="flex items-center gap-2">
             <div className={cn(
-              'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-mono font-bold border transition-colors',
+              'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium font-bold border transition-colors',
               step === s.n
                 ? 'bg-primary text-primary-foreground border-primary'
                 : step > s.n
-                ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                ? 'bg-green-500/10 text-green-700 border-green-500/30'
                 : 'bg-muted/30 text-muted-foreground border-border',
             )}>
               {step > s.n ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.n}
@@ -933,7 +933,7 @@ function Step1({
                     placeholder="Platform add-on criteria, strategic fit, revenue quality thresholds, diligence focus..."
                     value={buyerThesis}
                     onChange={e => setBuyerThesis(e.target.value)}
-                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                    className="flex w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   />
                 </div>
 
@@ -966,7 +966,7 @@ function Step1({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-foreground">Website + document</p>
-                      <span className="text-[10px] font-mono text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5">
+                      <span className="text-[10px] font-medium text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5">
                         Recommended
                       </span>
                     </div>
@@ -993,7 +993,7 @@ function Step1({
                   <div className="rounded-lg border border-border bg-card/30 p-4 space-y-4">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">Upload one non-confidential PDF</p>
-                      <span className="ml-auto text-[10px] font-mono text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5 whitespace-nowrap">
+                      <span className="ml-auto text-[10px] font-medium text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5 whitespace-nowrap">
                         Document-assisted review
                       </span>
                     </div>
@@ -1042,12 +1042,12 @@ function Step1({
                       <span>I confirm this is non-confidential material and I have permission to upload it.</span>
                     </label>
                     {documentAckRequired && (
-                      <p className="text-xs text-amber-300">Confirm non-confidential permission before uploading.</p>
+                      <p className="text-xs text-amber-700">Confirm non-confidential permission before uploading.</p>
                     )}
                     {documentFileRequired && (
-                      <p className="text-xs text-amber-300">Upload a PDF to run a document-assisted screen.</p>
+                      <p className="text-xs text-amber-700">Upload a PDF to run a document-assisted screen.</p>
                     )}
-                    <p className="text-xs text-red-300/80">Do not upload confidential materials in this preview.</p>
+                    <p className="text-xs text-red-700/80">Do not upload confidential materials in this preview.</p>
                   </div>
                 )}
 
@@ -1055,7 +1055,7 @@ function Step1({
                   'flex items-start gap-2 px-3 py-2.5 rounded border text-xs',
                   documentMode
                     ? 'bg-amber-500/5 border-amber-500/20 text-amber-200'
-                    : 'bg-green-500/5 border-green-500/20 text-green-400',
+                    : 'bg-green-500/5 border-green-500/20 text-green-700',
                 )}>
                   <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   {documentMode
@@ -1127,7 +1127,7 @@ function Step1({
                 {quotaReached && (
                   <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-3 space-y-3">
                     <div>
-                      <p className="text-sm font-semibold text-amber-300">Free preview limit reached.</p>
+                      <p className="text-sm font-semibold text-amber-700">Free preview limit reached.</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Start access to continue, or reset local workspace for local testing.
                       </p>
@@ -1142,7 +1142,7 @@ function Step1({
                       </button>
                       <Link
                         href="/pricing"
-                        className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+                        className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
                       >
                         Open pricing
                       </Link>
@@ -1182,7 +1182,7 @@ function Step1({
               {CHECK_LIST.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full border border-border bg-muted/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-[9px] font-mono text-muted-foreground">{i + 1}</span>
+                    <span className="text-[9px] font-medium text-muted-foreground">{i + 1}</span>
                   </div>
                   <span className="text-sm text-muted-foreground leading-snug">{item}</span>
                 </div>
@@ -1244,7 +1244,7 @@ function Step2({
           <p className="text-sm font-semibold text-foreground">
             Screening <span className="text-primary">{company || 'target'}</span>
           </p>
-          <span className="text-xs font-mono text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {completedCount} / {total}
           </span>
         </div>
@@ -1310,9 +1310,9 @@ function Step2({
                 {stage.status !== 'queued' && (
                   <div className="text-right shrink-0 space-y-0.5 ml-2">
                     {stage.evidenceFound > 0 && (
-                      <p className="text-[10px] font-mono text-muted-foreground">+{stage.evidenceFound}</p>
+                      <p className="text-[10px] font-medium text-muted-foreground">+{stage.evidenceFound}</p>
                     )}
-                    <p className={cn('text-[10px] font-mono', confidenceColor(stage.confidence))}>
+                    <p className={cn('text-[10px] font-medium', confidenceColor(stage.confidence))}>
                       {stage.confidence.toLowerCase()}
                     </p>
                   </div>
@@ -1325,9 +1325,9 @@ function Step2({
 
       {error && (
         <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-lg bg-red-500/5 border border-red-500/20">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+          <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-medium text-red-400">Analysis could not complete.</p>
+            <p className="text-xs font-medium text-red-700">Analysis could not complete.</p>
             {(() => {
               const lines = String(error).split('\n').filter(Boolean);
               const summary = lines[0] || String(error);
@@ -1337,8 +1337,8 @@ function Step2({
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{summary}</p>
                   {details.length > 0 && (
                     <details className="mt-2 text-xs text-muted-foreground">
-                      <summary className="cursor-pointer text-red-400/80">Connection diagnostics</summary>
-                      <div className="mt-2 rounded-md border border-red-500/15 bg-background/60 px-3 py-2 font-mono text-[10px] leading-relaxed whitespace-pre-wrap">
+                      <summary className="cursor-pointer text-red-700/80">Connection diagnostics</summary>
+                      <div className="mt-2 rounded-md border border-red-500/15 bg-background/60 px-3 py-2 font-medium text-[10px] leading-relaxed whitespace-pre-wrap">
                         {details.join('\n')}
                       </div>
                     </details>
@@ -1352,15 +1352,15 @@ function Step2({
 
       {documentUnavailable && (
         <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-amber-300">{documentUnavailable.title}</p>
+            <p className="text-sm font-semibold text-amber-700">{documentUnavailable.title}</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {documentUnavailable.message}
             </p>
             <details className="mt-2">
-              <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Technical details</summary>
-              <p className="text-[10px] font-mono text-muted-foreground/60 mt-1">
+              <summary className="cursor-pointer text-[10px] font-medium text-muted-foreground/70">Technical details</summary>
+              <p className="text-[10px] font-medium text-muted-foreground/60 mt-1">
                 Reason: {documentUnavailable.reason}
               </p>
             </details>
@@ -1368,7 +1368,7 @@ function Step2({
               <button
                 type="button"
                 onClick={onUseWebsiteOnly}
-                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
               >
                 Use website-only preview
               </button>
@@ -1573,19 +1573,19 @@ function DocumentAssistedResultDisplay({
     return (
       <div className="w-full max-w-3xl mx-auto space-y-4">
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
-          <p className="text-sm font-semibold text-amber-300">Document-assisted review is not enabled in this workspace yet.</p>
+          <p className="text-sm font-semibold text-amber-700">Document-assisted review is not enabled in this workspace yet.</p>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
             Use website-only preview, or request pilot access.
           </p>
           <details className="mt-2">
-            <summary className="cursor-pointer text-[10px] font-mono text-muted-foreground/70">Technical details</summary>
-            <p className="text-[10px] font-mono text-muted-foreground/60 mt-1">Reason: {result.reason || 'document_uploads_disabled'}</p>
+            <summary className="cursor-pointer text-[10px] font-medium text-muted-foreground/70">Technical details</summary>
+            <p className="text-[10px] font-medium text-muted-foreground/60 mt-1">Reason: {result.reason || 'document_uploads_disabled'}</p>
           </details>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onRunAnother}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
             >
               Use website-only preview
             </button>
@@ -1603,7 +1603,7 @@ function DocumentAssistedResultDisplay({
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4">
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-400">
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>{saveSource === 'backend' ? 'Saved to Cockpit' : 'Saved locally · document-assisted run'}</span>
         <Link href="/cockpit" className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
@@ -1613,8 +1613,8 @@ function DocumentAssistedResultDisplay({
 
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Analysis complete · Document-assisted review</p>
-          <span className="text-xs font-mono text-muted-foreground">{result.company_name || 'Target'}</span>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">Analysis complete · Document-assisted review</p>
+          <span className="text-xs font-medium text-muted-foreground">{result.company_name || 'Target'}</span>
         </div>
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
@@ -1626,13 +1626,13 @@ function DocumentAssistedResultDisplay({
             ['Blockers', String(blockers.length)],
           ].map(([label, value]) => (
             <div key={label}>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{label}</p>
               <p className="text-xs font-medium text-foreground leading-snug">{value}</p>
             </div>
           ))}
         </div>
         <div className="px-4 py-3 border-t border-border bg-card/30">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Next action</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Next action</p>
           <p className="text-xs text-foreground leading-snug">{result.next_action || displayValue(readiness.recommended_next_action, 'Request management accounts and source evidence before IC.')}</p>
         </div>
       </div>
@@ -1646,7 +1646,7 @@ function DocumentAssistedResultDisplay({
             ['Financial claims', displayValue(summary.financial_claim_count, String(financialClaims.length))],
           ].map(([label, value]) => (
             <div key={label}>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{label}</p>
               <p className="text-xs text-foreground">{value}</p>
             </div>
           ))}
@@ -1663,7 +1663,7 @@ function DocumentAssistedResultDisplay({
             ['Blockers', String(blockers.length)],
           ].map(([label, value]) => (
             <div key={label} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{label}</p>
               <p className="text-lg font-semibold text-foreground">{value}</p>
             </div>
           ))}
@@ -1763,7 +1763,7 @@ function DocumentAssistedResultDisplay({
         <ol className="space-y-2">
           {nextQuestions.map((question, i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-              <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+              <span className="text-[10px] font-medium text-muted-foreground/60 mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
               <span>{displayValue(question)}</span>
             </li>
           ))}
@@ -1783,7 +1783,7 @@ function DocumentAssistedResultDisplay({
 
       {(sourceReferences.length > 0 || limitations.length > 0) && (
         <details className="rounded-lg border border-border bg-card/30 px-4 py-3">
-          <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+          <summary className="cursor-pointer text-[10px] font-semibold tracking-normal text-muted-foreground">
             Sources and limitations
           </summary>
           <div className="mt-3 space-y-3">
@@ -1801,7 +1801,7 @@ function DocumentAssistedResultDisplay({
         <button
           type="button"
           onClick={onRunAnother}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-accent transition-colors text-foreground"
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
         >
           <RotateCcw className="w-3 h-3" /> Run another
         </button>
@@ -1894,7 +1894,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       )}
 
       {/* Saved to Cockpit notice */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-400">
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>
           {saveSource === 'backend'
@@ -1947,7 +1947,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
               ['What would change the recommendation', asArray(readinessSummary.what_would_change_the_recommendation)],
             ].map(([title, values]) => (
               <div key={title as string}>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">{title as string}</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">{title as string}</p>
                 <ul className="space-y-1.5">
                   {(values as unknown[]).slice(0, 4).map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -1960,7 +1960,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             ))}
           </div>
           <div className="mt-4 rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
-            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Recommended next action</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Recommended next action</p>
             <p className="text-xs text-foreground leading-snug">{displayValue(readinessSummary.recommended_next_action, result.next_action)}</p>
           </div>
         </PackSection>
@@ -2039,7 +2039,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
               empty="No weak financial signals were retained."
             />
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Missing financials</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Missing financials</p>
               <ul className="space-y-1.5">
                 {asArray(financialSignals.missing_financials).map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -2057,7 +2057,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
         <ol className="space-y-2">
           {nextQuestions.slice(0, 12).map((question, i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-              <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 shrink-0">
+              <span className="text-[10px] font-medium text-muted-foreground/60 mt-0.5 shrink-0">
                 {String(i + 1).padStart(2, '0')}
               </span>
               <span>{displayValue(question)}</span>
@@ -2080,7 +2080,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {(Object.keys(analysisQuality).length > 0 || runLog.length > 0) && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Evidence coverage</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Evidence coverage</p>
           </div>
           <div className="p-4 space-y-4">
             {Object.keys(analysisQuality).length > 0 && (
@@ -2098,13 +2098,13 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                   empty="No additional skipped sources were reported."
                 />
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Confidence basis</p>
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Confidence basis</p>
                   <p className="text-xs text-muted-foreground leading-snug">
                     Evidence coverage and source quality, not speed.
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Preview limitation</p>
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Preview limitation</p>
                   <p className="text-xs text-muted-foreground leading-snug">
                     Public-source preview does not replace management accounts, ARR bridge, retention, churn or customer concentration diligence.
                   </p>
@@ -2113,7 +2113,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             )}
             {runLog.length > 0 && (
               <details className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
-                <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                <summary className="cursor-pointer text-[10px] font-semibold tracking-normal text-muted-foreground">
                   Technical details
                 </summary>
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2149,8 +2149,8 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {verifiedCards.length > 0 && (
         <div className="rounded-lg border border-green-500/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-green-500/20 bg-green-500/[0.03] flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
-            <p className="text-[10px] font-mono uppercase tracking-widest text-green-400">
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-700 shrink-0" />
+            <p className="text-[10px] font-semibold tracking-normal text-green-700">
               Verified facts ({verifiedCards.length})
             </p>
           </div>
@@ -2163,7 +2163,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                     {card.value && <span className="text-sm text-muted-foreground">{card.value}</span>}
                     <EvidenceChip status={card.status} source={card.source} confidence={card.confidence} />
                   </div>
-                  <span className={cn('text-[10px] font-mono shrink-0', confidenceColor(card.confidence))}>
+                  <span className={cn('text-[10px] font-medium shrink-0', confidenceColor(card.confidence))}>
                     {card.confidence.toLowerCase()} confidence
                   </span>
                 </div>
@@ -2179,11 +2179,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {claimCards.length > 0 && (
         <div className="rounded-lg border border-blue-500/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-blue-500/20 bg-blue-500/[0.03] flex items-center gap-2">
-            <Info className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <p className="text-[10px] font-mono uppercase tracking-widest text-blue-400">
+            <Info className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+            <p className="text-[10px] font-semibold tracking-normal text-blue-700">
               Company claims ({claimCards.length})
             </p>
-            <span className="ml-auto text-[10px] font-mono text-muted-foreground/50">Not independently verified</span>
+            <span className="ml-auto text-[10px] font-medium text-muted-foreground/50">Not independently verified</span>
           </div>
           <div className="divide-y divide-border/50">
             {claimCards.map((card, i) => (
@@ -2194,7 +2194,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                     {card.value && <span className="text-sm text-muted-foreground">{card.value}</span>}
                     <EvidenceChip status={card.status} source={card.source} confidence={card.confidence} />
                   </div>
-                  <span className={cn('text-[10px] font-mono shrink-0', confidenceColor(card.confidence))}>
+                  <span className={cn('text-[10px] font-medium shrink-0', confidenceColor(card.confidence))}>
                     {card.confidence.toLowerCase()} confidence
                   </span>
                 </div>
@@ -2211,10 +2211,10 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center gap-2">
             <AlertCircle className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">
               Unknowns ({unknownCards.length})
             </p>
-            <span className="ml-auto text-[10px] font-mono text-muted-foreground/50">Not available from public sources</span>
+            <span className="ml-auto text-[10px] font-medium text-muted-foreground/50">Not available from public sources</span>
           </div>
           <div className="divide-y divide-border">
             {unknownCards.map((card, i) => (
@@ -2240,10 +2240,10 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           icNotReady ? 'border-amber-500/20 bg-amber-500/[0.03]' : 'border-green-500/20 bg-green-500/[0.03]',
         )}>
           {icNotReady
-            ? <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            : <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+            ? <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+            : <CheckCircle2 className="w-3.5 h-3.5 text-green-700 shrink-0" />
           }
-          <p className={cn('text-[10px] font-mono uppercase tracking-widest', icNotReady ? 'text-amber-400' : 'text-green-400')}>
+          <p className={cn('text-[10px] font-semibold tracking-normal', icNotReady ? 'text-amber-700' : 'text-green-700')}>
             {icNotReady ? 'Diligence blockers to resolve' : 'IC readiness'}
           </p>
         </div>
@@ -2269,13 +2269,13 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                 >
                   Request financials
                 </button>
-                <Link href="/cockpit" className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
+                <Link href="/cockpit" className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
                   Save to Cockpit
                 </Link>
               </div>
             </>
           ) : (
-            <p className="text-xs text-green-400/80 leading-relaxed">
+            <p className="text-xs text-green-700/80 leading-relaxed">
               Evidence gathered supports progression to IC preparation. Document-assisted diligence recommended to verify all claims before committee.
             </p>
           )}
@@ -2285,9 +2285,9 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── 5. Diligence blockers ────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Diligence blockers</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">Diligence blockers</p>
           {blockerCards.length > 0 && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border bg-red-500/10 text-red-400 border-red-500/20">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-red-500/10 text-red-700 border-red-500/20">
               {blockerCards.length} blocking
             </span>
           )}
@@ -2306,7 +2306,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                     <span className="text-sm font-semibold text-foreground">{card.field}</span>
                     <EvidenceChip status={card.status} source={card.source} confidence={card.confidence} />
                   </div>
-                  <span className={cn('text-[10px] font-mono shrink-0', confidenceColor(card.confidence))}>
+                  <span className={cn('text-[10px] font-medium shrink-0', confidenceColor(card.confidence))}>
                     {card.confidence.toLowerCase()} confidence
                   </span>
                 </div>
@@ -2321,7 +2321,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── 6. AI defensibility ──────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">AI defensibility</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">AI defensibility</p>
         </div>
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -2333,7 +2333,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
               { label: 'OPEX improvement',        value: ai.opex_improvement,      level: ai.opex_improvement.startsWith('Limited') ? 'amber' : 'grey' as Level },
             ].map(row => (
               <div key={row.label}>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{row.label}</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{row.label}</p>
                 <p className="text-xs text-foreground leading-snug">{row.value}</p>
               </div>
             ))}
@@ -2341,11 +2341,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
           {ai.diligence_questions.length > 0 && (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">AI diligence questions</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">AI diligence questions</p>
               <ol className="space-y-1.5">
                 {ai.diligence_questions.map((q, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 shrink-0">
+                    <span className="text-[10px] font-medium text-muted-foreground/60 mt-0.5 shrink-0">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span className="text-xs text-muted-foreground leading-snug">{q}</span>
@@ -2369,11 +2369,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── 7. Strategic fit ─────────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Strategic fit</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">Strategic fit</p>
         </div>
         <div className="p-4 space-y-4">
           {!hasBuyerThesis && (
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/8 border border-amber-500/20 text-amber-400 text-xs">
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/8 border border-amber-500/20 text-amber-700 text-xs">
               <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               Strategic fit is generic. Add a buyer thesis for a stronger fit screen.
             </div>
@@ -2382,7 +2382,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Fit score:</span>
             <span className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium border',
+              'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
               levelClass(result.strategic_fit_label.startsWith('Core') ? 'green' : result.strategic_fit_label.startsWith('Non') ? 'red' : 'blue'),
             )}>
               {sf.score}
@@ -2392,7 +2392,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {sf.why_fits.length > 0 && sf.why_fits[0] !== 'Add a buyer thesis to generate specific fit analysis.' && (
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-green-400 mb-2">Why it fits</p>
+                <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-2">Why it fits</p>
                 <ul className="space-y-1.5">
                   {sf.why_fits.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -2405,7 +2405,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             )}
             {sf.why_not.length > 0 && (
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-red-400 mb-2">Why it may not fit</p>
+                <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-2">Why it may not fit</p>
                 <ul className="space-y-1.5">
                   {sf.why_not.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -2420,7 +2420,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
           {sf.assumptions.length > 0 && (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Key assumptions</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Key assumptions</p>
               <ul className="space-y-1">
                 {sf.assumptions.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -2434,7 +2434,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
           {sf.risks.length > 0 && (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-amber-400 mb-2">Risks</p>
+              <p className="text-[10px] font-semibold tracking-normal text-amber-700 mb-2">Risks</p>
               <ul className="space-y-1">
                 {sf.risks.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -2448,11 +2448,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
           {sf.diligence_questions.length > 0 && sf.diligence_questions[0] !== 'Add a buyer thesis to generate targeted diligence questions.' && (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">Diligence questions</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Diligence questions</p>
               <ol className="space-y-1.5">
                 {sf.diligence_questions.map((q, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 shrink-0">
+                    <span className="text-[10px] font-medium text-muted-foreground/60 mt-0.5 shrink-0">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span className="text-xs text-muted-foreground leading-snug">{q}</span>
@@ -2476,8 +2476,8 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       {/* ─── D. Innovation & operating signals ──────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Pilot access · Innovation signals</p>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Pilot access · Innovation signals</p>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">
             {textValue(innovationSignals.status, '') === 'not_checked'
               ? 'Roadmap · Not checked'
               : textValue(innovationSignals.status, 'Roadmap · Pilot access')}
@@ -2504,7 +2504,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             ))}
           </div>
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <span className="text-[11px] font-mono text-muted-foreground/50">Not checked in this public preview.</span>
+            <span className="text-[11px] font-medium text-muted-foreground/50">Not checked in this public preview.</span>
             <Link
               href="/request-pilot"
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
@@ -2518,7 +2518,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
       {/* ─── D. Locked premium sections ──────────────────────────────── */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Available with pilot access</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-3">Available with pilot access</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <LockedFeature
             title="Document-assisted review"
@@ -2569,7 +2569,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             href={BOOK_INTRO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-9 px-4 rounded-md transition-colors text-muted-foreground hover:text-foreground"
             onClick={() => console.log('[analytics] clicked_book_intro_result_bottom')}
           >
             Book a 30-minute intro
@@ -2581,7 +2581,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
       <div className="flex flex-wrap gap-2 pb-4">
         <button
           onClick={onRunAnother}
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
           <RotateCcw className="w-3 h-3" /> Run another
         </button>
@@ -2638,14 +2638,14 @@ function AnalysisResultDisplay({
       {/* ── Company header ─────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-0.5">
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-0.5">
             Analysis complete
           </p>
           <h2 className="text-xl font-bold text-foreground">{result.company_name}</h2>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5">{result.website}</p>
+          <p className="text-xs text-muted-foreground font-medium mt-0.5">{result.website}</p>
         </div>
         {result.demo_mode && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/20 shrink-0">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
             Example screen
           </span>
         )}
@@ -2654,16 +2654,16 @@ function AnalysisResultDisplay({
       {/* ── Key metrics ────────────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">
+          <p className="text-[10px] font-semibold tracking-normal text-primary">
             Acquisition screen · {resultModeLabel(result.analysis_mode)}
           </p>
         </div>
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {result.recommendation && (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Recommendation</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Recommendation</p>
               <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium border',
+                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
                 levelClass(recommendationToLevel(result.recommendation)),
               )}>
                 {result.recommendation}
@@ -2672,9 +2672,9 @@ function AnalysisResultDisplay({
           )}
           {result.ic_readiness && (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">IC readiness</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">IC readiness</p>
               <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium border',
+                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
                 levelClass(readinessLevel(result.ic_readiness)),
               )}>
                 {formatLabel(result.ic_readiness)}
@@ -2683,9 +2683,9 @@ function AnalysisResultDisplay({
           )}
           {result.valuation_readiness && (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Valuation readiness</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Valuation readiness</p>
               <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium border',
+                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
                 levelClass(readinessLevel(result.valuation_readiness)),
               )}>
                 {formatLabel(result.valuation_readiness)}
@@ -2695,7 +2695,7 @@ function AnalysisResultDisplay({
         </div>
         {result.recommendation_reason && (
           <div className="px-4 py-3 border-t border-border bg-card/30">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Rationale</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Rationale</p>
             <p className="text-xs text-foreground leading-snug">{result.recommendation_reason}</p>
           </div>
         )}
@@ -2705,12 +2705,12 @@ function AnalysisResultDisplay({
       {sf && Object.keys(sf).length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Strategic fit</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Strategic fit</p>
           </div>
           <div className="p-4 space-y-3">
             {Object.entries(sf).map(([key, val]) => (
               <div key={key}>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">
                   {key.replace(/_/g, ' ')}
                 </p>
                 {Array.isArray(val) ? (
@@ -2735,7 +2735,7 @@ function AnalysisResultDisplay({
       {cards.length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Evidence</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Evidence</p>
           </div>
           <div className="divide-y divide-border">
             {cards.map((card, i) => {
@@ -2762,7 +2762,7 @@ function AnalysisResultDisplay({
                       )}
                       {c.status != null && (
                         <span className={cn(
-                          'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border shrink-0',
+                          'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0',
                           evidenceChipClass(safeStatus),
                         )}>
                           {DISPLAY_LABEL[safeStatus]}
@@ -2770,7 +2770,7 @@ function AnalysisResultDisplay({
                       )}
                     </div>
                     {conf && (
-                      <span className={cn('text-[10px] font-mono shrink-0', confidenceColor(conf))}>
+                      <span className={cn('text-[10px] font-medium shrink-0', confidenceColor(conf))}>
                         {conf.toLowerCase()} confidence
                       </span>
                     )}
@@ -2792,7 +2792,7 @@ function AnalysisResultDisplay({
       {events.length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Review log</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Review log</p>
           </div>
           <div className="divide-y divide-border">
             {events.slice(-6).map(ev => (
@@ -2801,7 +2801,7 @@ function AnalysisResultDisplay({
                   {ev.status === 'complete' || ev.status === 'completed' ? (
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
                   ) : ev.status === 'failed' || ev.status === 'error' ? (
-                    <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                    <AlertCircle className="w-3.5 h-3.5 text-red-700" />
                   ) : (
                     <Info className="w-3.5 h-3.5 text-muted-foreground/40" />
                   )}
@@ -2816,10 +2816,10 @@ function AnalysisResultDisplay({
       {/* ── Warnings ───────────────────────────────────────────────── */}
       {warnings.length > 0 && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <ul className="space-y-1">
             {warnings.map((w, i) => (
-              <li key={i} className="text-xs text-amber-400/80">{w}</li>
+              <li key={i} className="text-xs text-amber-700/80">{w}</li>
             ))}
           </ul>
         </div>
@@ -2835,7 +2835,7 @@ function AnalysisResultDisplay({
       {/* ── From evidence to action ────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">From evidence to action</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">From evidence to action</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-border">
           {([
@@ -2848,7 +2848,7 @@ function AnalysisResultDisplay({
             const field = (result as Record<string, unknown>)[col.key];
             return (
               <div key={col.label} className="px-3 py-3">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">{col.label}</p>
+                <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">{col.label}</p>
                 <p className="text-[10px] text-muted-foreground/55 mb-2 leading-snug">{col.desc}</p>
                 {field != null ? (
                   Array.isArray(field)
@@ -2871,7 +2871,7 @@ function AnalysisResultDisplay({
       {/* ── Investor prep pack ─────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Investor prep pack</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">Investor prep pack</p>
         </div>
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {([
@@ -2884,7 +2884,7 @@ function AnalysisResultDisplay({
             const field = (result as Record<string, unknown>)[card.key];
             return (
               <div key={card.label} className="rounded-md border border-border bg-card/30 px-3 py-3">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">{card.label}</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">{card.label}</p>
                 {field != null ? (
                   Array.isArray(field)
                     ? <ul className="space-y-1">{(field as unknown[]).map((item, i) => (
@@ -2916,10 +2916,10 @@ function AnalysisResultDisplay({
           return (
             <div className="rounded-lg border border-border overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Innovation &amp; operating signals</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Innovation &amp; operating signals</p>
                 <span className={cn(
-                  'text-[10px] font-mono px-1.5 py-0.5 rounded border whitespace-nowrap',
-                  iosStatus === 'checked' ? 'border-green-500/30 bg-green-500/10 text-green-400' : 'border-border bg-muted/30 text-muted-foreground',
+                  'text-[10px] font-medium px-1.5 py-0.5 rounded border whitespace-nowrap',
+                  iosStatus === 'checked' ? 'border-green-500/30 bg-green-500/10 text-green-700' : 'border-border bg-muted/30 text-muted-foreground',
                 )}>
                   {iosStatus === 'checked' ? 'Checked' : formatLabel(iosStatus)}
                 </span>
@@ -2939,7 +2939,7 @@ function AnalysisResultDisplay({
                     ))}
                   </div>
                 )}
-                <p className="text-[10px] font-mono text-muted-foreground/50">Source: Public signals only · Status: Signal, not verified</p>
+                <p className="text-[10px] font-medium text-muted-foreground/50">Source: Public signals only · Status: Signal, not verified</p>
               </div>
             </div>
           );
@@ -2949,8 +2949,8 @@ function AnalysisResultDisplay({
         return (
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Pilot access · Innovation signals</p>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">Roadmap · Pilot access</span>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Pilot access · Innovation signals</p>
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-border bg-muted/30 text-muted-foreground whitespace-nowrap">Roadmap · Pilot access</span>
             </div>
             <div className="px-4 py-3">
               <p className="text-xs text-foreground mb-1 leading-relaxed">
@@ -2973,7 +2973,7 @@ function AnalysisResultDisplay({
                 ))}
               </div>
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <span className="text-[11px] font-mono text-muted-foreground/50">Not checked in this public preview.</span>
+                <span className="text-[11px] font-medium text-muted-foreground/50">Not checked in this public preview.</span>
                 <Link
                   href="/request-pilot"
                   className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
@@ -2989,7 +2989,7 @@ function AnalysisResultDisplay({
 
       {/* ── Locked premium sections ──────────────────────────────── */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Available with pilot access</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-3">Available with pilot access</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <LockedFeature
             title="Document-assisted review"
@@ -3036,7 +3036,7 @@ function AnalysisResultDisplay({
             href={BOOK_INTRO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-9 px-4 rounded-md transition-colors text-muted-foreground hover:text-foreground"
             onClick={() => console.log('[analytics] clicked_book_intro_railway_result')}
           >
             Book a 30-minute intro
@@ -3049,13 +3049,13 @@ function AnalysisResultDisplay({
         <button
           type="button"
           onClick={onRunAnother}
-          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
           <RotateCcw className="w-3 h-3" /> Run another
         </button>
         <Link
           href="/cockpit"
-          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
           Deal Cockpit
         </Link>
@@ -3063,7 +3063,7 @@ function AnalysisResultDisplay({
           href={BOOK_INTRO_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
           onClick={() => console.log('[analytics] clicked_book_intro_result')}
         >
           Book a 30-minute intro <ExternalLink className="w-3 h-3" />
@@ -3861,11 +3861,11 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                   {/* Top status strip */}
                   <div className="rounded-lg border border-border bg-card/50 px-4 py-3 space-y-2">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20 shrink-0">
                         Review in progress
                       </span>
                       <span className="text-sm font-medium text-foreground">{company.trim() || 'target'}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground tabular-nums ml-auto">
+                      <span className="text-[10px] font-medium text-muted-foreground tabular-nums ml-auto">
                         {formatElapsed(elapsedSecs)} · {pct}%
                       </span>
                     </div>
@@ -3899,7 +3899,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                                 ) : status === 'running' ? (
                                   <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
                                 ) : status === 'failed' ? (
-                                  <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                                  <AlertCircle className="w-3.5 h-3.5 text-red-700" />
                                 ) : (
                                   <div className="w-1.5 h-1.5 rounded-full bg-border" />
                                 )}
@@ -3908,13 +3908,13 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                                 'text-xs',
                                 status === 'complete' ? 'text-foreground/50' :
                                 status === 'running'  ? 'text-foreground font-medium' :
-                                status === 'failed'   ? 'text-red-400' :
+                                status === 'failed'   ? 'text-red-700' :
                                 'text-muted-foreground/35',
                               )}>
                                 {stage.label}
                               </span>
                               {status === 'running' && (
-                                <span className="ml-auto text-[9px] font-mono text-primary/50 animate-pulse">active</span>
+                                <span className="ml-auto text-[9px] font-medium text-primary/50 animate-pulse">active</span>
                               )}
                             </div>
                           );
@@ -3950,7 +3950,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                                   ) : ev.status === 'running' ? (
                                     <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
                                   ) : ev.status === 'failed' || ev.status === 'error' ? (
-                                    <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                                    <AlertCircle className="w-3.5 h-3.5 text-red-700" />
                                   ) : (
                                     <Clock className="w-3.5 h-3.5 text-muted-foreground/30" />
                                   )}
@@ -3981,7 +3981,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                     <div className="space-y-3">
                       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
                         <p className="text-xs font-semibold text-muted-foreground mb-2">Elapsed</p>
-                        <p className="text-2xl font-mono text-foreground tabular-nums">{formatElapsed(elapsedSecs)}</p>
+                        <p className="text-2xl font-medium text-foreground tabular-nums">{formatElapsed(elapsedSecs)}</p>
                         <p className="text-[11px] text-muted-foreground/70 mt-2">Usually 2-7 minutes for public-source screens.</p>
                         <p className="text-[10px] text-muted-foreground/50 mt-1 leading-relaxed">Large or ambiguous targets can take longer while registry and evidence checks complete.</p>
                       </div>
@@ -4026,10 +4026,10 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
             {railwayPhase.kind === 'error' && (
               <div className="space-y-4">
                 <div className="flex items-start gap-3 px-4 py-4 rounded-lg bg-red-500/5 border border-red-500/20">
-                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  <AlertCircle className="w-5 h-5 text-red-700 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-red-400 mb-1">Analysis failed</p>
-                    <p className="text-xs text-red-400/80 font-mono leading-snug">
+                    <p className="text-sm font-semibold text-red-700 mb-1">Analysis failed</p>
+                    <p className="text-xs text-red-700/80 font-medium leading-snug">
                       {railwayPhase.message}
                     </p>
                     {railwayPhase.runId && (
@@ -4063,7 +4063,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
             {railwayPhase.kind === 'success' && (
               <>
                 {completionSecs !== null && (
-                  <p className="text-[10px] font-mono text-muted-foreground/50 mb-3 text-center">
+                  <p className="text-[10px] font-medium text-muted-foreground/50 mb-3 text-center">
                     Live analysis completed in {formatElapsed(completionSecs)}
                   </p>
                 )}

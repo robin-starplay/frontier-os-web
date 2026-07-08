@@ -47,10 +47,10 @@ const PROGRESS_STEPS: string[] = [
 function chip(level: Level, label: string) {
   const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium whitespace-nowrap border';
   const map: Record<Level, string> = {
-    green: 'bg-green-500/10 text-green-400 border-green-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    red:   'bg-red-500/10   text-red-400   border-red-500/20',
-    blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+    green: 'bg-green-500/10 text-green-700 border-green-500/20',
+    amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+    red:   'bg-red-500/10   text-red-700   border-red-500/20',
+    blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
     grey:  'bg-muted/40     text-muted-foreground border-border',
   };
   return <span className={cn(base, map[level])}>{label}</span>;
@@ -65,9 +65,9 @@ function riskLevel(risk: string): Level {
 }
 
 function rankBadgeStyle(rank: number) {
-  if (rank === 1) return 'bg-green-500/15 text-green-400 border border-green-500/30';
-  if (rank === 2) return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-  if (rank === 3) return 'bg-blue-500/10  text-blue-400  border border-blue-500/20';
+  if (rank === 1) return 'bg-green-500/15 text-green-700 border border-green-500/30';
+  if (rank === 2) return 'bg-amber-500/10 text-amber-700 border border-amber-500/20';
+  if (rank === 3) return 'bg-blue-500/10  text-blue-700  border border-blue-500/20';
   return 'bg-muted/30 text-muted-foreground border border-border';
 }
 
@@ -105,7 +105,7 @@ function CompareForm({
         {/* Buyer context */}
         <div className="rounded-lg border border-border bg-card mb-6">
           <div className="px-5 py-4 border-b border-border">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-0">Buyer context</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary mb-0">Buyer context</p>
           </div>
           <div className="p-5 space-y-4">
             <div className="space-y-2">
@@ -137,7 +137,7 @@ function CompareForm({
         {/* Company rows */}
         <div className="rounded-lg border border-border bg-card mb-6">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Target companies</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Target companies</p>
             <span className="text-xs text-muted-foreground">{companies.length} / 5</span>
           </div>
           <div className="divide-y divide-border">
@@ -215,7 +215,7 @@ function CompareForm({
 
         {!canSubmit && (
           <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+            <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
             Enter at least 2 company names to compare.
           </p>
         )}
@@ -318,7 +318,7 @@ function CompareResultView({ result, onReset, saveSource }: {
       </div>
 
       {/* Saved to Cockpit notice */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-400">
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>
           {saveSource === 'backend'
@@ -337,7 +337,7 @@ function CompareResultView({ result, onReset, saveSource }: {
       {/* Comparison verdict */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Comparison verdict</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">Comparison verdict</p>
         </div>
         <div className="px-5 py-4">
           {top && second ? (
@@ -355,22 +355,22 @@ function CompareResultView({ result, onReset, saveSource }: {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Best first target',    value: result.most_ic_ready,     color: 'text-green-400' },
-          { label: 'Strongest evidence',   value: strongestEvidence,        color: 'text-blue-400' },
-          { label: 'Highest AI risk',      value: result.highest_ai_risk,   color: 'text-red-400' },
+          { label: 'Best first target',    value: result.most_ic_ready,     color: 'text-green-700' },
+          { label: 'Strongest evidence',   value: strongestEvidence,        color: 'text-blue-700' },
+          { label: 'Highest AI risk',      value: result.highest_ai_risk,   color: 'text-red-700' },
           { label: 'Biggest diligence gap',
             value: mostBlockers && mostBlockers.blockers.length > 0
               ? `${mostBlockers.company}: ${mostBlockers.blockers[0]}`
               : result.most_evidence_gaps,
-            color: 'text-amber-400' },
+            color: 'text-amber-700' },
         ].map(card => (
           <div key={card.label} className="rounded-lg border border-border bg-card p-3">
-            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">{card.label}</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{card.label}</p>
             <p className={cn('text-sm font-semibold leading-snug', card.color)}>{card.value}</p>
           </div>
         ))}
         <div className="rounded-lg border border-border bg-card p-3 col-span-2 lg:col-span-1">
-          <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Best next action</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Best next action</p>
           <p className="text-xs text-foreground leading-snug">{result.best_next_action}</p>
         </div>
       </div>
@@ -426,19 +426,19 @@ function CompareResultView({ result, onReset, saveSource }: {
             {/* Detail grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Strategic fit</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Strategic fit</p>
                 <p className="text-xs text-foreground leading-snug">{t.strategic_fit}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Evidence confidence</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Evidence confidence</p>
                 <p className="text-xs text-foreground">{t.evidence_confidence}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">AI replica risk</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">AI replica risk</p>
                 {chip(riskLevel(t.ai_replica_risk), t.ai_replica_risk)}
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Main blockers</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Main blockers</p>
                 <p className="text-xs text-muted-foreground leading-snug">{t.blockers.length > 0 ? t.blockers[0] : 'None identified'}</p>
               </div>
             </div>
@@ -446,8 +446,8 @@ function CompareResultView({ result, onReset, saveSource }: {
             {/* Blockers */}
             {t.blockers.length > 1 && (
               <div className="mt-4">
-                <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
-                  <AlertCircle className="w-3 h-3 text-amber-400" />
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <AlertCircle className="w-3 h-3 text-amber-700" />
                   Diligence gaps ({t.blockers.length})
                 </p>
                 <ul className="space-y-1">
@@ -464,7 +464,7 @@ function CompareResultView({ result, onReset, saveSource }: {
             {/* Next action */}
             <div className="mt-4 pt-4 border-t border-border/60 flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/60 mr-1.5">Next action:</span>
+                <span className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mr-1.5">Next action:</span>
                 <span className="text-xs text-muted-foreground">{t.next_action}</span>
               </div>
               {t.recommendation_level !== 'red' && (
@@ -482,7 +482,7 @@ function CompareResultView({ result, onReset, saveSource }: {
 
       {/* Locked premium features */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Available in private beta</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-3">Available in private beta</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[
             { title: 'Drill-down screens', desc: 'Run a full URL-only or document-assisted screen on any ranked target directly from the comparison.' },
@@ -645,7 +645,7 @@ export default function CompareTargetsPage() {
   const pageHeader = (
     <div className="w-full border-b border-border bg-card/30">
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Target comparison</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Target comparison</p>
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
           Compare software acquisition targets.
         </h1>

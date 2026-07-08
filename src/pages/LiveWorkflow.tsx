@@ -149,19 +149,19 @@ export default function LiveWorkflow() {
         {currentStage && !isComplete && (
           <>
             {currentStage.id === 6 && (
-              <div className="mb-6 flex items-start gap-2 px-3 py-2.5 rounded-md bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
+              <div className="mb-6 flex items-start gap-2 px-3 py-2.5 rounded-md bg-amber-500/5 border border-amber-500/20 text-xs text-amber-700">
                 <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>Uploaded document claims are extracted as candidate evidence, not automatically verified facts.</span>
               </div>
             )}
             {currentStage.id === 7 && (
-              <div className="mb-6 flex items-start gap-2 px-3 py-2.5 rounded-md bg-blue-500/5 border border-blue-500/20 text-xs text-blue-400">
+              <div className="mb-6 flex items-start gap-2 px-3 py-2.5 rounded-md bg-blue-500/5 border border-blue-500/20 text-xs text-blue-700">
                 <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>Conflicts are preserved and routed to diligence questions. Official filings take precedence unless a user verifies otherwise.</span>
               </div>
             )}
             {currentStage.id === 20 && (
-              <div className="mb-6 flex items-start gap-2 px-3 py-2.5 rounded-md bg-green-500/5 border border-green-500/20 text-xs text-green-400">
+              <div className="mb-6 flex items-start gap-2 px-3 py-2.5 rounded-md bg-green-500/5 border border-green-500/20 text-xs text-green-700">
                 <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>Report includes AI disruption section, source confidence, blocking gaps and caveats. All outputs require professional judgement and diligence confirmation.</span>
               </div>

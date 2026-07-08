@@ -126,9 +126,9 @@ export default function WorkspaceCreationPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="w-10 h-10 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <CheckCircle2 className="w-5 h-5 text-green-700" />
             </div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">
+            <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">
               {existingWorkspace ? 'Workspace found' : 'Workspace created'}
             </p>
             <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -195,7 +195,7 @@ export default function WorkspaceCreationPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">
             Private beta · free access
           </p>
           <h1 className="text-2xl font-bold text-foreground mb-2">

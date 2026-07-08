@@ -5,18 +5,18 @@ import { AI_DISRUPTION_CARDS, type AICard, type EvidenceStatus } from '@/data/ai
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const ACCENT_CLASSES = {
-  blue:   { border: 'border-blue-500/30',   icon: 'bg-blue-500/10 text-blue-500',   badge: 'bg-blue-500/10 text-blue-400',   dot: 'bg-blue-500' },
-  red:    { border: 'border-red-500/30',    icon: 'bg-red-500/10 text-red-500',     badge: 'bg-red-500/10 text-red-400',     dot: 'bg-red-500' },
-  green:  { border: 'border-green-500/30',  icon: 'bg-green-500/10 text-green-500', badge: 'bg-green-500/10 text-green-400', dot: 'bg-green-500' },
-  amber:  { border: 'border-amber-500/30',  icon: 'bg-amber-500/10 text-amber-500', badge: 'bg-amber-500/10 text-amber-400', dot: 'bg-amber-500' },
+  blue:   { border: 'border-blue-500/30',   icon: 'bg-blue-500/10 text-blue-500',   badge: 'bg-blue-500/10 text-blue-700',   dot: 'bg-blue-500' },
+  red:    { border: 'border-red-500/30',    icon: 'bg-red-500/10 text-red-500',     badge: 'bg-red-500/10 text-red-700',     dot: 'bg-red-500' },
+  green:  { border: 'border-green-500/30',  icon: 'bg-green-500/10 text-green-500', badge: 'bg-green-500/10 text-green-700', dot: 'bg-green-500' },
+  amber:  { border: 'border-amber-500/30',  icon: 'bg-amber-500/10 text-amber-500', badge: 'bg-amber-500/10 text-amber-700', dot: 'bg-amber-500' },
   purple: { border: 'border-purple-500/30', icon: 'bg-purple-500/10 text-purple-500', badge: 'bg-purple-500/10 text-purple-400', dot: 'bg-purple-500' },
 };
 
 const STATUS_COLORS: Record<EvidenceStatus, string> = {
-  Fact:       'bg-green-500/10 text-green-400',
-  Claim:      'bg-amber-500/10 text-amber-400',
+  Fact:       'bg-green-500/10 text-green-700',
+  Claim:      'bg-amber-500/10 text-amber-700',
   Unknown:    'bg-muted/40 text-muted-foreground',
-  Gap:        'bg-red-500/10 text-red-400',
+  Gap:        'bg-red-500/10 text-red-700',
 };
 
 const CARD_ICONS = [BrainCircuit, ShieldAlert, Lock, BarChart3, TrendingUp, HelpCircle];

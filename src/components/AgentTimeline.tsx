@@ -49,7 +49,7 @@ export function AgentTimeline({ stages, stageStatuses, elapsedTimes }: AgentTime
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
                   {stage.id}
                 </div>
-                <span className={cn("text-sm font-medium", isRunning ? "text-blue-400" : "text-foreground")}>
+                <span className={cn("text-sm font-medium", isRunning ? "text-blue-700" : "text-foreground")}>
                   {stage.label}
                 </span>
               </div>

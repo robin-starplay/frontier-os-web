@@ -4,7 +4,7 @@ import { BookIntroButton } from '@/components/BookIntroButton';
 import { BetaCTA } from '@/components/BetaCTA';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">{children}</p>;
+  return <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">{children}</p>;
 }
 
 interface TrustSection {
@@ -66,9 +66,9 @@ const SECURITY_ITEMS = [
 ];
 
 const STATUS_CHIP: Record<string, string> = {
-  'Planned':          'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  'Planned':          'bg-amber-500/10 text-amber-700 border-amber-500/20',
   'Provider defaults': 'bg-muted/40 text-muted-foreground border-border',
-  'HTTPS':            'bg-green-500/10 text-green-400 border-green-500/20',
+  'HTTPS':            'bg-green-500/10 text-green-700 border-green-500/20',
   'Not performed':    'bg-muted/40 text-muted-foreground border-border',
   'None':             'bg-muted/40 text-muted-foreground border-border',
 };
@@ -87,7 +87,7 @@ export default function TrustPage() {
           <p className="text-base text-muted-foreground max-w-2xl leading-relaxed mb-4">
             Start URL-only, add documents only when retention, deletion and provider data-use settings are clear. This page explains how Frontier OS is designed around that constraint.
           </p>
-          <div className="inline-flex items-center gap-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-md">
+          <div className="inline-flex items-center gap-2 text-sm text-amber-700 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-md">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             Frontier OS is pre-launch software. Controls described here are design intent, not certified guarantees.
           </div>
@@ -109,7 +109,7 @@ export default function TrustPage() {
                   <h3 className="text-sm font-semibold text-foreground mb-2">{title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
                   {caveat && (
-                    <div className="mt-3 flex items-start gap-2 text-xs text-amber-400">
+                    <div className="mt-3 flex items-start gap-2 text-xs text-amber-700">
                       <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
                       <span>{caveat}</span>
                     </div>

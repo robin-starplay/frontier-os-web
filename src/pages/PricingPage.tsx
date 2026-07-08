@@ -362,7 +362,7 @@ export default function PricingPage() {
       {/* Header */}
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 text-center">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Pricing</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Pricing</p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
             Start free. Scale as you screen.
           </h1>
@@ -405,7 +405,7 @@ export default function PricingPage() {
 
         {/* Comparison table — desktop only */}
         <div className="hidden lg:block mb-16">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-6">Feature comparison</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-6">Feature comparison</p>
           <div className="rounded-xl border border-border overflow-hidden">
             <div className="grid grid-cols-5 bg-muted/20 border-b border-border">
               <div className="px-4 py-3 text-xs font-medium text-muted-foreground">Feature</div>
@@ -428,7 +428,7 @@ export default function PricingPage() {
                   <div
                     key={vi}
                     className={cn(
-                      'px-4 py-3 text-xs text-center font-mono',
+                      'px-4 py-3 text-xs text-center font-medium',
                       v === '—' ? 'text-muted-foreground/30' : 'text-foreground',
                       v === '✓' ? 'text-primary' : '',
                     )}
@@ -443,7 +443,7 @@ export default function PricingPage() {
 
         {/* FAQ strip */}
         <div className="border-t border-border pt-10 mb-14">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-6">Common questions</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-6">Common questions</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
@@ -456,7 +456,7 @@ export default function PricingPage() {
               },
               {
                 q: 'Can I run without uploading documents?',
-                a: 'Yes. Public-source mode uses public sources and registry data. Document upload is optional.',
+                a: 'Yes. Public-source screens use public sources and registry data. Document upload is optional.',
               },
               {
                 q: 'How do Team and Enterprise plans work?',

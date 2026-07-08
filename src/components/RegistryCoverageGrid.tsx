@@ -120,7 +120,7 @@ function RegistryCard({ registry }: { registry: Registry }) {
 
       {/* Capabilities */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Capabilities</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Capabilities</p>
         <ul className="space-y-1.5">
           {registry.capabilities.map((cap, i) => (
             <li key={i} className="flex items-start gap-2">
@@ -134,7 +134,7 @@ function RegistryCard({ registry }: { registry: Registry }) {
       {/* Limitations */}
       {registry.limitations && registry.limitations.length > 0 && (
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Limitations</p>
+          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Limitations</p>
           <ul className="space-y-1.5">
             {registry.limitations.map((lim, i) => (
               <li key={i} className="flex items-start gap-2">

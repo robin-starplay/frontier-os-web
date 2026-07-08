@@ -14,10 +14,10 @@ type Level = 'green' | 'amber' | 'red' | 'blue' | 'grey';
 function chip(level: Level, label: string) {
   const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium whitespace-nowrap';
   const map: Record<Level, string> = {
-    green: 'bg-green-500/10 text-green-400 border border-green-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-    red:   'bg-red-500/10   text-red-400   border border-red-500/20',
-    blue:  'bg-blue-500/10  text-blue-400  border border-blue-500/20',
+    green: 'bg-green-500/10 text-green-700 border border-green-500/20',
+    amber: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
+    red:   'bg-red-500/10   text-red-700   border border-red-500/20',
+    blue:  'bg-blue-500/10  text-blue-700  border border-blue-500/20',
     grey:  'bg-muted/40     text-muted-foreground border border-border',
   };
   return <span className={cn(base, map[level])}>{label}</span>;
@@ -250,7 +250,7 @@ export default function PlatformDemoPage() {
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <div className="w-full border-b border-border bg-card/30">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-14 text-center">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">
             Private beta · sample data
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight">
@@ -284,7 +284,7 @@ export default function PlatformDemoPage() {
 
         {/* ── 2. Workflow timeline ─────────────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Workflow</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Workflow</p>
           <h2 className="text-xl font-bold text-foreground mb-1.5">Team / Platform workflow preview</h2>
           <p className="text-sm text-muted-foreground mb-6">
             See how a team would move from target screening to IC pack, using private beta sample data.
@@ -319,7 +319,7 @@ export default function PlatformDemoPage() {
                     {/* label */}
                     <span className="flex-1 text-sm font-semibold text-foreground">{stage.label}</span>
                     {/* status chip */}
-                    <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-500/10 text-green-400 border border-green-500/20 shrink-0">
+                    <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-500/10 text-green-700 border border-green-500/20 shrink-0">
                       <CheckCircle2 className="w-3 h-3" />
                       Complete
                     </span>
@@ -333,7 +333,7 @@ export default function PlatformDemoPage() {
                     <div className="px-4 pb-4 pl-13 space-y-3">
                       <p className="text-sm text-muted-foreground leading-relaxed pl-9">{stage.description}</p>
                       <div className="ml-9 rounded-md border border-primary/20 bg-background/60 px-3 py-2.5">
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1.5">Sample output</p>
+                        <p className="text-[10px] font-semibold tracking-normal text-primary mb-1.5">Sample output</p>
                         <p className="text-xs text-foreground font-mono leading-relaxed">{stage.output}</p>
                       </div>
                       {stage.note && (
@@ -349,7 +349,7 @@ export default function PlatformDemoPage() {
 
         {/* ── 3. Document-assisted workflow preview ────────────────────────── */}
         <section>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Document-assisted</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Document-assisted</p>
           <h2 className="text-xl font-bold text-foreground mb-1.5">Document-assisted workflow</h2>
           <p className="text-sm text-muted-foreground mb-6">
             Upload a CIM, ARR bridge, customer contracts or other diligence documents. Frontier OS extracts claims,
@@ -374,8 +374,8 @@ export default function PlatformDemoPage() {
                   <div className={cn(
                     'w-9 h-9 rounded flex items-center justify-center text-[10px] font-mono font-bold shrink-0 border',
                     doc.type === 'pdf'
-                      ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                      : 'bg-green-500/10 text-green-400 border-green-500/20',
+                      ? 'bg-red-500/10 text-red-700 border-red-500/20'
+                      : 'bg-green-500/10 text-green-700 border-green-500/20',
                   )}>
                     {doc.type.toUpperCase()}
                   </div>
@@ -383,7 +383,7 @@ export default function PlatformDemoPage() {
                     <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
                     <p className="text-[11px] text-muted-foreground">{doc.size} · {doc.detail}</p>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-green-400 shrink-0">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-green-700 shrink-0">
                     <CheckCircle2 className="w-3 h-3" />
                     Processed
                   </span>
@@ -402,7 +402,7 @@ export default function PlatformDemoPage() {
 
         {/* ── 4. Deal Cockpit preview ──────────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Deal Cockpit</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Deal Cockpit</p>
           <h2 className="text-xl font-bold text-foreground mb-1.5">Pipeline overview</h2>
           <p className="text-sm text-muted-foreground mb-6">
             Screened targets are added to the Deal Cockpit automatically. Track IC readiness, evidence confidence,
@@ -412,7 +412,7 @@ export default function PlatformDemoPage() {
           <div className="rounded-lg border border-border overflow-hidden">
             {/* column headers — desktop */}
             <div
-              className="hidden md:grid px-4 py-2.5 bg-muted/30 border-b border-border text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
+              className="hidden md:grid px-4 py-2.5 bg-muted/30 border-b border-border text-[10px] font-semibold tracking-normal text-muted-foreground"
               style={{ gridTemplateColumns: '1fr 150px 80px 100px 90px' }}
             >
               <span>Company</span>
@@ -456,7 +456,7 @@ export default function PlatformDemoPage() {
                 </div>
                 <div className="px-4 pb-3">
                   <p className="text-xs text-muted-foreground leading-snug">
-                    <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/60 mr-1.5">Next action:</span>
+                    <span className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mr-1.5">Next action:</span>
                     {t.nextAction}
                   </p>
                 </div>
@@ -474,7 +474,7 @@ export default function PlatformDemoPage() {
 
         {/* ── 5. Target comparison preview ─────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Comparison</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Comparison</p>
           <h2 className="text-xl font-bold text-foreground mb-1.5">Target comparison</h2>
           <p className="text-sm text-muted-foreground mb-6">
             Compare screened targets side by side across strategic fit, evidence quality, AI disruption risk and
@@ -487,7 +487,7 @@ export default function PlatformDemoPage() {
               className="grid bg-muted/30 border-b border-border"
               style={{ gridTemplateColumns: '140px repeat(3, 1fr)', minWidth: '600px' }}
             >
-              <div className="px-4 py-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Dimension</div>
+              <div className="px-4 py-3 text-[10px] font-semibold tracking-normal text-muted-foreground">Dimension</div>
               {COMPARE_TARGETS.map((t) => (
                 <div key={t} className="px-4 py-3 text-xs font-semibold text-foreground">{t}</div>
               ))}
@@ -516,7 +516,7 @@ export default function PlatformDemoPage() {
 
         {/* ── 6. Buyer thesis preview ──────────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Buyer thesis</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Buyer thesis</p>
           <h2 className="text-xl font-bold text-foreground mb-1.5">Buyer thesis fit</h2>
           <p className="text-sm text-muted-foreground mb-6">
             The same target screen changes depending on buyer mandate. Frontier OS scores fit for each buyer type,
@@ -529,7 +529,7 @@ export default function PlatformDemoPage() {
                 {/* buyer + score */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Buyer type</p>
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Buyer type</p>
                     <p className="text-sm font-bold text-foreground">{thesis.buyer}</p>
                   </div>
                   <div className="flex flex-col items-center justify-center w-14 h-14 rounded-full border-2 border-primary/30 bg-primary/5 shrink-0">
@@ -540,11 +540,11 @@ export default function PlatformDemoPage() {
 
                 {/* what fits */}
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">What fits</p>
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">What fits</p>
                   <ul className="space-y-1">
                     {thesis.fits.map((f) => (
                       <li key={f} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-3 h-3 text-green-700 shrink-0 mt-0.5" />
                         <span className="text-xs text-muted-foreground">{f}</span>
                       </li>
                     ))}
@@ -553,11 +553,11 @@ export default function PlatformDemoPage() {
 
                 {/* what blocks */}
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">What blocks</p>
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">What blocks</p>
                   <ul className="space-y-1">
                     {thesis.blocks.map((b) => (
                       <li key={b} className="flex items-start gap-2">
-                        <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-3 h-3 text-amber-700 shrink-0 mt-0.5" />
                         <span className="text-xs text-muted-foreground">{b}</span>
                       </li>
                     ))}
@@ -566,7 +566,7 @@ export default function PlatformDemoPage() {
 
                 {/* next diligence question */}
                 <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5">
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">
                     Next diligence question
                   </p>
                   <p className="text-xs text-foreground leading-snug italic">"{thesis.question}"</p>
@@ -578,7 +578,7 @@ export default function PlatformDemoPage() {
 
         {/* ── 7. IC pack and export preview ────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Exports</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Exports</p>
           <h2 className="text-xl font-bold text-foreground mb-1.5">IC pack and export preview</h2>
           <p className="text-sm text-muted-foreground mb-6">
             Team / Platform includes full export capability. PowerPoint IC pack, Excel diligence tracker, full
@@ -631,7 +631,7 @@ export default function PlatformDemoPage() {
 
         {/* ── 8. Pricing tie-in ─────────────────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-1">Pricing</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Pricing</p>
           <h2 className="text-xl font-bold text-foreground mb-6">Team / Platform tier</h2>
 
           <div className="max-w-sm rounded-xl border border-primary/30 bg-card ring-1 ring-primary/20 p-6">

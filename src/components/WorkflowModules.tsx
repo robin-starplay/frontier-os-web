@@ -18,7 +18,7 @@ const MODULES: Module[] = [
       'Official filings are Tier 1. Audited reports Tier 2. Management decks and websites are Tier 4. Aggregator estimates are Tier 5. Tier overrides Tier in conflict resolution.',
     status: 'Active',
     confidence: 'High',
-    confidenceColor: 'text-green-400',
+    confidenceColor: 'text-green-700',
   },
   {
     icon: Database,
@@ -27,7 +27,7 @@ const MODULES: Module[] = [
       'Each claim is classified as Verified fact, Claim, Assumption, Unknown, Conflict or Blocking gap. Classification drives what enters the IC memo and what becomes a diligence question.',
     status: 'Active',
     confidence: 'Medium',
-    confidenceColor: 'text-amber-400',
+    confidenceColor: 'text-amber-700',
   },
   {
     icon: BarChart3,
@@ -36,7 +36,7 @@ const MODULES: Module[] = [
       'ARR quality, SaaS vs services mix, adjusted EBITDA reconciliation, customer concentration and product defensibility. Each metric shows its source tier and confidence.',
     status: 'Active',
     confidence: 'Medium',
-    confidenceColor: 'text-amber-400',
+    confidenceColor: 'text-amber-700',
   },
   {
     icon: BrainCircuit,
@@ -45,7 +45,7 @@ const MODULES: Module[] = [
       'Assesses replica risk, AI moat evidence, inference economics and P&L impact. Marketing claims are not treated as verified moat evidence. Gaps become diligence questions.',
     status: 'Active',
     confidence: 'Medium',
-    confidenceColor: 'text-amber-400',
+    confidenceColor: 'text-amber-700',
   },
   {
     icon: Target,
@@ -54,7 +54,7 @@ const MODULES: Module[] = [
       'The target is assessed against a buyer thesis — not in isolation. Fit mode, sector overlap, integration risk and synergy confidence are each given a status, not a headline score.',
     status: 'Active',
     confidence: 'Medium',
-    confidenceColor: 'text-amber-400',
+    confidenceColor: 'text-amber-700',
   },
   {
     icon: ClipboardList,
@@ -63,7 +63,7 @@ const MODULES: Module[] = [
       'Unknowns and conflicts are not suppressed. They are converted into a structured request list — what to ask for, why it matters, and what it blocks in the current analysis.',
     status: 'Active',
     confidence: 'High',
-    confidenceColor: 'text-green-400',
+    confidenceColor: 'text-green-700',
   },
 ];
 
@@ -82,7 +82,7 @@ export function WorkflowModules() {
                 </div>
                 <span className="text-sm font-semibold text-foreground">{mod.name}</span>
               </div>
-              <span className="text-[10px] font-mono font-semibold text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-semibold text-green-700 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">
                 {mod.status}
               </span>
             </div>
@@ -92,7 +92,7 @@ export function WorkflowModules() {
 
             {/* Confidence */}
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide">Confidence</span>
+              <span className="text-[10px] text-muted-foreground font-semibold tracking-normal">Confidence</span>
               <span className={`text-[11px] font-semibold font-mono ${mod.confidenceColor}`}>{mod.confidence}</span>
             </div>
           </div>

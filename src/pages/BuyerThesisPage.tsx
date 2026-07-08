@@ -14,7 +14,7 @@ export default function BuyerThesisPage() {
 
       {/* header */}
       <div className="mb-8">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-2">Buyer Thesis</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Buyer Thesis</p>
         <h1 className="text-2xl font-bold text-foreground">Buyer thesis templates</h1>
         <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
           Each buyer type has a different screening logic — different objectives, evidence requirements and AI stance.
@@ -64,17 +64,17 @@ export default function BuyerThesisPage() {
         <div className="lg:col-span-1 space-y-4">
 
           <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-primary">Objective</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Objective</p>
             <p className="text-sm text-foreground leading-relaxed">{active.objective}</p>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-blue-400">AI stance</p>
+            <p className="text-[10px] font-semibold tracking-normal text-blue-700">AI stance</p>
             <p className="text-sm text-foreground leading-relaxed">{active.aiStance}</p>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Typical output</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Typical output</p>
             <p className="text-sm text-muted-foreground leading-relaxed">{active.typicalOutput}</p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function BuyerThesisPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
             <div className="rounded-lg border border-border bg-card p-5">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-green-400 mb-4">Rewards</p>
+              <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-4">Rewards</p>
               <div className="space-y-2">
                 {active.rewards.map(r => (
                   <div key={r} className="flex items-start gap-2">
@@ -98,7 +98,7 @@ export default function BuyerThesisPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-red-400 mb-4">Penalises</p>
+              <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-4">Penalises</p>
               <div className="space-y-2">
                 {active.penalises.map(p => (
                   <div key={p} className="flex items-start gap-2">
@@ -112,7 +112,7 @@ export default function BuyerThesisPage() {
 
           {/* required evidence */}
           <div className="rounded-lg border border-border bg-card p-5">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-amber-400 mb-4">Required evidence</p>
+            <p className="text-[10px] font-semibold tracking-normal text-amber-700 mb-4">Required evidence</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
               {active.requiredEvidence.map((e, i) => (
                 <div key={e} className="flex items-start gap-2">
@@ -128,7 +128,7 @@ export default function BuyerThesisPage() {
           {/* sample: vertical roll-up detail block */}
           {active.id === 'vertical-rollup' && (
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-5">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-amber-400 mb-3">Sample screen — vertical roll-up</p>
+              <p className="text-[10px] font-semibold tracking-normal text-amber-700 mb-3">Sample screen — vertical roll-up</p>
               <div className="space-y-2.5">
                 {[
                   { label: 'Rewards',          value: 'Recurring revenue, durable niche, low churn, management independence.' },
@@ -136,7 +136,7 @@ export default function BuyerThesisPage() {
                   { label: 'Required evidence', value: 'ARR, churn, customer concentration, revenue split, product architecture, ownership clarity.' },
                 ].map(row => (
                   <div key={row.label} className="grid grid-cols-[120px_1fr] gap-3">
-                    <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground pt-0.5">{row.label}</span>
+                    <span className="text-[10px] font-semibold tracking-normal text-muted-foreground pt-0.5">{row.label}</span>
                     <span className="text-xs text-foreground leading-snug">{row.value}</span>
                   </div>
                 ))}

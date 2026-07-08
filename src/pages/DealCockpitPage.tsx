@@ -55,10 +55,10 @@ function formatTs(iso: string): string {
 function chip(level: RecommendationLevel, label: string) {
   const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border';
   const map: Record<RecommendationLevel, string> = {
-    green: 'bg-green-500/10 text-green-400 border-green-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    red:   'bg-red-500/10   text-red-400   border-red-500/20',
-    blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+    green: 'bg-green-500/10 text-green-700 border-green-500/20',
+    amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+    red:   'bg-red-500/10   text-red-700   border-red-500/20',
+    blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
     grey:  'bg-muted/40     text-muted-foreground border-border',
   };
   return <span className={cn(base, map[level])}>{label}</span>;
@@ -251,7 +251,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   {/* Three-gate model: safeEvidenceStatus(status, source, confidence) */}
                   {run.result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'verified').length > 0 && (
                     <div>
-                      <p className="text-[10px] font-mono uppercase tracking-widest text-green-400 mb-2">
+                      <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-2">
                         Verified facts ({run.result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'verified').length})
                       </p>
                       <div className="space-y-2">
@@ -264,7 +264,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   )}
                   {run.result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; }).length > 0 && (
                     <div>
-                      <p className="text-[10px] font-mono uppercase tracking-widest text-blue-400 mb-2">
+                      <p className="text-[10px] font-semibold tracking-normal text-blue-700 mb-2">
                         Company claims ({run.result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; }).length})
                       </p>
                       <div className="space-y-2">
@@ -277,7 +277,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   )}
                   {run.result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'unknown').length > 0 && (
                     <div>
-                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+                      <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">
                         Not verified in this run ({run.result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'unknown').length})
                       </p>
                       <div className="space-y-2">
@@ -327,7 +327,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   </div>
                   {run.result.ai_disruption.diligence_questions?.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">AI diligence questions</p>
+                      <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">AI diligence questions</p>
                       <div className="space-y-1.5">
                         {run.result.ai_disruption.diligence_questions.map((q, i) => (
                           <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -351,8 +351,8 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
               {run.blockers.length > 0 ? (
                 <div>
                   <div className="flex items-center gap-1.5 mb-3">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">
                       Diligence blockers ({run.blockers.length})
                     </p>
                   </div>
@@ -372,11 +372,11 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                 <div>
                   <div className="flex items-center gap-1.5 mb-3">
                     <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Strategic fit</p>
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Strategic fit</p>
                   </div>
                   {run.result.strategic_fit.why_fits?.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-[10px] font-mono text-green-400/80 mb-1.5">Why it fits</p>
+                      <p className="text-[10px] font-medium text-green-700/80 mb-1.5">Why it fits</p>
                       <div className="space-y-1">
                         {run.result.strategic_fit.why_fits.map((w, i) => (
                           <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -389,7 +389,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   )}
                   {run.result.strategic_fit.why_not?.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-[10px] font-mono text-amber-400/80 mb-1.5">Concerns</p>
+                      <p className="text-[10px] font-medium text-amber-700/80 mb-1.5">Concerns</p>
                       <div className="space-y-1">
                         {run.result.strategic_fit.why_not.map((w, i) => (
                           <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -402,7 +402,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                   )}
                   {run.result.strategic_fit.diligence_questions?.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-mono text-muted-foreground/60 mb-1.5">Diligence questions</p>
+                      <p className="text-[10px] font-medium text-muted-foreground/60 mb-1.5">Diligence questions</p>
                       <div className="space-y-1">
                         {run.result.strategic_fit.diligence_questions.map((q, i) => (
                           <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -422,7 +422,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
           {activeTab === 'decisions' && (
             <div className="px-5 py-4 space-y-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Next action</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Next action</p>
                 <div className="space-y-2">
                   <Link href="/app/run" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-border bg-background hover:bg-accent rounded-md transition-colors text-foreground">
                     Run screen <ArrowRight className="w-3.5 h-3.5" />
@@ -433,7 +433,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                 </div>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Decision actions</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Decision actions</p>
                 <div className="space-y-1.5">
                   {[
                     { label: 'Monitor',                hint: 'Watch for further evidence' },
@@ -452,7 +452,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                 </div>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Decision log</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Decision log</p>
                 <div className="space-y-1">
                   {['Track IC decision', 'Add IC date', 'Add memo note'].map(feat => (
                     <div key={feat} className="flex items-center gap-2 text-xs text-muted-foreground/50">
@@ -471,7 +471,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
           {activeTab === 'exports' && (
             <div className="px-5 py-4 space-y-4">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Available with pilot access</p>
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Available with pilot access</p>
                 <div className="space-y-2">
                   {[
                     { label: 'Markdown report',         hint: 'Structured acquisition screen as plain text' },
@@ -608,7 +608,7 @@ function SavedRunCard({
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className={cn(
                 'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-medium',
-                run.type === 'compare' ? 'text-blue-400' : run.type === 'document' ? 'text-violet-400' : run.type === 'origination' ? 'text-cyan-400' : 'text-primary',
+                run.type === 'compare' ? 'text-blue-700' : run.type === 'document' ? 'text-violet-400' : run.type === 'origination' ? 'text-cyan-400' : 'text-primary',
               )}>
                 {sourceTypeLabel(run.type)}
               </span>
@@ -624,7 +624,7 @@ function SavedRunCard({
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {chip(safeLevel(run.recommendation_level), runRecommendation(run))}
             {run.blockers.length > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-red-500/10 text-red-700 border border-red-500/20 whitespace-nowrap">
                 {run.blockers.length} blocker{run.blockers.length === 1 ? '' : 's'}
               </span>
             )}
@@ -885,8 +885,8 @@ export default function DealCockpitPage() {
               {filteredComparisons.length > 0 && (
                 <div className="mt-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <GitCompare className="w-3.5 h-3.5 text-blue-400" />
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                    <GitCompare className="w-3.5 h-3.5 text-blue-700" />
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">
                       Comparisons ({filteredComparisons.length})
                     </p>
                   </div>

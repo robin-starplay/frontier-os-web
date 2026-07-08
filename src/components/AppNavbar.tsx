@@ -4,6 +4,7 @@ import { Activity, Menu, X, ChevronDown, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FeedbackModal } from './FeedbackModal';
 import { SendFeedbackButton } from './SendFeedbackButton';
+import { ThemeToggle } from './ThemeToggle';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { getRuns } from '@/lib/runHistory';
 import { OptionalUserButton } from '@/lib/optionalClerk';
@@ -11,8 +12,8 @@ import { OptionalUserButton } from '@/lib/optionalClerk';
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
 const APP_NAV = [
-  { label: 'Screen',      href: '/app/run' },
-  { label: 'Pipeline',    href: '/app/cockpit' },
+  { label: 'Run',         href: '/app/run' },
+  { label: 'Cockpit',     href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
   { label: 'Origination', href: '/app/origination' },
   { label: 'Pricing',     href: '/pricing' },
@@ -49,8 +50,8 @@ function TrialBadge() {
     <span className={cn(
       'hidden lg:inline-flex items-center text-[11px] px-2 py-0.5 rounded-md border whitespace-nowrap',
       isLow
-        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-        : 'bg-green-500/5 text-green-400/80 border-green-500/15',
+        ? 'bg-amber-500/10 text-amber-700 border-amber-500/20'
+        : 'bg-green-500/5 text-green-700/80 border-green-500/15',
     )}>
       {remaining}/{limit} screens available
     </span>
@@ -90,10 +91,10 @@ function AppMoreDropdown({
         aria-haspopup="true"
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+          'flex items-center gap-1 px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
           anyActive
-            ? 'bg-accent/60 text-foreground font-medium'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+            ? 'bg-primary/10 text-primary font-semibold'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
         )}
       >
         More <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
@@ -106,10 +107,10 @@ function AppMoreDropdown({
               href={href}
               role="menuitem"
               className={cn(
-                'block px-3 py-2 text-sm transition-colors',
+                'block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
                 isActive(href)
-                  ? 'text-foreground font-medium bg-accent/40'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
+                  ? 'text-primary font-semibold bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
               )}
               onClick={() => setOpen(false)}
             >
@@ -120,7 +121,7 @@ function AppMoreDropdown({
             <button
               onClick={() => { setOpen(false); onFeedback(); }}
               role="menuitem"
-              className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+              className="w-full text-left flex items-center gap-2 px-3 py-2 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
             >
               Feedback
             </button>
@@ -161,10 +162,10 @@ export function AppNavbar() {
                 key={href}
                 href={href}
                 className={cn(
-                  'px-2 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap',
+                  'px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
                   isActive(href)
-                    ? 'bg-accent/60 text-foreground font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+                    ? 'bg-primary/10 text-primary font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
                 )}
               >
                 {label}
@@ -179,15 +180,16 @@ export function AppNavbar() {
           {/* Right side */}
           <div className="ml-auto flex items-center gap-2">
             <TrialBadge />
+            <ThemeToggle compact className="hidden sm:inline-flex" />
             <SendFeedbackButton
               label="Feedback"
-              className="hidden lg:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
+              className="hidden lg:inline-flex items-center gap-1.5 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
             />
             <a
               href={BOOK_INTRO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden lg:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
+              className="hidden lg:inline-flex items-center gap-1.5 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
             >
               <Calendar className="w-3.5 h-3.5" />
               Intro
@@ -198,7 +200,7 @@ export function AppNavbar() {
 
             {/* Mobile hamburger */}
             <button
-              className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+              className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
               onClick={() => setMobileOpen(o => !o)}
               aria-label="Toggle navigation"
             >
@@ -216,10 +218,10 @@ export function AppNavbar() {
                   key={href}
                   href={href}
                   className={cn(
-                    'block px-3 py-2.5 rounded-md text-sm transition-colors',
+                    'block px-3 py-2.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
                     isActive(href)
-                      ? 'bg-accent/60 text-foreground font-medium'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
                   )}
                   onClick={() => setMobileOpen(false)}
                 >
@@ -228,6 +230,7 @@ export function AppNavbar() {
               ))}
             </div>
             <div className="pt-3 flex flex-col gap-2 border-t border-border">
+              <ThemeToggle className="w-fit" />
               <div className="flex items-center gap-3 flex-wrap">
                 <OptionalUserButton />
                 <a
@@ -243,7 +246,7 @@ export function AppNavbar() {
               </div>
               <button
                 onClick={() => { setMobileOpen(false); setFeedbackOpen(true); }}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-accent/40 transition-colors"
+                className="inline-flex items-center gap-2 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-accent/70 transition-colors"
               >
                 Feedback
               </button>

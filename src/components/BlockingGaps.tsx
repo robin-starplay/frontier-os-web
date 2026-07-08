@@ -46,7 +46,7 @@ export function BlockingGaps() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className={cn(
-                  "text-xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                  "text-xs font-bold tracking-normal px-1.5 py-0.5 rounded",
                   gap.level === 'critical' ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-500"
                 )}>
                   {gap.level}

@@ -29,7 +29,7 @@ function getScoreLabel(score: number, direction: 'higher-better' | 'lower-better
   const effective = direction === 'lower-better' ? 10 - score : score;
   if (effective >= 7) return { text: 'Positive', color: 'text-green-500' };
   if (effective >= 4) return { text: 'Moderate', color: 'text-amber-500' };
-  return { text: 'Elevated', color: 'text-red-400' };
+  return { text: 'Elevated', color: 'text-red-700' };
 }
 
 export function AIDisruptionScorecard() {

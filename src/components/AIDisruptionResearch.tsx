@@ -13,15 +13,15 @@ interface ResearchPanel {
 }
 
 const STATUS_CHIP: Record<string, string> = {
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red:   'bg-red-500/10   text-red-400   border-red-500/20',
+  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  red:   'bg-red-500/10   text-red-700   border-red-500/20',
   muted: 'bg-muted/30     text-muted-foreground border-border',
-  blue:  'bg-blue-500/10  text-blue-400  border-blue-500/20',
+  blue:  'bg-blue-500/10  text-blue-700  border-blue-500/20',
 };
 
 const CONFIDENCE_COLOR: Record<ConfidenceLevel, string> = {
-  High:   'text-green-400',
-  Medium: 'text-amber-400',
+  High:   'text-green-700',
+  Medium: 'text-amber-700',
   Low:    'text-muted-foreground',
 };
 
@@ -99,13 +99,13 @@ function ResearchCard({ panel }: { panel: ResearchPanel }) {
 
       {/* Evidence */}
       <div className="px-4 pt-3 pb-2">
-        <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-1">Evidence</p>
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Evidence</p>
         <p className="text-xs text-muted-foreground leading-relaxed">{panel.evidence}</p>
       </div>
 
       {/* Verify next */}
       <div className="px-4 pt-2 pb-3 border-t border-border/50 mt-1">
-        <p className="text-[10px] font-mono uppercase tracking-wide text-primary/60 mb-1">Verify next</p>
+        <p className="text-[10px] font-semibold tracking-normal text-primary/60 mb-1">Verify next</p>
         <p className="text-xs text-foreground leading-relaxed">{panel.verifyNext}</p>
       </div>
     </div>

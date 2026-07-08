@@ -11,11 +11,11 @@ interface InvestabilityRow {
 }
 
 const ANSWER_CHIP: Record<AnswerLevel, string> = {
-  yes:         'bg-green-500/10 text-green-400 border-green-500/20',
-  partial:     'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  yes:         'bg-green-500/10 text-green-700 border-green-500/20',
+  partial:     'bg-amber-500/10 text-amber-700 border-amber-500/20',
   no:          'bg-muted/30 text-muted-foreground border-border',
-  conditional: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  blocked:     'bg-red-500/10 text-red-400 border-red-500/20',
+  conditional: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
+  blocked:     'bg-red-500/10 text-red-700 border-red-500/20',
 };
 
 const ROWS: InvestabilityRow[] = [
@@ -70,7 +70,7 @@ export function InvestabilityTable() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground leading-snug">{evidenceStatus}</p>
-          <p className="text-[10px] font-mono uppercase tracking-wide text-primary/60">Next action</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary/60">Next action</p>
           <p className="text-xs text-foreground leading-snug">{nextAction}</p>
         </div>
       ))}
@@ -80,10 +80,10 @@ export function InvestabilityTable() {
     <div className="hidden sm:block rounded-lg border border-border overflow-hidden">
       {/* Table header */}
       <div className="grid grid-cols-12 bg-muted/30 px-4 py-2.5 border-b border-border">
-        <div className="col-span-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Question</div>
-        <div className="col-span-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Current answer</div>
-        <div className="col-span-4 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Evidence status</div>
-        <div className="col-span-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Next action</div>
+        <div className="col-span-3 text-[10px] font-semibold tracking-normal text-muted-foreground">Question</div>
+        <div className="col-span-2 text-[10px] font-semibold tracking-normal text-muted-foreground">Current answer</div>
+        <div className="col-span-4 text-[10px] font-semibold tracking-normal text-muted-foreground">Evidence status</div>
+        <div className="col-span-3 text-[10px] font-semibold tracking-normal text-muted-foreground">Next action</div>
       </div>
 
       {/* Rows */}

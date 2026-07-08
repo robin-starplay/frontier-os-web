@@ -14,7 +14,7 @@ interface LegalLayoutProps {
 
 function DraftBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-medium">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[11px] font-medium">
       Template draft for review before launch
     </span>
   );
@@ -54,7 +54,7 @@ export function LegalLayout({ title, subtitle, lastUpdated, sections }: LegalLay
 
         {/* contact section */}
         <div className="mt-12 rounded-lg border border-border bg-card p-6">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary mb-3">Contact</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">Contact</p>
           <p className="text-sm text-muted-foreground">Frontier Intelligence Systems Ltd</p>
           <p className="text-sm text-muted-foreground">71–75 Shelton Street, Covent Garden, London, United Kingdom, WC2H 9JQ</p>
           <a href="mailto:contact@getfrontieros.com" className="text-sm text-primary hover:underline">
