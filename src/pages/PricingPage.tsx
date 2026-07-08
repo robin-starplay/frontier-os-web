@@ -4,6 +4,7 @@ import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { BookIntroButton, BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { getBackendBaseUrl } from '@/lib/frontierApi';
+import { SemanticBadge } from '@/components/SemanticBadge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -239,9 +240,7 @@ function TierCard({
         <div className="flex items-center gap-2 mb-1.5">
           <p className="text-sm font-bold text-foreground">{tier.name}</p>
           {tier.badge && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary whitespace-nowrap shrink-0">
-              {tier.badge}
-            </span>
+            <SemanticBadge tone="info" className="shrink-0">{tier.badge}</SemanticBadge>
           )}
         </div>
         <p className={cn(

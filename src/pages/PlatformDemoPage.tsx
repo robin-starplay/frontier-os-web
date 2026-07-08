@@ -6,21 +6,14 @@ import {
 import { cn } from '@/lib/utils';
 import { BookIntroButton } from '@/components/BookIntroButton';
 import { BetaCTA } from '@/components/BetaCTA';
+import { SemanticBadge, type LegacyBadgeLevel } from '@/components/SemanticBadge';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type Level = 'green' | 'amber' | 'red' | 'blue' | 'grey';
+type Level = Exclude<LegacyBadgeLevel, 'muted'>;
 
 function chip(level: Level, label: string) {
-  const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium whitespace-nowrap';
-  const map: Record<Level, string> = {
-    green: 'bg-green-500/10 text-green-700 border border-green-500/20',
-    amber: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
-    red:   'bg-red-500/10   text-red-700   border border-red-500/20',
-    blue:  'bg-blue-500/10  text-blue-700  border border-blue-500/20',
-    grey:  'bg-muted/40     text-muted-foreground border border-border',
-  };
-  return <span className={cn(base, map[level])}>{label}</span>;
+  return <SemanticBadge tone={level}>{label}</SemanticBadge>;
 }
 
 // ─── 1. Workflow stages ───────────────────────────────────────────────────────

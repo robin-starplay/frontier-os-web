@@ -93,9 +93,9 @@ export const EVIDENCE_STATUS_LABEL: Record<EvidenceStatus, string> = {
 
 /** Tailwind class map for evidence status chips. */
 export const EVIDENCE_STATUS_CLASS: Record<EvidenceStatus, string> = {
-  verified: 'bg-green-500/10 text-green-400 border-green-500/20',
-  caveat:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  claim:    'bg-blue-500/10  text-blue-400  border-blue-500/20',
-  blocking: 'bg-red-500/10   text-red-400   border-red-500/20',
-  unknown:  'bg-muted/40     text-muted-foreground border-border',
+  verified: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
+  caveat:   'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  claim:    'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
+  blocking: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+  unknown:  'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
 };

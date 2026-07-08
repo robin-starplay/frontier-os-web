@@ -1,23 +1,12 @@
 import React from 'react';
 import { Link } from 'wouter';
 import { ArrowRight } from 'lucide-react';
+import { SemanticBadge, type LegacyBadgeLevel } from '@/components/SemanticBadge';
 
-type ChipVariant = 'green' | 'amber' | 'red' | 'blue' | 'muted';
-
-const CHIP: Record<ChipVariant, string> = {
-  green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
-  blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
-  muted: 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
-};
+type ChipVariant = LegacyBadgeLevel;
 
 function StatusChip({ label, variant }: { label: string; variant: ChipVariant }) {
-  return (
-    <span className={`inline-flex items-center text-xs font-semibold leading-none px-2.5 py-1 rounded-md border ${CHIP[variant]}`}>
-      {label}
-    </span>
-  );
+  return <SemanticBadge tone={variant}>{label}</SemanticBadge>;
 }
 
 interface Row {

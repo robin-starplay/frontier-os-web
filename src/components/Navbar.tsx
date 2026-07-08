@@ -24,7 +24,7 @@ const PUBLIC_NAV = [
 
 const PUBLIC_MORE = [
   { label: 'Product',              href: '/product' },
-  { label: 'How it works',         href: '/platform-demo' },
+  { label: 'How it works',         href: '/how-it-works' },
   { label: 'Registry coverage',    href: '/registry-coverage' },
   { label: 'Evidence workflow',    href: '/evidence' },
   { label: 'Exports · team beta',   href: '/app/exports' },

@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { BrainCircuit, AlertCircle, CheckCircle2, HelpCircle, ArrowRight } from 'lucide-react';
 import { BookIntroButton } from '@/components/BookIntroButton';
 import { BetaCTA } from '@/components/BetaCTA';
+import { SemanticBadge } from '@/components/SemanticBadge';
 import {
   AI_TARGET,
   AI_DILIGENCE_QUESTIONS,
@@ -28,10 +29,10 @@ const SCORECARD: ScorecardItem[] = [
 ];
 
 const SCORE_CHIP: Record<ScoreStatus, string> = {
-  'medium-high': 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
-  'unproven':    'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  'medium-high': 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
+  'unproven':    'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
   'medium':      'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-  'unknown':     'bg-muted/40 text-muted-foreground border-border',
+  'unknown':     'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
   'low':         'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
   'high':        'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
 };
@@ -74,7 +75,7 @@ const EVIDENCE_BOARD: EvidenceBoardCard[] = [
   {
     title: 'What proof supports an AI moat?',
     status: 'Unproven',
-    statusColor: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    statusColor: 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
     evidenceLine: 'No proprietary model, feedback loop or domain-specific dataset disclosed. Embedded workflow is a claim, not verified.',
     verifyNext: [
       'Request AI roadmap and model training detail',
@@ -199,7 +200,7 @@ export default function AIDisruptionPage() {
             <span className="text-sm text-muted-foreground">
               Indicative analysis — <span className="text-foreground font-medium">{AI_TARGET.name}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-[9px] py-[5px] text-xs font-semibold leading-none text-[var(--semantic-claim-text)]">
               <AlertCircle className="w-3 h-3" />
               Private beta · sample data, not real diligence
             </span>
@@ -220,17 +221,17 @@ export default function AIDisruptionPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
             {[
-              { label: 'AI thesis',        value: 'Not yet proven',        chip: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]' },
-              { label: 'Replica risk',     value: 'Medium-high',           chip: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]' },
-              { label: 'Moat evidence',    value: 'Unproven',              chip: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
-              { label: 'P&L impact',       value: 'Potential upside, cost unknown', chip: 'bg-muted/40 text-muted-foreground border-border' },
-              { label: 'AI moat evidence', value: 'Unproven',              chip: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
-              { label: 'Investor action',  value: 'Verify live AI usage, data rights, model costs and customer willingness to pay.', chip: '' },
-            ].map(({ label, value, chip }) => (
+              { label: 'AI thesis',        value: 'Not yet proven',        tone: 'partial' as const },
+              { label: 'Replica risk',     value: 'Medium-high',           tone: 'partial' as const },
+              { label: 'Moat evidence',    value: 'Unproven',              tone: 'unknown' as const },
+              { label: 'P&L impact',       value: 'Potential upside, cost unknown', tone: 'unknown' as const },
+              { label: 'AI moat evidence', value: 'Unproven',              tone: 'unknown' as const },
+              { label: 'Investor action',  value: 'Verify live AI usage, data rights, model costs and customer willingness to pay.', tone: null },
+            ].map(({ label, value, tone }) => (
               <div key={label} className="px-6 py-5 flex flex-col gap-2">
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">{label}</p>
-                {chip ? (
-                  <span className={`inline-flex self-start text-xs font-mono font-semibold px-2.5 py-1 rounded-md border ${chip}`}>{value}</span>
+                {tone ? (
+                  <SemanticBadge tone={tone} className="self-start">{value}</SemanticBadge>
                 ) : (
                   <p className="text-sm text-foreground leading-snug">{value}</p>
                 )}

@@ -17,6 +17,7 @@ import { getCockpitRuns, type CockpitRunRecord } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { useOptionalUser } from '@/lib/optionalClerk';
 import type { RecommendationLevel } from '@/data/mockData';
+import { SemanticBadge } from '@/components/SemanticBadge';
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -53,15 +54,7 @@ function formatTs(iso: string): string {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function chip(level: RecommendationLevel, label: string) {
-  const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border';
-  const map: Record<RecommendationLevel, string> = {
-    green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-    amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-    red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
-    blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
-    grey:  'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
-  };
-  return <span className={cn(base, map[level])}>{label}</span>;
+  return <SemanticBadge tone={level}>{label}</SemanticBadge>;
 }
 
 function riskChip(risk: string) {

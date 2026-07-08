@@ -15,6 +15,7 @@ import { compareCompanies, type CompareResult, type CompareTargetResult, type Le
 import { saveCompareRun } from '@/lib/runHistory';
 import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAccount';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
+import { SemanticBadge } from '@/components/SemanticBadge';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -45,15 +46,7 @@ const PROGRESS_STEPS: string[] = [
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function chip(level: Level, label: string) {
-  const base = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium whitespace-nowrap border';
-  const map: Record<Level, string> = {
-    green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-    amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-    red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
-    blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
-    grey:  'bg-muted/40     text-muted-foreground border-border',
-  };
-  return <span className={cn(base, map[level])}>{label}</span>;
+  return <SemanticBadge tone={level}>{label}</SemanticBadge>;
 }
 
 function riskLevel(risk: string): Level {
@@ -65,10 +58,10 @@ function riskLevel(risk: string): Level {
 }
 
 function rankBadgeStyle(rank: number) {
-  if (rank === 1) return 'bg-green-500/15 text-green-700 border border-green-500/30';
-  if (rank === 2) return 'bg-amber-500/10 text-amber-700 border border-amber-500/20';
-  if (rank === 3) return 'bg-blue-500/10  text-blue-700  border border-blue-500/20';
-  return 'bg-muted/30 text-muted-foreground border border-border';
+  if (rank === 1) return 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border border-[var(--semantic-verified-border)]';
+  if (rank === 2) return 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-[var(--semantic-claim-border)]';
+  if (rank === 3) return 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border border-[var(--semantic-info-border)]';
+  return 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border border-[var(--semantic-unknown-border)]';
 }
 
 // ─── Form phase ───────────────────────────────────────────────────────────────

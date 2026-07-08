@@ -4,26 +4,12 @@ import { ArrowRight, Lock, CheckCircle2, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import type { BuyerPageData, ChipColor } from '@/data/buyerPages';
+import { SemanticBadge } from '@/components/SemanticBadge';
 
 // ── Chip ──────────────────────────────────────────────────────────────────────
 
-const CHIP_CLS: Record<ChipColor, string> = {
-  green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
-  blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
-  muted: 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
-};
-
 function Chip({ text, color }: { text: string; color: ChipColor }) {
-  return (
-    <span className={cn(
-      'inline-flex items-center text-xs font-semibold leading-none px-2.5 py-1 rounded-md border whitespace-nowrap',
-      CHIP_CLS[color],
-    )}>
-      {text}
-    </span>
-  );
+  return <SemanticBadge tone={color}>{text}</SemanticBadge>;
 }
 
 // ── Sample acquisition screen card ───────────────────────────────────────────

@@ -363,7 +363,7 @@ function StatusPill({ label }: { label: string }) {
     normalised.includes('signal') ? 'caveat' :
     'claim';
   return (
-    <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0', evidenceChipClass(status))}>
+    <span className={cn('inline-flex shrink-0 items-center justify-center rounded-full border px-[9px] py-[5px] text-xs font-semibold leading-none', evidenceChipClass(status))}>
       {label}
     </span>
   );

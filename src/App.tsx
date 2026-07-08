@@ -32,6 +32,7 @@ import ProductPage from '@/pages/ProductPage';
 import EvidenceWorkflowPage from '@/pages/EvidenceWorkflowPage';
 import RegistryCoveragePage from '@/pages/RegistryCoveragePage';
 import TrustPage from '@/pages/TrustPage';
+import HowItWorksPage from '@/pages/HowItWorksPage';
 import UseCasesPage from '@/pages/UseCasesPage';
 import FAQPage from '@/pages/FAQPage';
 import DealCockpitPage from '@/pages/DealCockpitPage';
@@ -433,6 +434,7 @@ function PublicRouter() {
       <Route path="/evidence-workflow" component={EvidenceWorkflowPage} />
       <Route path="/registry-coverage" component={RegistryCoveragePage} />
       <Route path="/trust"             component={TrustPage} />
+      <Route path="/how-it-works"      component={HowItWorksPage} />
       <Route path="/use-cases"         component={UseCasesPage} />
       <Route path="/faq"               component={FAQPage} />
       <Route path="/buyer-thesis"      component={BuyerThesisPage} />

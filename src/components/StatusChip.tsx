@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { semanticBadgeClass } from '@/components/SemanticBadge';
 
 export type StatusVariant = "verified" | "caveat" | "candidate" | "diligence" | "blocking" | "pending" | "running" | "completed" | "warning";
 
@@ -10,18 +11,18 @@ interface StatusChipProps {
 }
 
 export function StatusChip({ status, variant, className }: StatusChipProps) {
+  const tone = (
+    variant === 'verified' || variant === 'completed' ? 'verified' :
+    variant === 'caveat' || variant === 'diligence' || variant === 'warning' ? 'partial' :
+    variant === 'candidate' || variant === 'running' ? 'info' :
+    variant === 'blocking' ? 'blocker' :
+    'unknown'
+  );
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium leading-none",
-        {
-          "border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)]": variant === "verified" || variant === "completed",
-          "border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]": variant === "caveat" || variant === "diligence" || variant === "warning",
-          "border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)]": variant === "candidate",
-          "border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)]": variant === "blocking",
-          "border-[var(--semantic-unknown-border)] bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)]": variant === "pending",
-          "border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] animate-pulse": variant === "running",
-        },
+        semanticBadgeClass(tone),
+        variant === 'running' && 'animate-pulse',
         className
       )}
     >

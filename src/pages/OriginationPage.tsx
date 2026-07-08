@@ -8,11 +8,12 @@ import { BetaCTA } from '@/components/BetaCTA';
 import { getBackendBaseUrl } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
+import { SemanticBadge, semanticBadgeClass } from '@/components/SemanticBadge';
 
 const LEVEL_CLASSES: Record<string, string> = {
-  green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
+  green: semanticBadgeClass('green'),
+  amber: semanticBadgeClass('amber'),
+  red:   semanticBadgeClass('red'),
 };
 
 // ─── Origination API call ─────────────────────────────────────────────────────
@@ -218,27 +219,15 @@ function OriginationResultView({
       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
         <div className="flex flex-wrap gap-2">
           {(isReferenceUniverse || sourceMode.includes('private_beta_reference_universe')) && (
-            <span className="inline-flex items-center rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary">
-              Private-beta reference universe
-            </span>
+            <SemanticBadge tone="info">Private-beta reference universe</SemanticBadge>
           )}
           {sourceMode.includes('user_supplied_target_universe') && (
-            <span className="inline-flex items-center rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary">
-              Known target universe
-            </span>
+            <SemanticBadge tone="info">Known target universe</SemanticBadge>
           )}
-          <span className="inline-flex items-center rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-700">
-            Validate before outreach
-          </span>
-          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-            No live crawling
-          </span>
-          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-            No paid data providers
-          </span>
-          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-            No verified revenue/ARR/EBITDA/customer concentration
-          </span>
+          <SemanticBadge tone="partial">Validate before outreach</SemanticBadge>
+          <SemanticBadge tone="unknown">No live crawling</SemanticBadge>
+          <SemanticBadge tone="unknown">No paid data providers</SemanticBadge>
+          <SemanticBadge tone="unknown">No verified revenue/ARR/EBITDA/customer concentration</SemanticBadge>
         </div>
       </div>
 
@@ -323,7 +312,7 @@ function OriginationResultView({
                     <span className="text-[11px] font-medium text-muted-foreground/50">#{rank}</span>
                     <p className="text-sm font-semibold text-foreground">{name}</p>
                     {verdict && (
-                      <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded border ${LEVEL_CLASSES[lvl]}`}>
+                      <span className={LEVEL_CLASSES[lvl]}>
                         {verdict}
                       </span>
                     )}

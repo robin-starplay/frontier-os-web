@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { clerkEnabled } from '@/lib/optionalClerk';
 import { createBackendAccount, ensureTrialAccount } from '@/lib/trialAccount';
+import { SemanticBadge, type LegacyBadgeLevel } from '@/components/SemanticBadge';
 
 interface BetaGateProps {
   /**
@@ -25,20 +26,9 @@ interface BetaGateProps {
 }
 
 // ── Shared chip helper ────────────────────────────────────────────────────────
-type ChipColour = 'green' | 'amber' | 'red' | 'blue' | 'grey';
-const CHIP_CLASSES: Record<ChipColour, string> = {
-  green: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-  amber: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-  red:   'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
-  blue:  'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-[var(--semantic-info-border)]',
-  grey:  'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
-};
+type ChipColour = Exclude<LegacyBadgeLevel, 'muted'>;
 function Chip({ colour, label }: { colour: ChipColour; label: string }) {
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium leading-none border whitespace-nowrap ${CHIP_CLASSES[colour]}`}>
-      {label}
-    </span>
-  );
+  return <SemanticBadge tone={colour}>{label}</SemanticBadge>;
 }
 
 // ── Locked feature card ───────────────────────────────────────────────────────
