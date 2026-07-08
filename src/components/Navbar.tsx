@@ -32,6 +32,37 @@ const PUBLIC_MORE = [
   { label: 'FAQ',                  href: '/faq' },
 ];
 
+const PUBLIC_MOBILE_PRIMARY = [
+  { label: 'Run',     href: '/app/run' },
+  { label: 'Cockpit', href: '/app/cockpit' },
+];
+
+const PUBLIC_MOBILE_MORE = [
+  {
+    label: 'Screening',
+    links: [
+      { label: 'Compare',     href: '/app/compare' },
+      { label: 'Origination', href: '/app/origination' },
+      { label: 'AI risk',     href: '/app/ai-risk' },
+    ],
+  },
+  {
+    label: 'Commercial',
+    links: [
+      { label: 'Pricing',       href: '/pricing' },
+      { label: 'Request pilot', href: '/request-pilot' },
+    ],
+  },
+  {
+    label: 'Trust',
+    links: [
+      { label: 'Trust', href: '/trust' },
+    ],
+  },
+];
+
+const PUBLIC_MOBILE_MORE_LINKS = PUBLIC_MOBILE_MORE.flatMap(group => group.links);
+
 function getLocalRunCount(): number {
   try {
     const raw = localStorage.getItem('fos_run_history');
@@ -334,14 +365,13 @@ export function Navbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-border bg-background px-4 py-3">
-            {/* Public nav links + use cases + more */}
-            <div className="space-y-0.5 mb-3">
-              {[...PUBLIC_NAV, ...USE_CASES_NAV, ...PUBLIC_MORE].map(({ label, href }) => (
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {PUBLIC_MOBILE_PRIMARY.map(({ label, href }) => (
                 <Link
                   key={href}
                   href={href}
                   className={cn(
-                    'block px-3 py-2.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
+                    'flex min-h-11 items-center justify-center rounded-md px-3 text-[var(--font-size-nav)] font-semibold leading-[var(--line-height-compact)] transition-colors',
                     isActive(href)
                       ? 'bg-primary/10 text-primary font-semibold'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
@@ -350,6 +380,62 @@ export function Navbar() {
                 >
                   {label}
                 </Link>
+              ))}
+              <div
+                className={cn(
+                  'flex min-h-11 items-center justify-center rounded-md px-3 text-[var(--font-size-nav)] font-semibold',
+                  PUBLIC_MOBILE_MORE_LINKS.some(({ href }) => isActive(href))
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-muted/40 text-foreground',
+                )}
+              >
+                More
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-3">
+              {PUBLIC_MOBILE_MORE.map(group => (
+                <div key={group.label}>
+                  <p className="px-3 pb-1 text-[11px] font-semibold text-muted-foreground">{group.label}</p>
+                  <div className="space-y-1">
+                    {group.links.map(({ label, href }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={cn(
+                          'flex min-h-11 items-center rounded-md px-3 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
+                          isActive(href)
+                            ? 'bg-primary/10 text-primary font-semibold'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
+                        )}
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ))}
+                    {group.label === 'Commercial' && (
+                      <a
+                        href={BOOK_INTRO_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex min-h-11 items-center gap-2 rounded-md px-3 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        Book intro
+                      </a>
+                    )}
+                    {group.label === 'Trust' && (
+                      <button
+                        onClick={() => { setMobileOpen(false); setFeedbackOpen(true); }}
+                        className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 text-left text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        Feedback
+                      </button>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -373,16 +459,6 @@ export function Navbar() {
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
                       BETA
                     </span>
-                    <a
-                      href={BOOK_INTRO_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setMobileOpen(false)}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground border border-border h-8 px-3 rounded-md"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
-                      Intro
-                    </a>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
@@ -410,13 +486,6 @@ export function Navbar() {
                 </>
               ) : null}
 
-              <button
-                onClick={() => { setMobileOpen(false); setFeedbackOpen(true); }}
-                className="inline-flex items-center gap-2 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-accent/70 transition-colors"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                Feedback
-              </button>
             </div>
           </div>
         )}

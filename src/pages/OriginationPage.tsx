@@ -8,14 +8,9 @@ import { BetaCTA } from '@/components/BetaCTA';
 import { getBackendBaseUrl } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
-import { SemanticBadge, semanticBadgeClass } from '@/components/SemanticBadge';
+import { SemanticBadge } from '@/components/SemanticBadge';
 import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
-
-const LEVEL_CLASSES: Record<string, string> = {
-  green: semanticBadgeClass('green'),
-  amber: semanticBadgeClass('amber'),
-  red:   semanticBadgeClass('red'),
-};
+import { addCompareCandidate } from '@/lib/compareSelection';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
@@ -29,6 +24,18 @@ interface OriginationRequest {
 }
 
 type OriginationResult = Record<string, unknown>;
+
+const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
+const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
+
+interface OriginationFormValues {
+  sector: string;
+  geo: string;
+  sizeCriteria: string;
+  rationale: string;
+  buyerThesis: string;
+  targetUniverse: string;
+}
 
 interface KnownTarget {
   company_name: string;
@@ -140,6 +147,109 @@ function isSyntheticReferenceCandidate(candidate: Record<string, unknown>): bool
     || safeStr(candidate.source_note).toLowerCase().includes('synthetic example');
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceUrls(candidate: Record<string, unknown>): string[] {
+  const urls = Array.isArray(candidate.source_urls)
+    ? candidate.source_urls.map(safeStr).filter(Boolean)
+    : [];
+  const sourceUrl = safeStr(candidate.source_url);
+  if (sourceUrl && !urls.includes(sourceUrl)) urls.unshift(sourceUrl);
+  return urls;
+}
+
+function candidateQuality(candidate: Record<string, unknown>): string {
+  return safeStr(candidate.candidate_quality || (
+    safeStr(candidate.display_mode) === 'compact_row'
+      ? 'needs_website_confirmation'
+      : safeStr(candidate.display_mode) === 'hidden_excluded'
+      ? 'excluded'
+      : 'screenable_now'
+  ));
+}
+
+function candidateDisplayMode(candidate: Record<string, unknown>): string {
+  const explicit = safeStr(candidate.display_mode);
+  if (explicit) return explicit;
+  const quality = candidateQuality(candidate);
+  if (quality === 'excluded') return 'hidden_excluded';
+  if (quality === 'needs_website_confirmation' || quality === 'low_priority') return 'compact_row';
+  return 'full_card';
+}
+
+function candidateGroups(candidates: Record<string, unknown>[]) {
+  return {
+    screenable: candidates.filter(c => candidateDisplayMode(c) === 'full_card' && candidateQuality(c) !== 'excluded'),
+    needsWebsite: candidates.filter(c => candidateQuality(c) === 'needs_website_confirmation' && candidateDisplayMode(c) !== 'full_card'),
+    lowPriority: candidates.filter(c => candidateQuality(c) === 'low_priority' && candidateDisplayMode(c) !== 'full_card'),
+    excluded: candidates.filter(c => candidateQuality(c) === 'excluded' || candidateDisplayMode(c) === 'hidden_excluded'),
+  };
+}
+
+function displayValue(value: unknown, fallback = 'Unknown'): string {
+  const text = safeStr(value);
+  return text || fallback;
+}
+
+function storageAvailable(): boolean {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function readStoredOriginationForm(): OriginationFormValues {
+  const empty: OriginationFormValues = {
+    sector: '',
+    geo: '',
+    sizeCriteria: '',
+    rationale: '',
+    buyerThesis: '',
+    targetUniverse: '',
+  };
+  if (!storageAvailable()) return empty;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LAST_ORIGINATION_FORM_KEY) || '{}') as Partial<OriginationFormValues>;
+    return {
+      sector: safeStr(parsed.sector),
+      geo: safeStr(parsed.geo),
+      sizeCriteria: safeStr(parsed.sizeCriteria),
+      rationale: safeStr(parsed.rationale),
+      buyerThesis: safeStr(parsed.buyerThesis),
+      targetUniverse: safeStr(parsed.targetUniverse),
+    };
+  } catch {
+    return empty;
+  }
+}
+
+function readStoredOriginationResult(): OriginationResult | null {
+  if (!storageAvailable()) return null;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LAST_ORIGINATION_RESULT_KEY) || 'null');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as OriginationResult : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeOriginationRun(form: OriginationFormValues, result: OriginationResult): void {
+  if (!storageAvailable()) return;
+  window.localStorage.setItem(LAST_ORIGINATION_FORM_KEY, JSON.stringify(form));
+  window.localStorage.setItem(LAST_ORIGINATION_RESULT_KEY, JSON.stringify(result));
+}
+
+function clearStoredOriginationRun(): void {
+  if (!storageAvailable()) return;
+  window.localStorage.removeItem(LAST_ORIGINATION_FORM_KEY);
+  window.localStorage.removeItem(LAST_ORIGINATION_RESULT_KEY);
+}
+
+function numericOrNull(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const parsed = Number(safeStr(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 // ─── Result renderer ──────────────────────────────────────────────────────────
 
 function OriginationResultView({
@@ -151,6 +261,7 @@ function OriginationResultView({
 }) {
   const [showRejected, setShowRejected] = useState(false);
   const [savedCandidates, setSavedCandidates] = useState<Set<string>>(() => new Set());
+  const [compareMessages, setCompareMessages] = useState<Record<string, string>>({});
 
   // Normalise candidate list — backend may call this field anything
   const rawCandidates = (
@@ -160,6 +271,8 @@ function OriginationResultView({
     []
   ) as Record<string, unknown>[];
   const candidates = rawCandidates.filter(candidate => !isSyntheticReferenceCandidate(candidate));
+  const groupedCandidates = candidateGroups(candidates);
+  const candidateSummary = asRecord(data.candidate_summary);
 
   const isUnavailable = data.status === 'unavailable';
   const isReferenceUniverse = data.universe_mode === 'private_beta_reference_universe';
@@ -167,8 +280,8 @@ function OriginationResultView({
   const hasSourceBackedUniverse = data.source_backed_target_universe_available === true || candidates.length > 0;
   const summary    = (data.summary ?? data.thesis_summary) as string | undefined;
   const rationale  = (data.match_rationale ?? data.buyer_thesis) as string | undefined;
-  const nextActArr = data.next_actions      as unknown[] | undefined;
-  const evidGaps   = data.evidence_gaps     as unknown[] | undefined;
+  const nextActArr = (data.recommended_next_actions ?? data.next_actions) as unknown[] | undefined;
+  const evidGaps   = (data.common_evidence_gaps ?? data.evidence_gaps) as unknown[] | undefined;
   const limitations= (Array.isArray(data.limitations) ? data.limitations : data.limitations ? [data.limitations] : []) as unknown[];
   const warnings   = (Array.isArray(data.warnings) ? data.warnings : data.warnings ? [data.warnings] : []) as unknown[];
   const rejected   = (
@@ -216,6 +329,257 @@ function OriginationResultView({
       nextAction: safeStr(candidate.next_action, 'Run URL screen before outreach or IC use.'),
     });
     setSavedCandidates(prev => new Set(prev).add(name));
+  }
+
+  function compareCandidateKey(candidate: Record<string, unknown>): string {
+    return safeStr(candidate.website) || `${safeStr(candidate.company_name ?? candidate.company ?? candidate.name)}-${safeStr(candidate.jurisdiction ?? candidate.country)}`;
+  }
+
+  function handleAddToCompare(candidate: Record<string, unknown>) {
+    const name = safeStr(candidate.company_name ?? candidate.company ?? candidate.name) || 'Unnamed candidate';
+    const website = safeStr(candidate.website);
+    const hasWebsite = Boolean(website.trim());
+    const jurisdiction = safeStr(candidate.jurisdiction ?? candidate.country);
+    const { added } = addCompareCandidate({
+      company_name: name,
+      website,
+      jurisdiction,
+      source: 'origination',
+      source_label: safeStr(candidate.source_label),
+      evidence_status: safeStr(candidate.evidence_status ?? candidate.verification_status),
+      fit_score_100: numericOrNull(candidate.fit_score_100 ?? candidate.fit_score ?? candidate.score),
+      recommendation: safeStr(candidate.recommendation ?? candidate.verdict),
+      ...(hasWebsite
+        ? { website_status: safeStr(candidate.website_status, 'known'), compare_ready: true }
+        : {
+            website_status: 'missing',
+            compare_ready: false,
+            compare_note: 'Website must be confirmed before comparison.',
+          }),
+    });
+    const key = compareCandidateKey(candidate);
+    setCompareMessages(prev => ({ ...prev, [key]: added ? 'Added to Compare' : 'Already in Compare' }));
+    window.setTimeout(() => {
+      window.location.href = '/app/compare';
+    }, 350);
+  }
+
+  function renderEvidenceCards(candidate: Record<string, unknown>) {
+    const cards = Array.isArray(candidate.evidence_cards)
+      ? candidate.evidence_cards.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+      : [];
+    if (cards.length === 0) return null;
+    return (
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {cards.slice(0, 6).map((card, idx) => {
+          const type = safeStr(card.type, 'signal');
+          const tone = type === 'verified_fact'
+            ? 'verified'
+            : type === 'warning'
+            ? 'blocker'
+            : type === 'unknown'
+            ? 'unknown'
+            : type === 'hypothesis'
+            ? 'partial'
+            : 'info';
+          const url = safeStr(card.source_url);
+          return (
+            <div key={idx} className="rounded-md border border-border bg-background/60 px-3 py-2">
+              <div className="flex items-center gap-2 mb-1">
+                <SemanticBadge tone={tone} className="text-[10px] px-2 py-1">
+                  {humanLabel(type)}
+                </SemanticBadge>
+                {safeStr(card.evidence_status) && (
+                  <span className="text-[10px] text-muted-foreground/60">{humanLabel(safeStr(card.evidence_status))}</span>
+                )}
+              </div>
+              <p className="text-xs font-semibold text-foreground">{safeStr(card.label, 'Evidence')}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{safeStr(card.detail)}</p>
+              {url && (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[10px] text-primary hover:underline">
+                  {safeStr(card.source_label, 'Source')}
+                </a>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderFullCandidateCard(c: Record<string, unknown>, i: number) {
+    const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
+    const website = safeStr(c.website ?? '');
+    const productSignal = safeStr(c.product_signal, 'unknown');
+    const sourceLabel = safeStr(c.source_label) || 'Public-source candidate signal';
+    const evidenceStatus = safeStr(c.evidence_status ?? c.verification_status ?? 'not_independently_verified');
+    const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
+    const fit = safeStr(c.fit_score_100 ?? c.fit_score ?? c.score ?? '');
+    const fits = safeStr(c.why_it_fits ?? c.why_fits ?? c.rationale ?? c.match_rationale ?? '');
+    const action = safeStr(c.next_best_action ?? c.next_action ?? '');
+    const description = safeStr(c.one_line_description ?? c.description ?? c.source_snippet ?? '');
+    const risk = safeStr(c.ai_risk ?? c.ai_risk_view ?? c.ai_rebuild_risk_signal ?? '');
+    const productDiagnostics = asRecord(c.product_ai_diagnostics);
+    const aiDiagnostics = asRecord(productDiagnostics.ai_rebuild_risk);
+    const aiRisk = safeStr(aiDiagnostics.level || risk);
+    const rank = safeStr(c.rank, String(i + 1));
+    const urls = sourceUrls(c);
+    const canSaveCandidate = website && (
+      safeStr(c.source_mode) === 'user_supplied_target_universe'
+      || sourceLabel === 'User supplied target universe'
+      || evidenceStatus === 'user_supplied_claim'
+      || sourceMode === 'user_supplied_target_universe'
+    );
+
+    return (
+      <div key={`${name}-${rank}`} className="p-4">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className="text-[11px] font-medium text-muted-foreground/50">#{rank}</span>
+          <p className="text-sm font-semibold text-foreground">{name}</p>
+          {verdict && <SemanticBadge tone="info">{verdict}</SemanticBadge>}
+          <SemanticBadge tone={productSignal === 'strong' ? 'verified' : productSignal === 'plausible' ? 'info' : productSignal === 'weak' ? 'partial' : 'unknown'}>
+            Product signal: {humanLabel(productSignal)}
+          </SemanticBadge>
+        </div>
+        {(description || website) && (
+          <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+            {[description, website].filter(Boolean).join(' · ')}
+          </p>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          {fit && (
+            <div>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit score 100</p>
+              <p className="font-semibold text-foreground">{fit}</p>
+            </div>
+          )}
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Evidence status</p>
+            <p className="font-medium text-muted-foreground">{humanLabel(evidenceStatus)}</p>
+          </div>
+          {aiRisk && (
+            <div>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">AI/product risk</p>
+              <p className="font-medium text-muted-foreground">{humanLabel(aiRisk)}</p>
+            </div>
+          )}
+        </div>
+        {fits && (
+          <div className="mt-3">
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Why it fits</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{fits}</p>
+          </div>
+        )}
+        {renderEvidenceCards(c)}
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          {website ? (
+            <Link
+              href={`/app/run?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
+            >
+              Run screen →
+            </Link>
+          ) : (
+            <Link
+              href="/app/run"
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
+            >
+              Run screen →
+            </Link>
+          )}
+          {canSaveCandidate && (
+            <button
+              type="button"
+              onClick={() => handleSaveCandidate(c)}
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+            >
+              {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
+            </button>
+          )}
+          {action && <span className="text-[11px] text-muted-foreground/60">{action}</span>}
+        </div>
+        <p className="text-[10px] font-medium text-muted-foreground/40 mt-2">
+          Source: {humanLabel(sourceLabel)}
+        </p>
+        {urls.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-2">
+            {urls.slice(0, 3).map(url => (
+              <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline">
+                {url}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderCompactCandidateRow(c: Record<string, unknown>, i: number) {
+    const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
+    const companyHouseUrl = sourceUrls(c).find(url => url.includes('company-information.service.gov.uk') || url.includes('companieshouse'));
+    return (
+      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr] gap-2 px-4 py-3 text-xs items-start">
+        <p className="font-semibold text-foreground">{name}</p>
+        <p className="text-muted-foreground">{displayValue(c.source_label, 'Source-backed lead')}</p>
+        <p className="text-muted-foreground">{humanLabel(displayValue(c.website_status))}</p>
+        <p className="text-muted-foreground">{humanLabel(displayValue(c.product_signal))}</p>
+        <p className="text-muted-foreground">{humanLabel(displayValue(c.candidate_decision))}</p>
+        <p className="text-muted-foreground leading-relaxed">{displayValue(c.next_best_action, 'Find and verify website.')}</p>
+        {companyHouseUrl ? (
+          <a href={companyHouseUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Companies House
+          </a>
+        ) : (
+          <span className="text-muted-foreground/50">No registry link</span>
+        )}
+      </div>
+    );
+  }
+
+  function renderExcludedCandidate(c: Record<string, unknown>, i: number) {
+    const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Excluded candidate';
+    return (
+      <details key={`${name}-${i}`} className="border-t border-border/50">
+        <summary className="cursor-pointer px-4 py-3 text-xs font-medium text-muted-foreground hover:text-foreground">
+          {name}
+        </summary>
+        <div className="px-4 pb-3 text-xs text-muted-foreground leading-relaxed">
+          {safeStr(c.decision_rationale ?? c.exclusion_risk ?? c.why_it_may_be_wrong, 'Excluded or hidden by backend triage.')}
+        </div>
+      </details>
+    );
+  }
+
+  function renderCandidateGroup(title: string, items: Record<string, unknown>[], mode: 'full' | 'compact' | 'excluded') {
+    if (items.length === 0) return null;
+    return (
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
+          <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
+          <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
+        </div>
+        {mode === 'compact' && (
+          <div className="hidden md:grid grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
+            <span>Company</span>
+            <span>Source</span>
+            <span>Website</span>
+            <span>Product</span>
+            <span>Decision</span>
+            <span>Next action</span>
+            <span>Registry</span>
+          </div>
+        )}
+        <div className={mode === 'full' ? 'divide-y divide-border' : ''}>
+          {items.map((item, index) => (
+            mode === 'full'
+              ? renderFullCandidateCard(item, index)
+              : mode === 'compact'
+              ? renderCompactCandidateRow(item, index)
+              : renderExcludedCandidate(item, index)
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -273,170 +637,54 @@ function OriginationResultView({
         </div>
       )}
 
-      {/* Candidate targets */}
+      {/* Candidate summary */}
       {candidates.length > 0 && (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">
-              Candidate targets ({candidates.length})
+        <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Candidate summary</p>
+            {safeStr(candidateSummary.discovery_quality) && (
+              <SemanticBadge tone={safeStr(candidateSummary.discovery_quality) === 'low' ? 'partial' : safeStr(candidateSummary.discovery_quality) === 'high' ? 'verified' : 'info'}>
+                Discovery quality: {humanLabel(safeStr(candidateSummary.discovery_quality))}
+              </SemanticBadge>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+            {[
+              ['Total candidates', candidateSummary.total_candidates ?? candidates.length],
+              ['Screenable now', candidateSummary.screenable_now_count ?? groupedCandidates.screenable.length],
+              ['Need website confirmation', candidateSummary.needs_website_confirmation_count ?? groupedCandidates.needsWebsite.length],
+              ['Low priority', candidateSummary.low_priority_count ?? groupedCandidates.lowPriority.length],
+              ['Excluded', candidateSummary.excluded_count ?? groupedCandidates.excluded.length],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-md border border-border/60 bg-background/60 px-3 py-2">
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">{String(label)}</p>
+                <p className="text-sm font-semibold text-foreground">{safeStr(value, '0')}</p>
+              </div>
+            ))}
+          </div>
+          {safeStr(candidateSummary.top_next_action) && (
+            <p className="text-xs text-muted-foreground leading-relaxed mt-3">
+              <span className="font-semibold text-foreground">Top next action:</span> {safeStr(candidateSummary.top_next_action)}
             </p>
-            <span className="text-[10px] font-medium text-muted-foreground/60">Public signals only · not verified</span>
-          </div>
-          <div className="divide-y divide-border">
-            {candidates.map((c, i) => {
-              const name    = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
-              const sector  = safeStr(c.sector ?? c.vertical ?? '');
-              const country = safeStr(c.country ?? c.jurisdiction ?? '');
-              const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
-              const fit     = safeStr(c.fit_score_100 ?? c.fit_score ?? c.score ?? '');
-              const fitLabel = safeStr(c.fit_label ?? c.buyer_thesis_fit ?? '');
-              const confidence = safeStr(c.evidence_confidence ?? '');
-              const risk    = safeStr(c.ai_risk ?? c.ai_risk_view ?? c.risk ?? '');
-              const fits    = safeStr(c.why_it_fits ?? c.why_fits ?? c.rationale ?? c.match_rationale ?? '');
-              const description = safeStr(c.one_line_description ?? c.description ?? '');
-              const missingItems = asList(c.missing_evidence ?? c.evidence_gaps ?? '');
-              const diligenceQuestions = asList(c.diligence_questions ?? '');
-              const action  = safeStr(c.next_action ?? '');
-              const website = safeStr(c.website ?? '');
-              const sourceLabel = safeStr(c.source_label) || 'Public-source candidate signal';
-              const evidenceStatus = safeStr(c.evidence_status ?? c.verification_status ?? 'not_independently_verified');
-              const sourceUrls = Array.isArray(c.source_urls) ? c.source_urls.map(safeStr).filter(Boolean) : [];
-              const rank = safeStr(c.rank, String(i + 1));
-              const canSaveCandidate = website && (
-                safeStr(c.source_mode) === 'user_supplied_target_universe'
-                || sourceLabel === 'User supplied target universe'
-                || evidenceStatus === 'user_supplied_claim'
-                || sourceMode === 'user_supplied_target_universe'
-              );
-              const lvlRaw  = safeStr(c.level ?? c.recommendation_level ?? 'amber').toLowerCase();
-              const lvl     = lvlRaw in LEVEL_CLASSES ? lvlRaw : 'amber';
-              return (
-                <div key={i} className="p-4">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className="text-[11px] font-medium text-muted-foreground/50">#{rank}</span>
-                    <p className="text-sm font-semibold text-foreground">{name}</p>
-                    {verdict && (
-                      <span className={LEVEL_CLASSES[lvl]}>
-                        {verdict}
-                      </span>
-                    )}
-                  </div>
-                  {(sector || description) && (
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {[sector, country, description].filter(Boolean).join(' · ')}
-                    </p>
-                  )}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2 text-xs">
-                    {fit && (
-                      <div>
-                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit score 100</p>
-                        <p className="font-semibold text-foreground">{fit}</p>
-                      </div>
-                    )}
-                    {fitLabel && (
-                      <div>
-                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit label</p>
-                        <p className="font-medium text-muted-foreground">{fitLabel}</p>
-                      </div>
-                    )}
-                    {confidence && (
-                      <div>
-                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Evidence confidence</p>
-                        <p className="font-medium text-muted-foreground">{confidence}</p>
-                      </div>
-                    )}
-                    {risk && (
-                      <div>
-                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">AI risk</p>
-                        <p className="font-medium text-muted-foreground">{risk}</p>
-                      </div>
-                    )}
-                    {fits && (
-                      <div className="col-span-2">
-                        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Why it fits</p>
-                        <p className="text-muted-foreground leading-snug">{fits}</p>
-                      </div>
-                    )}
-                  </div>
-                  {missingItems.length > 0 && (
-                    <div className="mb-2">
-                      <p className="font-semibold tracking-normal text-[10px] text-amber-700/70 mb-1">Missing evidence</p>
-                      <ul className="space-y-1">
-                        {missingItems.slice(0, 4).map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-xs text-muted-foreground">
-                            <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-400/50 shrink-0" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {diligenceQuestions.length > 0 && (
-                    <div className="mb-2">
-                      <p className="font-semibold tracking-normal text-[10px] text-muted-foreground mb-1">Diligence questions</p>
-                      <ul className="space-y-1">
-                        {diligenceQuestions.slice(0, 4).map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-xs text-muted-foreground">
-                            <span className="mt-1.5 w-1 h-1 rounded-full bg-primary/50 shrink-0" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {website ? (
-                      <Link
-                        href={`/app/run?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
-                      >
-                        Run screen →
-                      </Link>
-                    ) : (
-                      <Link
-                        href="/app/run"
-                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
-                      >
-                        Run screen →
-                      </Link>
-                    )}
-                    <Link
-                      href={`/compare?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-                    >
-                      Add to Compare
-                    </Link>
-                    {canSaveCandidate && (
-                      <button
-                        type="button"
-                        onClick={() => handleSaveCandidate(c)}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-                      >
-                        {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
-                      </button>
-                    )}
-                    {action && (
-                      <span className="text-[11px] text-muted-foreground/60">{action}</span>
-                    )}
-                  </div>
-                  <p className="text-[10px] font-medium text-muted-foreground/40 mt-2">
-                    Source: {humanLabel(sourceLabel)} · Evidence status: {humanLabel(evidenceStatus)}
-                  </p>
-                  {sourceUrls.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {sourceUrls.map(url => (
-                        <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline">
-                          {url}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          )}
+          {safeStr(candidateSummary.why_quality) && (
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1">{safeStr(candidateSummary.why_quality)}</p>
+          )}
         </div>
       )}
+
+      {safeStr(candidateSummary.discovery_quality) === 'low' && (
+        <div className="rounded-lg border border-amber-500/25 bg-[var(--semantic-claim-bg)] px-4 py-3">
+          <p className="text-xs font-semibold text-[var(--semantic-claim-text)]">
+            These are registry leads, not verified acquisition targets. Product websites are required before screening.
+          </p>
+        </div>
+      )}
+
+      {renderCandidateGroup('Screenable product candidates', groupedCandidates.screenable, 'full')}
+      {renderCandidateGroup('Registry leads needing website confirmation', groupedCandidates.needsWebsite, 'compact')}
+      {renderCandidateGroup('Low priority registry matches', groupedCandidates.lowPriority, 'compact')}
+      {renderCandidateGroup('Excluded / hidden', groupedCandidates.excluded, 'excluded')}
 
       {/* Match rationale */}
       {rationale && (
