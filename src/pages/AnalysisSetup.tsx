@@ -1266,10 +1266,10 @@ function Step2({
           {!error && !documentUnavailable && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <SemanticBadge tone="info" className="text-[11px]">
-                Evidence depth: medium
+                Evidence depth: Preview
               </SemanticBadge>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Preview depth indicates how much source evidence was available in this run; it is not an investment recommendation.
+                Preview depth means Frontier OS checked available public/source-backed evidence, but financial, customer and retention data may still require diligence.
               </p>
             </div>
           )}
