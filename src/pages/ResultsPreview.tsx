@@ -26,7 +26,7 @@ export default function ResultsPreview() {
       <div className="border-b border-border bg-card py-6 px-6 md:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-bold tracking-tight">Acme Software Ltd</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Illustrative target</h1>
             <Badge variant="outline" className="bg-muted font-mono rounded text-muted-foreground border-border">Static example</Badge>
           </div>
           <p className="text-sm text-muted-foreground">Generated Today</p>

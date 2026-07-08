@@ -84,7 +84,7 @@ export default function LiveWorkflow() {
         <div className="mb-6 bg-card px-4 py-3 rounded-md border border-border shadow-sm">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Analysis / <span className="font-semibold text-foreground">Acme Software Ltd</span> / {isComplete ? <span className="text-green-500">Completed</span> : <span className="text-blue-500">Running</span>}
+              Analysis / <span className="font-semibold text-foreground">Target company</span> / {isComplete ? <span className="text-green-500">Completed</span> : <span className="text-blue-500">Running</span>}
             </div>
             <div className="font-mono text-sm text-foreground bg-muted px-2 py-1 rounded">
               Elapsed: {totalElapsed}s

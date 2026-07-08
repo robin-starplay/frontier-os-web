@@ -160,7 +160,7 @@ function CompareForm({
                     <Label className="text-xs" htmlFor={`co-name-${i}`}>Company name</Label>
                     <Input
                       id={`co-name-${i}`}
-                      placeholder="e.g. Acme Software Ltd"
+                      placeholder="Company name"
                       value={co.name}
                       onChange={e => updateCompany(i, 'name', e.target.value)}
                       className="bg-background h-9 text-sm"
@@ -170,7 +170,7 @@ function CompareForm({
                     <Label className="text-xs" htmlFor={`co-url-${i}`}>Website URL</Label>
                     <Input
                       id={`co-url-${i}`}
-                      placeholder="https://cerillion.com"
+                      placeholder="https://example.com"
                       value={co.url}
                       onChange={e => updateCompany(i, 'url', e.target.value)}
                       className="bg-background h-9 text-sm"

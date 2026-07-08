@@ -25,7 +25,7 @@ export default function ICMemo() {
         {' · '}This is a static illustrative preview — not a live analysis result. Financial figures are not independently verified.
       </div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">IC Draft Memo: Acme Software Ltd</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">IC Draft Memo: Illustrative target</h1>
         <p className="text-muted-foreground">Comprehensive extraction, analysis, and sanity check results.</p>
       </div>
 

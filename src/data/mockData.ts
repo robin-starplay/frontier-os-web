@@ -299,9 +299,9 @@ export const EVIDENCE_CARDS = [
 ];
 
 export const PREVIOUS_REPORTS = [
-  { company: "Acme Software Ltd", ticker: "Static example", recommendation: "Request Evidence", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 7, date: "Today" },
-  { company: "Northstar Workflow Systems", ticker: "Static example", recommendation: "Request Evidence", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 4, date: "Yesterday" },
-  { company: "Example Vertical SaaS Co", ticker: "Static example", recommendation: "Monitor", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 3, date: "3 days ago" },
+  { company: "Illustrative target 1", ticker: "Static example", recommendation: "Request Evidence", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 7, date: "Today" },
+  { company: "Illustrative target 2", ticker: "Static example", recommendation: "Request Evidence", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 4, date: "Yesterday" },
+  { company: "Illustrative target 3", ticker: "Static example", recommendation: "Monitor", evidenceQuality: "Unknown", strategicFit: "Illustrative", blockingGaps: 3, date: "3 days ago" },
 ];
 
 // ── Deal Cockpit ──────────────────────────────────────────────────────────────

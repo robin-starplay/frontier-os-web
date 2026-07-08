@@ -71,6 +71,18 @@ function asList(value: unknown): string[] {
   return value.map(safeStr).filter(Boolean);
 }
 
+function showDeveloperDiagnostics(): boolean {
+  return import.meta.env.DEV
+    || (typeof window !== 'undefined' && window.localStorage.getItem('frontier_debug_diagnostics') === '1');
+}
+
+function humanLabel(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .trim()
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
 function parseKnownTargetUniverse(value: string): KnownTarget[] {
   return value
     .split(/\r?\n/)
@@ -159,6 +171,7 @@ function OriginationResultView({
     (data.rejected_targets as Record<string, unknown>[] | undefined) ??
     []
   );
+  const showDiagnostics = showDeveloperDiagnostics();
   const diagnostics = [
     ['openai_used', data.openai_used],
     ['ranking_mode', data.ranking_mode],
@@ -214,11 +227,6 @@ function OriginationResultView({
               Known target universe
             </span>
           )}
-          {data.openai_used === true && (
-            <span className="inline-flex items-center rounded border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[10px] font-mono text-blue-300">
-              OpenAI ranking active
-            </span>
-          )}
           <span className="inline-flex items-center rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-mono text-amber-300">
             Validate before outreach
           </span>
@@ -245,20 +253,23 @@ function OriginationResultView({
         </div>
       )}
 
-      {diagnostics.length > 0 && (
-        <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Backend diagnostics</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {showDiagnostics && diagnostics.length > 0 && (
+        <details className="group rounded-lg border border-border bg-card/40 overflow-hidden">
+          <summary className="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-3">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Developer diagnostics</p>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-border px-4 py-3">
             {diagnostics.map(([label, value]) => (
               <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
                 <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/60 mb-0.5">
-                  {String(label).replace(/_/g, ' ')}
+                  {String(label)}
                 </p>
                 <p className="text-xs text-foreground break-words">{safeStr(value)}</p>
               </div>
             ))}
           </div>
-        </div>
+        </details>
       )}
 
       {/* Thesis summary */}
@@ -298,8 +309,6 @@ function OriginationResultView({
               const evidenceStatus = safeStr(c.evidence_status ?? c.verification_status ?? 'not_independently_verified');
               const sourceUrls = Array.isArray(c.source_urls) ? c.source_urls.map(safeStr).filter(Boolean) : [];
               const rank = safeStr(c.rank, String(i + 1));
-              const aiRanked = c.ai_ranked === true;
-              const openAiUsed = c.openai_used === true;
               const canSaveCandidate = website && (
                 safeStr(c.source_mode) === 'user_supplied_target_universe'
                 || sourceLabel === 'User supplied target universe'
@@ -316,16 +325,6 @@ function OriginationResultView({
                     {verdict && (
                       <span className={`inline-flex items-center text-[10px] font-mono px-2 py-0.5 rounded border ${LEVEL_CLASSES[lvl]}`}>
                         {verdict}
-                      </span>
-                    )}
-                    {aiRanked && (
-                      <span className="inline-flex items-center text-[10px] font-mono px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-300">
-                        AI ranked
-                      </span>
-                    )}
-                    {openAiUsed && (
-                      <span className="inline-flex items-center text-[10px] font-mono px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-300">
-                        OpenAI used
                       </span>
                     )}
                   </div>
@@ -428,7 +427,7 @@ function OriginationResultView({
                     )}
                   </div>
                   <p className="text-[10px] font-mono text-muted-foreground/40 mt-2">
-                    Source: {sourceLabel} · Evidence status: {evidenceStatus.replace(/_/g, ' ')}
+                    Source: {humanLabel(sourceLabel)} · Evidence status: {humanLabel(evidenceStatus)}
                   </p>
                   {sourceUrls.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-2">
@@ -846,13 +845,18 @@ function OriginationForm() {
           value={targetUniverse}
           onChange={e => setTargetUniverse(e.target.value)}
           rows={5}
-          placeholder={`Cerillion, https://www.cerillion.com, UK, Telecoms BSS/OSS software
-Checkit, https://www.checkit.net, UK, Connected workflow management software
-TriloDocs, https://www.trilodocs.com, UK, Document automation / insurance technology`}
+          placeholder={`Paste known targets, one per line:
+Company name, website, country, brief description
+
+Example format:
+[Company name], [website URL], [country], [brief description]`}
           className="w-full px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors resize-none"
         />
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
           Paste one company per line. Frontier OS will rank only supplied/source-backed targets and will not invent acquisition targets.
+        </p>
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1">
+          Only paste targets you are permitted to screen. Frontier OS will not invent or enrich targets without evidence.
         </p>
       </div>
 

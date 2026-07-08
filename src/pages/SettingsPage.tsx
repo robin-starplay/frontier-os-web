@@ -45,6 +45,7 @@ export default function SettingsPage() {
   const { isLoaded, isSignedIn, user } = useOptionalUser();
   const { signOut } = useOptionalClerk();
   const localApi = useLocalApiHealth();
+  const showDeveloperDiagnostics = import.meta.env.DEV;
 
   const trial = getTrialAccount();
   const runs  = getRuns();
@@ -293,6 +294,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Developer diagnostics */}
+        {showDeveloperDiagnostics && (
         <details className="group rounded-lg border border-border bg-card overflow-hidden">
           <summary className="px-5 py-3.5 bg-muted/20 cursor-pointer list-none flex items-center justify-between gap-3">
             <div>
@@ -374,6 +376,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </details>
+        )}
 
         {/* Data & legal */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">

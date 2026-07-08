@@ -214,8 +214,12 @@ function displayValue(value: unknown, fallback = 'Not found in this run'): strin
 
 function resultModeLabel(value: unknown): string {
   const raw = textValue(value, 'public_source_preview').toLowerCase();
-  if (raw === 'private_beta_preview' || raw === 'private beta · public-source screen') return 'Public-source preview';
-  if (raw === 'public_source_preview' || raw === 'url_only_public_screen' || raw === 'public_sources_only') return 'Public-source preview';
+  if (raw === 'document_assisted_preview' || raw === 'document_assisted_review') return 'Document-assisted review';
+  if (raw === 'quality_first') return 'Evidence-first screen';
+  if (raw === 'private_beta_preview' || raw === 'private beta · public-source screen') return 'Public-source screen';
+  if (raw === 'public_source_preview' || raw === 'url_only_public_screen' || raw === 'public_sources_only') return 'Public-source screen';
+  if (raw.includes('source') || raw.includes('public')) return 'Public-source screen';
+  if (raw.includes('_')) return 'Evidence-first screen';
   return formatLabel(raw);
 }
 
@@ -2651,7 +2655,7 @@ function AnalysisResultDisplay({
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
           <p className="text-[10px] font-mono uppercase tracking-widest text-primary">
-            Acquisition screen · {result.analysis_mode ? formatLabel(result.analysis_mode) : 'Public-source screen'}
+            Acquisition screen · {resultModeLabel(result.analysis_mode)}
           </p>
         </div>
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">

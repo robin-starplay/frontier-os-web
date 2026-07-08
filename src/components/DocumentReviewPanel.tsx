@@ -267,7 +267,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
               type="text"
               value={companyName}
               onChange={e => setCompanyName(e.target.value)}
-              placeholder="e.g. Acme Software Ltd"
+              placeholder="Company name"
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>
@@ -279,7 +279,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
               type="url"
               value={website}
               onChange={e => setWebsite(e.target.value)}
-              placeholder="https://www.cerillion.com"
+              placeholder="https://example.com"
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>

@@ -513,9 +513,9 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
  * Return a short, readable label for a company name in list contexts.
  * Skips a leading "The" / "THE" so we never display a bare "The —" bullet.
  * Examples:
- *   "Northstar Workflow Systems Ltd." → "Northstar Workflow Systems"
- *   "The Boeing Company"        → "Boeing Company"
- *   "Illustrative Target Co."    → "Illustrative Target"
+ *   "Example Target Ltd."     → "Example Target"
+ *   "The Target Company"      → "Target Company"
+ *   "Illustrative Target Co." → "Illustrative Target"
  */
 function cockpitShortName(company: string): string {
   const words = company.trim().split(/\s+/);

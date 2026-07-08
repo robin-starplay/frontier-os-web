@@ -111,7 +111,7 @@ const softwareRollups: BuyerPageData = {
     'Flag AI replica risk and moat evidence across the shortlist.',
     'Origination — surface ranked targets from a buyer thesis description.',
   ],
-  sampleCardTarget: 'Acme Software Ltd vs. Northstar Workflow Systems',
+  sampleCardTarget: 'Illustrative target 1 vs. illustrative target 2',
   sampleRows: [
     { label: 'Buyer thesis fit', chip: { text: 'Strong — sample target',   color: 'green' } },
     { label: 'AI replica risk',  chip: { text: 'Low / Medium-high',        color: 'amber' } },
