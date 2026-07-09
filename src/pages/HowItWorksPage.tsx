@@ -3,24 +3,21 @@ import { Link } from 'wouter';
 import {
   ArrowRight,
   BadgeCheck,
-  Building2,
-  ClipboardList,
-  FileText,
+  CheckCircle2,
+  ExternalLink,
+  FileSearch,
   FolderKanban,
   GitCompare,
   HelpCircle,
-  ListChecks,
   LockKeyhole,
   Radar,
   ShieldCheck,
-  Sparkles,
-  TriangleAlert,
 } from 'lucide-react';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { semanticBadgeClass } from '@/components/SemanticBadge';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[13px] font-semibold text-primary mb-2">{children}</p>;
+  return <p className="mb-2 text-xs font-semibold text-primary">{children}</p>;
 }
 
 function Badge({
@@ -38,271 +35,237 @@ function Badge({
     unknown:  'unknown',
   } as const;
 
-  return (
-    <span className={semanticBadgeClass(tones[tone])}>
-      {children}
-    </span>
-  );
+  return <span className={semanticBadgeClass(tones[tone])}>{children}</span>;
 }
 
-function StepCard({
-  number,
-  title,
-  body,
-}: {
-  number: string;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-      <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-        {number}
-      </div>
-      <h3 className="mb-2 text-base font-semibold text-foreground">{title}</h3>
-      <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
-    </div>
-  );
-}
-
-function OutputCard({
-  icon: Icon,
-  title,
-  body,
-  tone,
-}: {
-  icon: React.ElementType;
-  title: string;
-  body: string;
-  tone: 'verified' | 'claim' | 'blocker' | 'info' | 'unknown';
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        <Badge tone={tone}>{title}</Badge>
-      </div>
-      <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
-    </div>
-  );
-}
-
-function ProductAreaCard({
-  icon: Icon,
-  title,
-  body,
-  badge,
-}: {
-  icon: React.ElementType;
-  title: string;
-  body: string;
-  badge?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        {badge && <Badge tone="unknown">{badge}</Badge>}
-      </div>
-      <h3 className="mb-2 text-sm font-semibold text-foreground">{title}</h3>
-      <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
-    </div>
-  );
-}
-
-function MockShell({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
-      <div className="flex items-center justify-between border-b border-border bg-muted/45 px-4 py-3">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <Badge tone="unknown">Synthetic example</Badge>
-      </div>
-      <div className="p-4">{children}</div>
-    </div>
-  );
-}
-
-function InputMock() {
-  const rows = [
-    ['Company', '[Company name]'],
-    ['Website', '[Website URL]'],
-    ['Document', 'Non-confidential PDF'],
-    ['Buyer thesis', 'Optional'],
-  ];
-
-  return (
-    <MockShell title="Input screen">
-      <div className="space-y-3">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
-            <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
-              {value}
-            </div>
-          </div>
-        ))}
-        <div className="pt-1">
-          <div className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
-            Run evidence-first screen
-          </div>
-        </div>
-      </div>
-    </MockShell>
-  );
-}
-
-function EvidenceMock() {
-  const cards = [
-    ['Recommendation', 'Request financials', 'claim' as const],
-    ['IC readiness', 'Partial', 'claim' as const],
-    ['Evidence confidence', 'Medium', 'info' as const],
-    ['AI replica risk', 'Medium', 'claim' as const],
-    ['Main blocker', 'Revenue quality not yet verified', 'blocker' as const],
-    ['Next action', 'Request ARR bridge and customer concentration', 'info' as const],
-  ];
-
-  return (
-    <MockShell title="Evidence screen">
-      <div className="grid gap-3 sm:grid-cols-2">
-        {cards.map(([label, value, tone]) => (
-          <div key={label} className="rounded-lg border border-border bg-background p-3">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">{label}</p>
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-semibold leading-snug text-foreground">{value}</p>
-              <Badge tone={tone}>{label === 'Main blocker' ? 'Blocker' : label === 'Evidence confidence' ? 'Info' : 'Needs review'}</Badge>
-            </div>
-          </div>
-        ))}
-      </div>
-    </MockShell>
-  );
-}
-
-function CockpitMock() {
-  const rows = [
-    ['Target', 'Example target'],
-    ['Status', 'Needs review'],
-    ['Evidence', 'Partial'],
-    ['Blocker', 'Financial evidence required'],
-    ['Next action', 'Request management accounts'],
-  ];
-
-  return (
-    <MockShell title="Cockpit">
-      <div className="rounded-lg border border-border">
-        {rows.map(([label, value], index) => (
-          <div
-            key={label}
-            className={`grid grid-cols-[110px_1fr] gap-3 px-3 py-3 text-sm ${index > 0 ? 'border-t border-border' : ''}`}
-          >
-            <p className="font-medium text-muted-foreground">{label}</p>
-            <p className="font-semibold text-foreground">{value}</p>
-          </div>
-        ))}
-      </div>
-    </MockShell>
-  );
-}
-
-const OUTPUTS = [
+const WORKFLOW_STEPS = [
   {
-    icon: BadgeCheck,
-    title: 'Verified facts',
-    body: 'Source-backed public information with URL or filing evidence.',
-    tone: 'verified' as const,
+    number: '1',
+    label: 'Originate',
+    icon: Radar,
+    href: '/app/origination',
+    body: 'Build or paste a source-backed target universe. Broad research results are treated as leads until company websites are confirmed.',
   },
   {
-    icon: FileText,
-    title: 'Company claims',
-    body: 'Statements extracted from documents or websites. Useful, but not independently verified.',
-    tone: 'claim' as const,
+    number: '2',
+    label: 'Run screen',
+    icon: FileSearch,
+    href: '/app/run',
+    body: 'Screen one company website at a time. Frontier OS separates verified facts, company claims, unknowns and diligence blockers.',
   },
   {
-    icon: HelpCircle,
-    title: 'Unknowns',
-    body: 'Important gaps where evidence is missing or unclear.',
-    tone: 'unknown' as const,
+    number: '3',
+    label: 'Save to Cockpit',
+    icon: FolderKanban,
+    href: '/app/cockpit',
+    body: 'Keep screened targets, recommendations, evidence confidence, blockers and next actions in one place.',
   },
   {
-    icon: TriangleAlert,
-    title: 'Diligence blockers',
-    body: 'Issues that stop the target from being IC-ready.',
-    tone: 'blocker' as const,
-  },
-  {
-    icon: ListChecks,
-    title: 'Next questions',
-    body: 'Questions to ask management, advisors or internal deal teams.',
-    tone: 'info' as const,
-  },
-  {
-    icon: ClipboardList,
-    title: 'Documents to request',
-    body: 'A practical diligence request list.',
-    tone: 'info' as const,
+    number: '4',
+    label: 'Compare',
+    icon: GitCompare,
+    href: '/app/compare',
+    body: 'Compare screened candidates side by side. Manual quick compare is available, but evidence-backed comparison works best after individual screens.',
   },
 ];
 
-const PRODUCT_AREAS = [
+const EXPECTATIONS = [
+  'Origination returns leads and research sources unless confirmed company websites are available.',
+  'Run creates the evidence-first acquisition screen for one company website at a time.',
+  'Cockpit stores screened targets, recommendations, blockers and next actions.',
+  'Compare works best with screened Cockpit targets; manual quick compare is a public-source preview.',
+];
+
+const SAMPLE_SCREENS = [
   {
-    icon: Building2,
-    title: 'Run',
-    body: 'Screen a known company using website-only or website + document.',
-  },
-  {
-    icon: FolderKanban,
-    title: 'Cockpit',
-    body: 'Save reviewed companies and track recommendation, evidence confidence, blockers and next action.',
-  },
-  {
-    icon: GitCompare,
-    title: 'Compare',
-    body: 'Compare shortlisted targets side by side.',
-    badge: 'Preview',
-  },
-  {
+    title: 'Origination lead',
+    badge: 'Lead',
+    tone: 'unknown' as const,
     icon: Radar,
-    title: 'Origination',
-    body: 'Private-beta workflow for source-backed target discovery. Frontier OS does not invent targets.',
-    badge: 'Private beta',
+    rows: [
+      ['Status', 'Website needs confirmation'],
+      ['Evidence', 'Source mention only'],
+      ['Next action', 'Confirm official company website'],
+    ],
   },
   {
-    icon: Sparkles,
-    title: 'AI Risk',
-    body: 'Assess AI replica risk and defensibility signals.',
-    badge: 'Preview',
+    title: 'Evidence screen',
+    badge: 'Screened',
+    tone: 'info' as const,
+    icon: FileSearch,
+    rows: [
+      ['Verified facts', 'Source-backed public evidence'],
+      ['Company claims', 'Document values kept as claims'],
+      ['Blockers', 'Revenue quality not verified'],
+    ],
   },
   {
-    icon: LockKeyhole,
-    title: 'Request Pilot',
-    body: 'Request private beta access or book an intro.',
+    title: 'Cockpit target',
+    badge: 'Saved',
+    tone: 'verified' as const,
+    icon: FolderKanban,
+    rows: [
+      ['Recommendation', 'Request financials'],
+      ['Evidence confidence', 'Partial'],
+      ['Next action', 'Request ARR bridge'],
+    ],
+  },
+  {
+    title: 'Compare screened targets',
+    badge: 'Compare-ready',
+    tone: 'verified' as const,
+    icon: GitCompare,
+    rows: [
+      ['Inputs', 'Saved Cockpit targets'],
+      ['Mode', 'Side-by-side preview'],
+      ['Best use', 'After individual screens'],
+    ],
   },
 ];
 
 const TRUST_BULLETS = [
   'No fabricated revenue, ARR or customer counts.',
-  'Document-derived values are treated as company claims unless externally verified.',
+  'Document-derived values are company claims unless externally verified.',
   'Verified facts require source metadata.',
   'Unknowns and blockers are surfaced instead of hidden.',
-  'Confidential document workflows are not enabled in the public preview.',
 ];
+
+const AVAILABLE_NOW = [
+  'Website-only screen',
+  'Website + non-confidential PDF',
+  'Deal Cockpit',
+  'Manual quick compare',
+  'Target ranking with known targets',
+];
+
+const LIMITED = [
+  'Live origination discovery',
+  'Deep AI risk workflow',
+  'Exports / team workflows',
+  'Confidential document workflows',
+];
+
+function WorkflowStrip() {
+  return (
+    <div className="rounded-xl border border-border bg-card/80 p-3 shadow-sm">
+      <div className="grid gap-2 md:grid-cols-4">
+        {WORKFLOW_STEPS.map((step, index) => (
+          <Link
+            key={step.label}
+            href={step.href}
+            className="group relative flex min-h-20 items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-accent/60"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
+              {step.number}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">{step.label}</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">Open workflow step</span>
+            </span>
+            {index < WORKFLOW_STEPS.length - 1 && (
+              <ArrowRight className="absolute right-3 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-muted-foreground/45 md:block" />
+            )}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepCard({
+  step,
+}: {
+  step: typeof WORKFLOW_STEPS[number];
+}) {
+  const Icon = step.icon;
+  return (
+    <Link
+      href={step.href}
+      className="group flex min-h-64 flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-primary/30 hover:bg-card/90"
+    >
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+        <Badge tone="info">Step {step.number}</Badge>
+      </div>
+      <h3 className="text-lg font-semibold text-foreground">{step.label}</h3>
+      <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+      <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary">
+        Open {step.label.toLowerCase()} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </Link>
+  );
+}
+
+function SampleCard({
+  sample,
+}: {
+  sample: typeof SAMPLE_SCREENS[number];
+}) {
+  const Icon = sample.icon;
+  return (
+    <div className="flex min-h-72 flex-col rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+            <Icon className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="min-w-0 text-base font-semibold leading-snug text-foreground">{sample.title}</h3>
+        </div>
+        <Badge tone={sample.tone}>{sample.badge}</Badge>
+      </div>
+      <div className="flex-1 rounded-lg border border-border/70 bg-background">
+        {sample.rows.map(([label, value], index) => (
+          <div
+            key={label}
+            className={`grid gap-2 px-4 py-3 text-sm sm:grid-cols-[8.5rem_1fr] ${index > 0 ? 'border-t border-border/70' : ''}`}
+          >
+            <p className="font-medium text-muted-foreground">{label}</p>
+            <p className="min-w-0 font-semibold leading-snug text-foreground">{value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AvailabilityCard({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  tone: 'verified' | 'claim';
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <Badge tone={tone}>{title}</Badge>
+      <div className="mt-5 space-y-3">
+        {items.map((item) => (
+          <div key={item} className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <p className="text-sm leading-relaxed text-muted-foreground">{item}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function HowItWorksPage() {
   return (
     <div className="flex-1">
       <section className="border-b border-border bg-card/40">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-18">
+        <div className="app-container grid gap-10 py-14 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center lg:py-16">
           <div>
             <SectionLabel>How it works</SectionLabel>
             <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-normal text-foreground md:text-5xl">
               How Frontier OS works
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-              Turn a company website and one non-confidential document into an evidence-first acquisition screen, with verified facts, company claims, unknowns, blockers and next diligence questions separated clearly.
+            <p className="mt-5 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
+              Move from target discovery to evidence-backed screening, saved decisions and target comparison.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -312,145 +275,164 @@ export default function HowItWorksPage() {
                 Run a screen <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/request-pilot"
+                href="/app/origination"
                 className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent/70"
+              >
+                Start with Origination
+              </Link>
+              <Link
+                href="/request-pilot"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
               >
                 Request private beta access
               </Link>
             </div>
           </div>
-          <EvidenceMock />
-        </div>
-      </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 md:px-8">
-        <SectionLabel>Three-step workflow</SectionLabel>
-        <h2 className="mb-8 text-2xl font-bold text-foreground">From target input to diligence next actions.</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <StepCard
-            number="1"
-            title="Start with a company"
-            body="Enter a public company website. Add a buyer thesis if you want the screen tailored to a platform, fund or strategic acquisition angle."
-          />
-          <StepCard
-            number="2"
-            title="Add one non-confidential document"
-            body="Upload a pitch deck, teaser, investor overview or annual report. Frontier OS extracts document claims and keeps them separate from verified public-source facts."
-          />
-          <StepCard
-            number="3"
-            title="Review the acquisition screen"
-            body="See recommendation, IC readiness, evidence confidence, AI replica risk, main blockers, next questions and documents to request."
-          />
-        </div>
-      </section>
-
-      <section className="border-y border-border bg-muted/40">
-        <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
-          <SectionLabel>What the screen separates</SectionLabel>
-          <h2 className="mb-8 text-2xl font-bold text-foreground">Evidence categories stay visible.</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {OUTPUTS.map((item) => (
-              <OutputCard key={item.title} {...item} />
-            ))}
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Workflow overview</p>
+                <p className="mt-1 text-xs text-muted-foreground">Lead to screened comparison</p>
+              </div>
+              <Badge tone="info">Evidence-first</Badge>
+            </div>
+            <div className="space-y-3">
+              {WORKFLOW_STEPS.map((step) => (
+                <div key={step.label} className="flex items-center gap-3 rounded-lg border border-border/70 bg-background px-3 py-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {step.number}
+                  </span>
+                  <p className="text-sm font-semibold text-foreground">{step.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 md:px-8">
-        <SectionLabel>Product areas</SectionLabel>
-        <h2 className="mb-8 text-2xl font-bold text-foreground">Where each workflow fits.</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {PRODUCT_AREAS.map((item) => (
-            <ProductAreaCard key={item.title} {...item} />
+      <section className="app-container py-12">
+        <WorkflowStrip />
+      </section>
+
+      <section className="app-container pb-12">
+        <div className="mb-8">
+          <SectionLabel>Workflow</SectionLabel>
+          <h2 className="text-2xl font-bold text-foreground">From target universe to screened comparison.</h2>
+        </div>
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {WORKFLOW_STEPS.map((step) => (
+            <StepCard key={step.label} step={step} />
           ))}
         </div>
       </section>
 
-      <section className="border-y border-border bg-card/40">
-        <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
-          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <SectionLabel>Sample screens</SectionLabel>
-              <h2 className="text-2xl font-bold text-foreground">What users should expect to see.</h2>
-            </div>
-            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Sample screens use synthetic examples. Real runs only show evidence returned by the backend.
-            </p>
+      <section className="border-y border-border bg-muted/35">
+        <div className="app-container py-12">
+          <div className="mb-8">
+            <SectionLabel>What users should expect</SectionLabel>
+            <h2 className="text-2xl font-bold text-foreground">Clear workflow states, not inflated certainty.</h2>
           </div>
-          <div className="grid gap-5 lg:grid-cols-3">
-            <InputMock />
-            <EvidenceMock />
-            <CockpitMock />
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-12 md:px-8 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-          </div>
-          <SectionLabel>Trust and safety</SectionLabel>
-          <h2 className="mb-4 text-2xl font-bold text-foreground">Built for evidence, not guesswork</h2>
-          <div className="space-y-3">
-            {TRUST_BULLETS.map((item) => (
-              <div key={item} className="flex items-start gap-3">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+          <div className="grid gap-4 md:grid-cols-2">
+            {EXPECTATIONS.map((item) => (
+              <div key={item} className="flex min-h-24 items-start gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
+                <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p className="text-sm leading-relaxed text-muted-foreground">{item}</p>
               </div>
             ))}
           </div>
         </div>
+      </section>
 
-        <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
-          <SectionLabel>Feature availability</SectionLabel>
-          <h2 className="mb-6 text-2xl font-bold text-foreground">What is live today.</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)] p-5">
-              <Badge tone="verified">Available now</Badge>
-              <ul className="mt-4 space-y-2 text-sm text-[var(--semantic-verified-text)]">
-                <li>Website-only screen</li>
-                <li>Website + non-confidential PDF</li>
-                <li>Deal Cockpit</li>
-                <li>Pricing / request pilot</li>
-              </ul>
+      <section className="app-container py-12">
+        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <SectionLabel>Sample screens</SectionLabel>
+            <h2 className="text-2xl font-bold text-foreground">The product follows the same operating model.</h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Sample cards are illustrative workflow states. Real runs only show evidence returned by the backend.
+          </p>
+        </div>
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {SAMPLE_SCREENS.map((sample) => (
+            <SampleCard key={sample.title} sample={sample} />
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-border bg-card/40">
+        <div className="app-container grid gap-6 py-12 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <ShieldCheck className="h-5 w-5 text-primary" />
             </div>
-            <div className="rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] p-5">
-              <Badge tone="claim">Private beta / limited</Badge>
-              <ul className="mt-4 space-y-2 text-sm text-[var(--semantic-claim-text)]">
-                <li>Live origination</li>
-                <li>Deep AI Risk workflow</li>
-                <li>Exports / team workflows</li>
-                <li>Confidential document workflows</li>
-              </ul>
+            <SectionLabel>Trust rules</SectionLabel>
+            <h2 className="mb-5 text-2xl font-bold text-foreground">Built for evidence, not guesswork.</h2>
+            <div className="space-y-3">
+              {TRUST_BULLETS.map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <p className="text-sm leading-relaxed text-muted-foreground">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <AvailabilityCard title="Available now" tone="verified" items={AVAILABLE_NOW} />
+            <AvailabilityCard title="Private beta / limited" tone="claim" items={LIMITED} />
+          </div>
+        </div>
+      </section>
+
+      <section className="app-container py-12">
+        <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <SectionLabel>Next step</SectionLabel>
+              <h2 className="text-2xl font-bold text-foreground">Start with a known target or build a source-backed universe.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Use Origination for leads and source-backed target ranking, then run individual screens before saving and comparing.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link
+                href="/app/run"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Run a screen <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/app/origination"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent/70"
+              >
+                Start with Origination
+              </Link>
+              <a
+                href={BOOK_INTRO_URL || '/request-pilot'}
+                target={BOOK_INTRO_URL ? '_blank' : undefined}
+                rel={BOOK_INTRO_URL ? 'noopener noreferrer' : undefined}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
+              >
+                Request access <ExternalLink className="h-3.5 w-3.5" />
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="border-t border-border bg-card">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-8">
-          <div>
-            <SectionLabel>Next step</SectionLabel>
-            <h2 className="text-2xl font-bold text-foreground">Ready to screen a known company?</h2>
+      <section className="border-t border-border bg-muted/35">
+        <div className="app-container flex flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <LockKeyhole className="h-4 w-4 text-primary" />
+            <p className="text-sm text-muted-foreground">
+              Confidential document workflows remain limited in the public preview.
+            </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/app/run"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Run a screen <ArrowRight className="h-4 w-4" />
-            </Link>
-            <a
-              href={BOOK_INTRO_URL || '/request-pilot'}
-              target={BOOK_INTRO_URL ? '_blank' : undefined}
-              rel={BOOK_INTRO_URL ? 'noopener noreferrer' : undefined}
-              className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent/70"
-            >
-              Book intro
-            </a>
-          </div>
+          <Link href="/trust" className="text-sm font-semibold text-primary hover:underline">
+            Review trust model
+          </Link>
         </div>
       </section>
     </div>

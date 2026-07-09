@@ -13,6 +13,7 @@ import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
 // Signed-in users in /app/* use AppNavbar instead.
 
 const PUBLIC_NAV = [
+  { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
   { label: 'Run',         href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
@@ -26,7 +27,6 @@ const PUBLIC_MORE = [
   { label: 'Request pilot',        href: '/request-pilot' },
   { label: 'Book intro',           href: BOOK_INTRO_URL, external: true },
   { label: 'Product',              href: '/product' },
-  { label: 'How it works',         href: '/how-it-works' },
   { label: 'Registry coverage',    href: '/registry-coverage' },
   { label: 'Evidence workflow',    href: '/evidence' },
   { label: 'Exports · team beta',   href: '/app/exports' },
@@ -40,6 +40,7 @@ const PUBLIC_MORE = [
 ];
 
 const PUBLIC_MOBILE_PRIMARY = [
+  { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
   { label: 'Run',         href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
@@ -211,7 +212,7 @@ export function Navbar() {
   return (
     <>
       <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="w-full max-w-7xl mx-auto flex h-14 items-center px-4 md:px-8 gap-3">
+        <div className="app-container flex h-14 items-center gap-3">
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
@@ -313,7 +314,7 @@ export function Navbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-border bg-background px-4 py-3">
-            <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
               {PUBLIC_MOBILE_PRIMARY.map(({ label, href }) => (
                 <Link
                   key={href}

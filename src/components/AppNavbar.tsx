@@ -12,6 +12,7 @@ import { OptionalUserButton } from '@/lib/optionalClerk';
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
 const APP_NAV = [
+  { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
   { label: 'Run',         href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
@@ -34,6 +35,7 @@ const APP_MORE = [
 ];
 
 const APP_MOBILE_PRIMARY = [
+  { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
   { label: 'Run',         href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
@@ -255,7 +257,7 @@ export function AppNavbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-border bg-background px-4 py-3">
-            <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
               {APP_MOBILE_PRIMARY.map(({ label, href }) => (
                 <Link
                   key={href}
