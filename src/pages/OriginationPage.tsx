@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import {
   ArrowRight, Search, Target, ChevronRight,
@@ -24,6 +24,13 @@ interface OriginationRequest {
 }
 
 type OriginationResult = Record<string, unknown>;
+
+interface OriginationCapabilities {
+  liveTargetDiscoveryEnabled: boolean;
+  targetDiscoveryProvider: string;
+  sourceMode: string;
+  webSearchDiscoveryEnabled: boolean;
+}
 
 const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
 const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
@@ -66,6 +73,20 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
     throw new Error(message);
   }
   return body ?? {};
+}
+
+async function fetchOriginationCapabilities(): Promise<OriginationCapabilities | null> {
+  const base = getBackendBaseUrl();
+  const endpoint = base ? `${base}/api/system/capabilities` : '/api/system/capabilities';
+  try {
+    const res = await fetch(endpoint);
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null) as Record<string, unknown> | null;
+    if (!data) return null;
+    return normaliseOriginationCapabilities(data);
+  } catch {
+    return null;
+  }
 }
 
 function safeStr(v: unknown, fallback = ''): string {
@@ -149,6 +170,101 @@ function isSyntheticReferenceCandidate(candidate: Record<string, unknown>): bool
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function boolFrom(value: unknown): boolean {
+  return value === true || safeStr(value).toLowerCase() === 'true';
+}
+
+function firstField(records: Record<string, unknown>[], field: string): unknown {
+  for (const record of records) {
+    if (record[field] !== undefined) return record[field];
+  }
+  return undefined;
+}
+
+function normaliseOriginationCapabilities(data: Record<string, unknown>): OriginationCapabilities {
+  const records = [
+    data,
+    asRecord(data.origination),
+    asRecord(data.origination_capabilities),
+    asRecord(data.target_discovery),
+    asRecord(data.capabilities),
+  ];
+  return {
+    liveTargetDiscoveryEnabled: boolFrom(firstField(records, 'live_target_discovery_enabled')),
+    targetDiscoveryProvider: safeStr(firstField(records, 'target_discovery_provider')),
+    sourceMode: safeStr(firstField(records, 'source_mode')),
+    webSearchDiscoveryEnabled: boolFrom(firstField(records, 'web_search_discovery_enabled')),
+  };
+}
+
+function hasKnownTargetUniverse(value: string): boolean {
+  return value.split(/\r?\n/).some(line => line.trim().length > 0);
+}
+
+function hasRegistryCandidates(data: OriginationResult): boolean {
+  const sourceMode = safeStr(data.source_mode || data.universe_mode).toLowerCase();
+  const provider = safeStr(data.target_discovery_provider).toLowerCase();
+  const candidates = [
+    ...((data.targets as unknown[] | undefined) ?? []),
+    ...((data.ranked_targets as unknown[] | undefined) ?? []),
+    ...((data.candidates as unknown[] | undefined) ?? []),
+  ].filter(item => item && typeof item === 'object') as Record<string, unknown>[];
+  return sourceMode.includes('companies_house')
+    || provider.includes('companies_house')
+    || candidates.some(candidate => (
+      safeStr(candidate.source_mode).toLowerCase().includes('companies_house')
+      || safeStr(candidate.source_label).toLowerCase().includes('companies house')
+      || safeStr(candidate.classification).toLowerCase().includes('registry')
+      || safeStr(candidate.verification_status).toLowerCase().includes('registry')
+    ));
+}
+
+function discoveryStatusCopy(
+  capabilities: OriginationCapabilities | null,
+  targetUniverse: string,
+  response?: OriginationResult,
+): string {
+  if (hasKnownTargetUniverse(targetUniverse)) {
+    return 'Ranking supplied/source-backed targets. Frontier OS will not invent acquisition targets.';
+  }
+
+  if (response) {
+    const responseSourceMode = safeStr(response.source_mode || response.universe_mode).toLowerCase();
+    const responseCandidates = [
+      ...((response.targets as unknown[] | undefined) ?? []),
+      ...((response.ranked_targets as unknown[] | undefined) ?? []),
+      ...((response.candidates as unknown[] | undefined) ?? []),
+    ].filter(item => item && typeof item === 'object') as Record<string, unknown>[];
+    if (
+      responseSourceMode.includes('user_supplied_target_universe')
+      || responseCandidates.some(candidate => safeStr(candidate.source_label).toLowerCase().includes('user supplied target universe'))
+    ) {
+      return 'Ranking supplied/source-backed targets. Frontier OS will not invent acquisition targets.';
+    }
+    if (hasRegistryCandidates(response)) {
+      return 'Registry leads found. Product websites are still required before these become screenable targets. Frontier OS will not invent acquisition targets.';
+    }
+    if (responseSourceMode.includes('web_search')) {
+      return 'Web discovery returned source-backed web candidates. Frontier OS will not invent acquisition targets.';
+    }
+    if (response.live_target_discovery_enabled === false) {
+      return 'Live target discovery is not enabled. Provide known targets or run a URL screen. Frontier OS will not invent acquisition targets.';
+    }
+  }
+
+  if (capabilities?.webSearchDiscoveryEnabled) {
+    return 'Web discovery is enabled. Frontier OS will return source-backed web candidates and will not invent targets.';
+  }
+  const provider = `${capabilities?.targetDiscoveryProvider || ''} ${capabilities?.sourceMode || ''}`.toLowerCase();
+  if (capabilities?.liveTargetDiscoveryEnabled && provider.includes('companies_house')) {
+    return 'Registry discovery is enabled. Frontier OS can return Companies House leads, but websites and product fit must be verified before screening. Frontier OS will not invent acquisition targets.';
+  }
+  if (capabilities) {
+    return 'Live target discovery is not enabled. Provide known targets or run a URL screen. Frontier OS will not invent acquisition targets.';
+  }
+  return 'Provide known targets or run a URL screen. Frontier OS will not invent acquisition targets.';
 }
 
 function sourceUrls(candidate: Record<string, unknown>): string[] {
@@ -290,6 +406,7 @@ function OriginationResultView({
     []
   );
   const showDiagnostics = showDeveloperDiagnostics();
+  const responseDiscoveryCopy = discoveryStatusCopy(null, '', data);
   const diagnostics = [
     ['openai_used', data.openai_used],
     ['ranking_mode', data.ranking_mode],
@@ -299,7 +416,7 @@ function OriginationResultView({
   ].filter(([, value]) => safeStr(value) !== '');
 
   if (isUnavailable) {
-    return <OriginationUnavailable onReset={onReset} message={safeStr(data.message)} />;
+    return <OriginationUnavailable onReset={onReset} message={safeStr(data.message)} discoveryCopy={responseDiscoveryCopy} />;
   }
 
   if (candidates.length === 0 || !hasSourceBackedUniverse) {
@@ -309,6 +426,7 @@ function OriginationResultView({
         warnings={warnings}
         limitations={limitations}
         summary={summary}
+        discoveryCopy={responseDiscoveryCopy}
       />
     );
   }
@@ -602,18 +720,20 @@ function OriginationResultView({
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-2">
           {(isReferenceUniverse || sourceMode.includes('private_beta_reference_universe')) && (
             <SemanticBadge tone="info">Private-beta reference universe</SemanticBadge>
           )}
           {sourceMode.includes('user_supplied_target_universe') && (
             <SemanticBadge tone="info">Known target universe</SemanticBadge>
           )}
+          {hasRegistryCandidates(data) && (
+            <SemanticBadge tone="partial">Registry leads</SemanticBadge>
+          )}
           <SemanticBadge tone="partial">Validate before outreach</SemanticBadge>
-          <SemanticBadge tone="unknown">No live crawling</SemanticBadge>
-          <SemanticBadge tone="unknown">No paid data providers</SemanticBadge>
           <SemanticBadge tone="unknown">No verified revenue/ARR/EBITDA/customer concentration</SemanticBadge>
         </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{responseDiscoveryCopy}</p>
       </div>
 
       {warnings.length > 0 && (
@@ -824,11 +944,13 @@ function OriginationLimitedPreview({
   warnings,
   limitations,
   summary,
+  discoveryCopy,
 }: {
   onReset: () => void;
   warnings?: unknown[];
   limitations?: unknown[];
   summary?: string;
+  discoveryCopy?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -836,9 +958,7 @@ function OriginationLimitedPreview({
         <div className="flex items-start gap-3">
           <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">
-              Live target discovery is not enabled. Provide known targets or run a URL screen.
-            </p>
+            <p className="text-sm font-semibold text-foreground">{discoveryCopy || discoveryStatusCopy(null, '')}</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Frontier OS will not invent acquisition targets.
             </p>
@@ -902,18 +1022,18 @@ function OriginationLimitedPreview({
 function OriginationUnavailable({
   onReset,
   message,
+  discoveryCopy,
 }: {
   onReset: () => void;
   message?: string;
+  discoveryCopy?: string;
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-start gap-3">
         <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">
-            Live target discovery is not enabled. Provide known targets or run a URL screen.
-          </p>
+          <p className="text-sm font-semibold text-foreground">{discoveryCopy || discoveryStatusCopy(null, '')}</p>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
             {message || 'Frontier OS will rank only supplied/source-backed targets and will not invent acquisition targets.'}
           </p>
@@ -960,10 +1080,20 @@ function OriginationForm() {
   const [rationale, setRationale] = useState(storedForm.rationale);
   const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
   const [targetUniverse, setTargetUniverse] = useState(storedForm.targetUniverse);
+  const [capabilities, setCapabilities] = useState<OriginationCapabilities | null>(null);
   const [state,     setState    ] = useState<FormState>(() => {
     const storedResult = readStoredOriginationResult();
     return storedResult ? { kind: 'result', data: storedResult, restored: true } : { kind: 'idle' };
   });
+  const statusCopy = discoveryStatusCopy(capabilities, targetUniverse);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchOriginationCapabilities().then(result => {
+      if (mounted) setCapabilities(result);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1037,12 +1167,10 @@ function OriginationForm() {
       <div className="space-y-4">
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          <span>
-            Live target discovery is not enabled. Provide known targets or run a URL screen.
-          </span>
+          <span>{state.message}</span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Frontier OS will rank only supplied/source-backed targets and will not invent acquisition targets.
+          {statusCopy}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -1158,9 +1286,8 @@ Example format:
         </p>
       </div>
 
-      {/* Caveat */}
       <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-        Live target discovery is not enabled. Provide known targets or run a URL screen.
+        {statusCopy}
       </p>
 
       <button
