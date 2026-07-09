@@ -41,6 +41,7 @@ import {
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { SemanticBadge } from '@/components/SemanticBadge';
+import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -1621,7 +1622,7 @@ function DocumentAssistedResultDisplay({
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>{saveSource === 'backend' ? 'Saved to Cockpit' : 'Saved locally · document-assisted run'}</span>
-        <Link href="/cockpit" className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
+        <Link href="/app/cockpit" className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
           Open Cockpit →
         </Link>
       </div>
@@ -1821,7 +1822,7 @@ function DocumentAssistedResultDisplay({
           <RotateCcw className="w-3 h-3" /> Run another
         </button>
         <Link
-          href="/cockpit"
+          href="/app/cockpit"
           className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Open Deal Cockpit
@@ -1916,7 +1917,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
             ? 'Saved to Cockpit'
             : 'Saved locally · create an account to sync across devices'}
         </span>
-        <Link href="/cockpit" className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
+        <Link href="/app/cockpit" className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
           Open Cockpit →
         </Link>
       </div>
@@ -2284,7 +2285,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
                 >
                   Request financials
                 </button>
-                <Link href="/cockpit" className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
+                <Link href="/app/cockpit" className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
                   Save to Cockpit
                 </Link>
               </div>
@@ -2594,12 +2595,24 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource }: {
 
       {/* Secondary links */}
       <div className="flex flex-wrap gap-2 pb-4">
+        <Link
+          href="/app/cockpit"
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 rounded-md transition-colors"
+        >
+          Save to Cockpit
+        </Link>
         <button
           onClick={onRunAnother}
           className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="w-3 h-3" /> Run another
+          <RotateCcw className="w-3 h-3" /> Run another screen
         </button>
+        <Link
+          href="/app/compare"
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+        >
+          Compare screened candidates
+        </Link>
       </div>
     </div>
   );
@@ -3061,18 +3074,24 @@ function AnalysisResultDisplay({
 
       {/* ── Actions ────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 pt-2">
+        <Link
+          href="/app/cockpit"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 rounded-md transition-colors"
+        >
+          Save to Cockpit
+        </Link>
         <button
           type="button"
           onClick={onRunAnother}
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="w-3 h-3" /> Run another
+          <RotateCcw className="w-3 h-3" /> Run another screen
         </button>
         <Link
-          href="/cockpit"
+          href="/app/compare"
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
-          Deal Cockpit
+          Compare screened candidates
         </Link>
         <a
           href={BOOK_INTRO_URL}
@@ -3836,6 +3855,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       </div>
 
       <div className="flex-1 flex flex-col w-full max-w-5xl mx-auto px-4 md:px-8 py-8">
+        <ScreeningWorkflowGuide active="run" className="mb-6" />
 
         {/* ── Screen note ──────────────────────────────────── */}
         {sampleMode ? (
@@ -4132,7 +4152,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 {fromOrigination && (
                   <div className="mb-4 rounded-lg border border-border bg-card/70 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <p className="text-xs text-muted-foreground">
-                      Prefilled from origination selection.
+                      Screening target from Origination.
                     </p>
                     <Link
                       href="/app/origination"

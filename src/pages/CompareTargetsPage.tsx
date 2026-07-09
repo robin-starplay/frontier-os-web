@@ -25,6 +25,7 @@ import {
 import { saveCompareRun } from '@/lib/runHistory';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { SemanticBadge } from '@/components/SemanticBadge';
+import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
 import {
   readCompareCandidates,
@@ -486,9 +487,9 @@ function CompareResultView({ result, onReset, saveSource }: {
             : 'Saved locally · create an account to sync across devices'}
         </span>
         <a
-          href="/cockpit"
+          href="/app/cockpit"
           className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
-          onClick={e => { e.preventDefault(); window.location.href = '/cockpit'; }}
+          onClick={e => { e.preventDefault(); window.location.href = '/app/cockpit'; }}
         >
           Open Cockpit →
         </a>
@@ -629,7 +630,7 @@ function CompareResultView({ result, onReset, saveSource }: {
               </div>
               {t.recommendation_level !== 'red' && (
                 <Link
-                  href="/run"
+                  href="/app/run"
                   className="text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
                 >
                   Run full screen →
@@ -680,7 +681,7 @@ function CompareResultView({ result, onReset, saveSource }: {
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <Link
-            href="/run"
+            href="/app/run"
             className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors"
             onClick={() => console.log('[analytics] clicked_run_from_compare_result')}
           >
@@ -714,7 +715,7 @@ function CompareResultView({ result, onReset, saveSource }: {
           ← Run another comparison
         </button>
         <Link
-          href="/cockpit"
+          href="/app/cockpit"
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
           Open Deal Cockpit
@@ -853,6 +854,8 @@ export default function CompareTargetsPage() {
   const storedCompareCount = readCompareCandidates().length;
   const showBackToOrigination = hasStoredOriginationResult();
   const hasInvalidCompareItems = pendingCompareCandidates.length > 0 || invalidCompareRows.length > 0;
+  const hasOriginationCandidates = companies.some(company => company.source === 'origination');
+  const hasScreenedCandidates = companies.some(company => company.source && company.source !== 'origination');
 
   const pageHeader = (
     <div className="w-full border-b border-border bg-card/30">
@@ -862,7 +865,7 @@ export default function CompareTargetsPage() {
           Compare software acquisition targets.
         </h1>
         <p className="text-base text-muted-foreground">
-          Rank targets by recommendation, strategic fit, evidence confidence, AI risk and next action.
+          Compare works best with screened targets saved from Run or Cockpit.
         </p>
       </div>
     </div>
@@ -873,6 +876,7 @@ export default function CompareTargetsPage() {
       {pageHeader}
 
       <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto px-4 md:px-8 py-8">
+        <ScreeningWorkflowGuide active="compare" className="mb-6" />
 
         {/* Beta notice */}
         <div className="mb-6 bg-primary/5 border border-primary/20 text-muted-foreground px-4 py-3 rounded-md flex items-center gap-3 text-sm">
@@ -884,7 +888,7 @@ export default function CompareTargetsPage() {
           <>
             <div className="mb-8 rounded-lg border border-border bg-card/60 px-5 py-4">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-1">
-                <p className="text-sm font-semibold text-foreground">Compare two or more real screened targets.</p>
+                <p className="text-sm font-semibold text-foreground">Manual quick compare</p>
                 <div className="flex flex-wrap gap-2">
                   {showBackToOrigination && (
                     <Link
@@ -906,9 +910,31 @@ export default function CompareTargetsPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Enter known company websites below. Frontier OS will call the backend compare endpoint and render only returned evidence, claims, blockers and next actions.
+                For best results, screen each company first. Frontier OS will call the backend compare endpoint and render only returned evidence, claims, blockers and next actions.
               </p>
+              {hasScreenedCandidates && (
+                <p className="mt-2 text-xs font-medium text-[var(--semantic-verified-text)]">
+                  Using screened candidates.
+                </p>
+              )}
             </div>
+
+            {hasOriginationCandidates && (
+              <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
+                <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
+                  These targets have not been individually screened yet.
+                </p>
+                <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
+                  Run screens first for stronger comparison.
+                </p>
+                <Link
+                  href="/app/run"
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  Run screens first
+                </Link>
+              </div>
+            )}
 
             {hasInvalidCompareItems && (
               <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">

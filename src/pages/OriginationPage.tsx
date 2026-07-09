@@ -976,7 +976,7 @@ function OriginationResultView({
             type="button"
             onClick={() => handleRunCandidate(c)}
             disabled={stored.run_ready === false || !website}
-            className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {stored.run_ready === false || !website ? 'Find website' : 'Run screen →'}
           </button>
@@ -993,9 +993,9 @@ function OriginationResultView({
             <button
               type="button"
               onClick={() => handleAddToCompare(c)}
-              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground transition-colors whitespace-nowrap"
             >
-              {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
+              {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare later'}
             </button>
           )}
           {!website && <span className="text-[11px] text-[var(--semantic-claim-text)]">Website required before screening</span>}
@@ -1454,7 +1454,7 @@ function OriginationResultView({
           Run URL screen
         </Link>
         <Link
-          href="/cockpit"
+          href="/app/cockpit"
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
           Deal Cockpit

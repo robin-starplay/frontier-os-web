@@ -18,6 +18,7 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { useOptionalUser } from '@/lib/optionalClerk';
 import type { RecommendationLevel } from '@/data/mockData';
 import { SemanticBadge } from '@/components/SemanticBadge';
+import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -746,6 +747,36 @@ export default function DealCockpitPage() {
         </div>
       </div>
 
+      <ScreeningWorkflowGuide active="cockpit" className="mb-6" />
+
+      <div className="mb-6 rounded-lg border border-border bg-card px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Cockpit keeps screened targets.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Save URL screens here, then compare screened candidates once evidence and unknowns are captured.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/app/run"
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+          >
+            Back to Run
+          </Link>
+          <Link
+            href="/app/compare"
+            className={cn(
+              'inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors',
+              hasRealRuns
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'pointer-events-none border border-border bg-muted text-muted-foreground opacity-60',
+            )}
+          >
+            Compare selected screened targets
+          </Link>
+        </div>
+      </div>
+
       {/* ── Account state banner (no workspace) ── */}
       {isLoaded && !isSignedIn && (
         <div className="mb-6 rounded-lg border border-border bg-card/50 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -939,9 +970,9 @@ export default function DealCockpitPage() {
           {/* ── 1. Empty state — always first ── */}
           <div className="flex flex-col items-center justify-center py-12 gap-5 text-center rounded-lg border border-border bg-card/30 mb-6">
             <div>
-              <p className="text-base font-semibold text-foreground mb-1">No saved runs yet.</p>
+              <p className="text-base font-semibold text-foreground mb-1">No screened targets yet.</p>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Run a screen to start building your deal pipeline.
+                Run a URL screen and save it here.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
