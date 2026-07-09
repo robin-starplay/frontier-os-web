@@ -1744,7 +1744,7 @@ function DocumentAssistedResultDisplay({
 
   if (result.status === 'unavailable') {
     return (
-      <div className="w-full max-w-3xl mx-auto space-y-4">
+      <div className="w-full space-y-4">
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
           <p className="text-sm font-semibold text-amber-700">Document-assisted review is not enabled in this workspace yet.</p>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
@@ -1775,7 +1775,7 @@ function DocumentAssistedResultDisplay({
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>{saveSource === 'backend' ? 'Saved to Cockpit' : 'Saved locally · document-assisted run'}</span>
@@ -2057,7 +2057,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
   ).slice(0, 5);
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
 
       {/* Fallback notice */}
       {isSampleFallback && (
@@ -2827,7 +2827,7 @@ function AnalysisResultDisplay({
   const events = result.events ?? [];
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
 
       {/* ── Company header ─────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-3 flex-wrap">

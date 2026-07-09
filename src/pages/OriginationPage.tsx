@@ -1680,7 +1680,7 @@ function OriginationWorkspacePanel({
   const researchSources = savedLeads.filter(lead => ['source_page', 'directory_or_listicle', 'news_article'].includes(lead.candidate_type || ''));
 
   return (
-    <div className="rounded-lg border border-border bg-card/70 overflow-hidden">
+    <div className="rounded-lg border border-border/80 bg-card/70 overflow-hidden">
       <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Origination workspace</p>
@@ -1694,7 +1694,7 @@ function OriginationWorkspacePanel({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 divide-y xl:divide-y-0 xl:divide-x divide-border">
+      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border">
         <section className="p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] font-semibold tracking-normal text-primary">Origination history</p>
@@ -2320,7 +2320,7 @@ export default function OriginationPage() {
 
       {/* Header */}
       <div className="w-full border-b border-border bg-card/30">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
+        <div className="app-container py-10">
           <div className="flex items-center gap-2 mb-3">
             <p className="text-[10px] font-semibold tracking-normal text-primary">Origination</p>
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
@@ -2337,16 +2337,16 @@ export default function OriginationPage() {
         </div>
       </div>
 
-      <div className="flex-1 max-w-4xl mx-auto w-full px-4 md:px-8 py-10 space-y-10">
+      <div className="app-container flex-1 py-10 space-y-10">
 
         {/* Workflow steps */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { icon: <Search className="w-4 h-4" />, step: '1', title: 'Enter buyer thesis', desc: 'Sector, geography, revenue range and strategic rationale.' },
             { icon: <Target className="w-4 h-4" />, step: '2', title: 'Backend screen', desc: 'If enabled, the backend returns public-source candidate signals.' },
             { icon: <ChevronRight className="w-4 h-4" />, step: '3', title: 'Review candidates', desc: 'Treat all output as signals until each target is screened directly.' },
           ].map(({ icon, step, title, desc }) => (
-            <div key={step} className="rounded-lg border border-border bg-card p-5">
+            <div key={step} className="rounded-lg border border-border/70 bg-card/70 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-[11px] font-bold font-medium">
                   {step}
@@ -2359,46 +2359,44 @@ export default function OriginationPage() {
           ))}
         </div>
 
-        <div className="rounded-lg border border-card-border bg-card px-5 py-4 shadow-xs">
+        <div className="rounded-lg border border-card-border bg-card/80 px-5 py-4 shadow-xs">
           <p className="text-sm font-semibold text-foreground mb-1">Private-beta origination workflow</p>
           <p className="text-xs text-muted-foreground leading-relaxed">
             This page calls the backend origination endpoint when available. It does not show static target lists or save illustrative candidates to Cockpit.
           </p>
         </div>
 
-        {/* Live origination thesis form */}
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-border bg-muted/20">
-            <p className="text-[10px] font-semibold tracking-normal text-primary mb-0.5">
-              Origination thesis
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Describe your buyer thesis and run the private-beta origination workflow.
-            </p>
-          </div>
-          <div className="p-5">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+          {/* Live origination thesis form */}
+          <div className="min-w-0">
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-primary mb-1">Origination thesis</p>
+              <p className="text-sm text-muted-foreground">
+                Describe your buyer thesis and manage source-backed leads in the workspace.
+              </p>
+            </div>
             <OriginationForm />
           </div>
-        </div>
 
-        {/* Available now in private beta */}
-        <div className="rounded-lg border border-border bg-card/30 p-5">
-          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-4">Available now in private beta</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {AVAILABLE_NOW.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:bg-accent/20 transition-colors group"
-              >
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground mb-0.5">{item.title}</p>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground mt-0.5 transition-colors shrink-0" />
-              </Link>
-            ))}
-          </div>
+          {/* Available now in private beta */}
+          <aside className="rounded-lg border border-border/70 bg-card/60 p-5">
+            <p className="text-xs font-semibold text-muted-foreground mb-4">Available now</p>
+            <div className="grid grid-cols-1 gap-2">
+              {AVAILABLE_NOW.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-start gap-3 rounded-md px-3 py-3 hover:bg-accent/40 transition-colors group"
+                >
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground mb-0.5">{item.title}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground mt-0.5 transition-colors shrink-0" />
+                </Link>
+              ))}
+            </div>
+          </aside>
         </div>
 
       </div>

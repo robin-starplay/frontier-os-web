@@ -916,7 +916,7 @@ export default function DealCockpitPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 md:px-8 py-10">
+    <div className="app-container flex-1 flex flex-col py-10">
 
       {/* ── Header ── */}
       <div className="mb-8">
@@ -944,7 +944,7 @@ export default function DealCockpitPage() {
 
       <ScreeningWorkflowGuide active="cockpit" className="mb-6" />
 
-      <div className="mb-6 rounded-lg border border-border bg-card px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="mb-6 rounded-lg border border-border/80 bg-card/80 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
         <div>
           <p className="text-sm font-semibold text-foreground">Cockpit keeps screened targets.</p>
           <p className="mt-1 text-xs text-muted-foreground">
