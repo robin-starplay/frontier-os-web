@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'wouter';
 import {
   ArrowRight, Search, Target, ChevronRight,
@@ -25,11 +25,12 @@ interface OriginationRequest {
 
 type OriginationResult = Record<string, unknown>;
 
-interface OriginationCapabilities {
-  liveTargetDiscoveryEnabled: boolean;
-  targetDiscoveryProvider: string;
-  sourceMode: string;
-  webSearchDiscoveryEnabled: boolean;
+const ORIGINATION_REQUEST_TIMEOUT_MS = 45_000;
+
+interface OriginationRequestDiagnostics {
+  endpoint: string;
+  timeout_ms: number;
+  elapsed_ms: number;
 }
 
 const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
@@ -52,40 +53,58 @@ interface KnownTarget {
   source_label: 'User supplied target universe';
 }
 
+class OriginationTimeoutError extends Error {
+  diagnostics: OriginationRequestDiagnostics;
+
+  constructor(diagnostics: OriginationRequestDiagnostics) {
+    super('Origination discovery took too long. Try a narrower thesis or provide known targets.');
+    this.name = 'OriginationTimeoutError';
+    this.diagnostics = diagnostics;
+  }
+}
+
 async function runOrigination(req: OriginationRequest): Promise<OriginationResult> {
   const base = getBackendBaseUrl();
   const thesisUrl = base ? `${base}/api/origination/thesis` : '/api/origination/thesis';
   const runUrl = base ? `${base}/api/origination/run` : '/api/origination/run';
+  const controller = new AbortController();
+  const startedAt = Date.now();
+  let endpoint = req.targets && req.targets.length > 0 ? runUrl : thesisUrl;
+  const timeout = window.setTimeout(() => controller.abort(), ORIGINATION_REQUEST_TIMEOUT_MS);
   const requestInit: RequestInit = {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(req),
+    signal:  controller.signal,
   };
-  let res = req.targets && req.targets.length > 0
-    ? await fetch(runUrl, requestInit)
-    : await fetch(thesisUrl, requestInit);
-  if (res.status === 404) res = await fetch(runUrl, requestInit);
-  const body = await res.json().catch(() => null) as OriginationResult | null;
-  if (!res.ok) {
-    const message = typeof body?.message === 'string'
-      ? body.message
-      : `Backend returned status ${res.status}.`;
-    throw new Error(message);
-  }
-  return body ?? {};
-}
-
-async function fetchOriginationCapabilities(): Promise<OriginationCapabilities | null> {
-  const base = getBackendBaseUrl();
-  const endpoint = base ? `${base}/api/system/capabilities` : '/api/system/capabilities';
   try {
-    const res = await fetch(endpoint);
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => null) as Record<string, unknown> | null;
-    if (!data) return null;
-    return normaliseOriginationCapabilities(data);
-  } catch {
-    return null;
+    let res = await fetch(endpoint, requestInit);
+    if (res.status === 404) {
+      endpoint = runUrl;
+      res = await fetch(runUrl, requestInit);
+    }
+    const body = await res.json().catch(() => null) as OriginationResult | null;
+    if (!res.ok) {
+      const message = typeof body?.message === 'string'
+        ? body.message
+        : `Backend returned status ${res.status}.`;
+      throw new Error(message);
+    }
+    return body ?? {};
+  } catch (err) {
+    if (
+      (err instanceof DOMException && err.name === 'AbortError')
+      || (err && typeof err === 'object' && 'name' in err && err.name === 'AbortError')
+    ) {
+      throw new OriginationTimeoutError({
+        endpoint,
+        timeout_ms: ORIGINATION_REQUEST_TIMEOUT_MS,
+        elapsed_ms: Date.now() - startedAt,
+      });
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 
@@ -172,33 +191,6 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function boolFrom(value: unknown): boolean {
-  return value === true || safeStr(value).toLowerCase() === 'true';
-}
-
-function firstField(records: Record<string, unknown>[], field: string): unknown {
-  for (const record of records) {
-    if (record[field] !== undefined) return record[field];
-  }
-  return undefined;
-}
-
-function normaliseOriginationCapabilities(data: Record<string, unknown>): OriginationCapabilities {
-  const records = [
-    data,
-    asRecord(data.origination),
-    asRecord(data.origination_capabilities),
-    asRecord(data.target_discovery),
-    asRecord(data.capabilities),
-  ];
-  return {
-    liveTargetDiscoveryEnabled: boolFrom(firstField(records, 'live_target_discovery_enabled')),
-    targetDiscoveryProvider: safeStr(firstField(records, 'target_discovery_provider')),
-    sourceMode: safeStr(firstField(records, 'source_mode')),
-    webSearchDiscoveryEnabled: boolFrom(firstField(records, 'web_search_discovery_enabled')),
-  };
-}
-
 function hasKnownTargetUniverse(value: string): boolean {
   return value.split(/\r?\n/).some(line => line.trim().length > 0);
 }
@@ -222,12 +214,15 @@ function hasRegistryCandidates(data: OriginationResult): boolean {
 }
 
 function discoveryStatusCopy(
-  capabilities: OriginationCapabilities | null,
   targetUniverse: string,
   response?: OriginationResult,
 ): string {
   if (hasKnownTargetUniverse(targetUniverse)) {
-    return 'Ranking supplied/source-backed targets. Frontier OS will not invent acquisition targets.';
+    return 'Frontier OS will rank the supplied/source-backed targets and will not invent acquisition targets.';
+  }
+
+  if (!response) {
+    return 'If live discovery is available, Frontier OS will return source-backed leads. If not, it will interpret the thesis and suggest search angles without inventing targets.';
   }
 
   if (response) {
@@ -241,30 +236,20 @@ function discoveryStatusCopy(
       responseSourceMode.includes('user_supplied_target_universe')
       || responseCandidates.some(candidate => safeStr(candidate.source_label).toLowerCase().includes('user supplied target universe'))
     ) {
-      return 'Ranking supplied/source-backed targets. Frontier OS will not invent acquisition targets.';
+      return 'Frontier OS will rank the supplied/source-backed targets and will not invent acquisition targets.';
     }
     if (hasRegistryCandidates(response)) {
-      return 'Registry leads found. Product websites are still required before these become screenable targets. Frontier OS will not invent acquisition targets.';
+      return 'Registry discovery returned Companies House leads. Product websites still need verification before screening.';
     }
     if (responseSourceMode.includes('web_search')) {
-      return 'Web discovery returned source-backed web candidates. Frontier OS will not invent acquisition targets.';
+      return 'Web discovery returned source-backed candidates. Run URL screens before outreach.';
     }
-    if (response.live_target_discovery_enabled === false) {
-      return 'Live target discovery is not enabled. Provide known targets or run a URL screen. Frontier OS will not invent acquisition targets.';
+    if (response.source_backed_target_universe_available === false) {
+      return 'No source-backed target universe was available. Frontier OS did not invent targets.';
     }
   }
 
-  if (capabilities?.webSearchDiscoveryEnabled) {
-    return 'Web discovery is enabled. Frontier OS will return source-backed web candidates and will not invent targets.';
-  }
-  const provider = `${capabilities?.targetDiscoveryProvider || ''} ${capabilities?.sourceMode || ''}`.toLowerCase();
-  if (capabilities?.liveTargetDiscoveryEnabled && provider.includes('companies_house')) {
-    return 'Registry discovery is enabled. Frontier OS can return Companies House leads, but websites and product fit must be verified before screening. Frontier OS will not invent acquisition targets.';
-  }
-  if (capabilities) {
-    return 'Live target discovery is not enabled. Provide known targets or run a URL screen. Frontier OS will not invent acquisition targets.';
-  }
-  return 'Provide known targets or run a URL screen. Frontier OS will not invent acquisition targets.';
+  return 'If live discovery is available, Frontier OS will return source-backed leads. If not, it will interpret the thesis and suggest search angles without inventing targets.';
 }
 
 function sourceUrls(candidate: Record<string, unknown>): string[] {
@@ -406,7 +391,7 @@ function OriginationResultView({
     []
   );
   const showDiagnostics = showDeveloperDiagnostics();
-  const responseDiscoveryCopy = discoveryStatusCopy(null, '', data);
+  const responseDiscoveryCopy = discoveryStatusCopy('', data);
   const diagnostics = [
     ['openai_used', data.openai_used],
     ['ranking_mode', data.ranking_mode],
@@ -958,7 +943,7 @@ function OriginationLimitedPreview({
         <div className="flex items-start gap-3">
           <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">{discoveryCopy || discoveryStatusCopy(null, '')}</p>
+            <p className="text-sm font-semibold text-foreground">{discoveryCopy || discoveryStatusCopy('')}</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Frontier OS will not invent acquisition targets.
             </p>
@@ -1033,7 +1018,7 @@ function OriginationUnavailable({
       <div className="flex items-start gap-3">
         <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{discoveryCopy || discoveryStatusCopy(null, '')}</p>
+          <p className="text-sm font-semibold text-foreground">{discoveryCopy || discoveryStatusCopy('')}</p>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
             {message || 'Frontier OS will rank only supplied/source-backed targets and will not invent acquisition targets.'}
           </p>
@@ -1068,9 +1053,8 @@ function OriginationUnavailable({
 
 type FormState =
   | { kind: 'idle' }
-  | { kind: 'submitting' }
   | { kind: 'result'; data: OriginationResult; restored?: boolean }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; message: string; diagnostics?: OriginationRequestDiagnostics };
 
 function OriginationForm() {
   const storedForm = readStoredOriginationForm();
@@ -1080,24 +1064,17 @@ function OriginationForm() {
   const [rationale, setRationale] = useState(storedForm.rationale);
   const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
   const [targetUniverse, setTargetUniverse] = useState(storedForm.targetUniverse);
-  const [capabilities, setCapabilities] = useState<OriginationCapabilities | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [state,     setState    ] = useState<FormState>(() => {
     const storedResult = readStoredOriginationResult();
     return storedResult ? { kind: 'result', data: storedResult, restored: true } : { kind: 'idle' };
   });
-  const statusCopy = discoveryStatusCopy(capabilities, targetUniverse);
-
-  useEffect(() => {
-    let mounted = true;
-    fetchOriginationCapabilities().then(result => {
-      if (mounted) setCapabilities(result);
-    });
-    return () => { mounted = false; };
-  }, []);
+  const statusCopy = discoveryStatusCopy(targetUniverse);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setState({ kind: 'submitting' });
+    setIsSubmitting(true);
+    setState({ kind: 'idle' });
     try {
       const targets = parseKnownTargetUniverse(targetUniverse);
       const formValues: OriginationFormValues = {
@@ -1123,7 +1100,10 @@ function OriginationForm() {
       setState({
         kind: 'error',
         message: err instanceof Error ? err.message : 'Unexpected error',
+        ...(err instanceof OriginationTimeoutError ? { diagnostics: err.diagnostics } : {}),
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -1172,6 +1152,25 @@ function OriginationForm() {
         <p className="text-xs text-muted-foreground leading-relaxed">
           {statusCopy}
         </p>
+        {state.diagnostics && (
+          <details className="rounded-lg border border-border bg-card/40 overflow-hidden">
+            <summary className="px-4 py-3 cursor-pointer list-none text-[10px] font-semibold tracking-normal text-muted-foreground">
+              Developer diagnostics
+            </summary>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-border px-4 py-3">
+              {[
+                ['endpoint', state.diagnostics.endpoint],
+                ['timeout_ms', state.diagnostics.timeout_ms],
+                ['elapsed_ms', state.diagnostics.elapsed_ms],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
+                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-0.5">{String(label)}</p>
+                  <p className="text-xs text-foreground break-words">{safeStr(value)}</p>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -1292,23 +1291,23 @@ Example format:
 
       <button
         type="submit"
-        disabled={state.kind === 'submitting'}
+        disabled={isSubmitting}
         className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {state.kind === 'submitting' ? (
-          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Previewing origination workflow…</>
+        {isSubmitting ? (
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking source-backed discovery and ranking candidates...</>
         ) : (
           <>Preview origination workflow <ArrowRight className="w-3.5 h-3.5" /></>
         )}
       </button>
 
-      {state.kind === 'submitting' && (
+      {isSubmitting && state.kind !== 'result' && (
         <div className="rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 shadow-xs">
           <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-semibold text-foreground">Previewing origination workflow…</p>
+            <p className="text-xs font-semibold text-foreground">Checking source-backed discovery and ranking candidates...</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Ranking supplied targets when provided; otherwise checking whether live target discovery is enabled.
+              Frontier OS will not invent acquisition targets.
             </p>
           </div>
         </div>
