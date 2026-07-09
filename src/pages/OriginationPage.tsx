@@ -305,7 +305,7 @@ function sourceUrls(candidate: Record<string, unknown>): string[] {
 }
 
 function candidateType(candidate: Record<string, unknown>): string {
-  return safeStr(candidate.candidate_type) || (
+  return safeStr(candidate.candidate_type) || safeStr(candidate.company_type) || (
     safeStr(candidate.display_mode) === 'source_page_row'
       ? 'source_page'
       : safeStr(candidate.classification) === 'user_supplied_claim'
@@ -341,7 +341,7 @@ function isConfirmedCompanyCandidate(candidate: Record<string, unknown>): boolea
   return isCompanyCandidate(candidate)
     && !isResearchSourceCandidate(candidate)
     && Boolean(website)
-    && (candidate.run_ready === true || candidate.compare_ready === true)
+    && candidate.run_ready === true
     && ['high', 'medium'].includes(confidence);
 }
 
@@ -593,6 +593,16 @@ function OriginationResultView({
   ) as Record<string, unknown>[];
   const candidates = rawCandidates.filter(candidate => !isSyntheticReferenceCandidate(candidate));
   const groupedCandidates = candidateGroups(candidates);
+  const backendNeedsWebsite = (
+    Array.isArray(data.needs_website_confirmation)
+      ? data.needs_website_confirmation.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+      : []
+  );
+  const backendRejectedExtractions = (
+    Array.isArray(data.rejected_extractions)
+      ? data.rejected_extractions.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+      : []
+  );
   const backendResearchSources = (
     Array.isArray(data.research_sources)
       ? data.research_sources.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
@@ -604,16 +614,27 @@ function OriginationResultView({
     const key = safeStr(source.url ?? source.source_page_url ?? source.source_url ?? source.title ?? source.source_page_title).toLowerCase();
     return !key || all.findIndex(item => safeStr(item.url ?? item.source_page_url ?? item.source_url ?? item.title ?? item.source_page_title).toLowerCase() === key) === index;
   });
+  const needsWebsiteCandidates = [...backendNeedsWebsite, ...groupedCandidates.needsWebsite].filter((candidate, index, all) => {
+    const key = candidateStorageKey(storedCandidateFromOrigination(candidate));
+    return all.findIndex(item => candidateStorageKey(storedCandidateFromOrigination(item)) === key) === index;
+  });
+  const rejectedExtractionItems = [...backendRejectedExtractions, ...groupedCandidates.excluded].filter((candidate, index, all) => {
+    const key = safeStr(candidate.company_name ?? candidate.name ?? candidate.source_title ?? candidate.source_url ?? index).toLowerCase();
+    return all.findIndex(item => safeStr(item.company_name ?? item.name ?? item.source_title ?? item.source_url).toLowerCase() === key) === index;
+  });
   const sourcePagesFound = extractedCandidateSummary.source_pages_found ?? candidateSummary.source_pages_found ?? researchSources.length;
   const companiesExtracted = extractedCandidateSummary.companies_extracted ?? candidateSummary.companies_extracted ?? '0';
-  const candidatesWithWebsites = extractedCandidateSummary.with_websites ?? candidateSummary.with_websites ?? candidateSummary.compare_ready ?? '0';
-  const candidatesNeedingWebsite = extractedCandidateSummary.needs_website_confirmation ?? candidateSummary.needs_website_confirmation ?? '0';
-  const rejectedExtractions = candidateSummary.rejected_extractions ?? extractedCandidateSummary.rejected_extractions ?? candidateSummary.excluded_count ?? '0';
+  const candidatesNeedingWebsite = candidateSummary.needs_website_confirmation_count ?? extractedCandidateSummary.needs_website_confirmation ?? needsWebsiteCandidates.length;
+  const rejectedExtractions = candidateSummary.rejected_extractions_count ?? candidateSummary.rejected_extractions ?? extractedCandidateSummary.rejected_extractions ?? rejectedExtractionItems.length;
 
   const isUnavailable = data.status === 'unavailable';
   const isReferenceUniverse = data.universe_mode === 'private_beta_reference_universe';
   const sourceMode = safeStr(data.source_mode || data.universe_mode);
-  const hasSourceBackedUniverse = data.source_backed_target_universe_available === true || candidates.length > 0 || researchSources.length > 0;
+  const hasSourceBackedUniverse = data.source_backed_target_universe_available === true
+    || candidates.length > 0
+    || researchSources.length > 0
+    || needsWebsiteCandidates.length > 0
+    || rejectedExtractionItems.length > 0;
   const summary    = (data.summary ?? data.thesis_summary) as string | undefined;
   const rationale  = (data.match_rationale ?? data.buyer_thesis) as string | undefined;
   const nextActArr = (data.recommended_next_actions ?? data.next_actions) as unknown[] | undefined;
@@ -639,7 +660,7 @@ function OriginationResultView({
     return <OriginationUnavailable onReset={onReset} message={safeStr(data.message)} discoveryCopy={responseDiscoveryCopy} />;
   }
 
-  if ((candidates.length === 0 && researchSources.length === 0) || !hasSourceBackedUniverse) {
+  if ((candidates.length === 0 && researchSources.length === 0 && needsWebsiteCandidates.length === 0 && rejectedExtractionItems.length === 0) || !hasSourceBackedUniverse) {
     return (
       <OriginationLimitedPreview
         onReset={onReset}
@@ -1082,14 +1103,15 @@ function OriginationResultView({
     );
   }
 
-  function renderCandidateGroup(title: string, items: Record<string, unknown>[], mode: 'full' | 'compact' | 'excluded' | 'source') {
+  function renderCandidateGroup(
+    title: string,
+    items: Record<string, unknown>[],
+    mode: 'full' | 'compact' | 'excluded' | 'source',
+    options: { collapsed?: boolean; description?: string } = {},
+  ) {
     if (items.length === 0) return null;
-    return (
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
-          <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
-        </div>
+    const body = (
+      <>
         {mode === 'compact' && (
           <div className="hidden md:grid grid-cols-[1.2fr_1fr_1.6fr_1.2fr_.8fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
             <span>Company</span>
@@ -1107,9 +1129,35 @@ function OriginationResultView({
               ? renderCompactCandidateRow(item, index)
               : mode === 'source'
               ? renderResearchSourceRow(item, index)
-              : renderExcludedCandidate(item, index)
+            : renderExcludedCandidate(item, index)
           ))}
         </div>
+      </>
+    );
+    if (options.collapsed) {
+      return (
+        <details className="group rounded-lg border border-border overflow-hidden bg-card/20">
+          <summary className="px-4 py-3 cursor-pointer list-none border-b border-border bg-card/50 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
+              {options.description && <p className="text-xs text-muted-foreground mt-1">{options.description}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 transition-transform group-open:rotate-90" />
+            </div>
+          </summary>
+          {body}
+        </details>
+      );
+    }
+    return (
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
+          <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
+          <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
+        </div>
+        {body}
       </div>
     );
   }
@@ -1134,14 +1182,19 @@ function OriginationResultView({
       </div>
 
       {warnings.length > 0 && (
-        <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Warnings</p>
+        <details className="group rounded-lg border border-border bg-card/30 overflow-hidden">
+          <summary className="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-3">
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Run notes</p>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="border-t border-border px-4 py-3">
           <ul className="space-y-1">
             {warnings.map((warning, i) => (
               <li key={i} className="text-xs text-muted-foreground leading-relaxed">{safeStr(warning)}</li>
             ))}
           </ul>
-        </div>
+          </div>
+        </details>
       )}
 
       {showDiagnostics && diagnostics.length > 0 && (
@@ -1184,9 +1237,9 @@ function OriginationResultView({
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
             {[
-              ['Confirmed company candidates', candidateSummary.confirmed_company_candidates ?? groupedCandidates.confirmed.length],
-              ['Need website confirmation', candidateSummary.needs_website_confirmation_count ?? groupedCandidates.needsWebsite.length],
-              ['Research sources', candidateSummary.research_sources_count ?? sourcePagesFound],
+              ['Confirmed company candidates', groupedCandidates.confirmed.length],
+              ['Need website confirmation', needsWebsiteCandidates.length],
+              ['Research sources', researchSources.length],
               ['Rejected/low quality extractions', rejectedExtractions],
               ['Discovery quality', humanLabel(safeStr(candidateSummary.discovery_quality, 'Unknown'))],
             ].map(([label, value]) => (
@@ -1196,23 +1249,10 @@ function OriginationResultView({
               </div>
             ))}
           </div>
-          {(safeStr(sourcePagesFound)
-            || safeStr(companiesExtracted)
-            || safeStr(candidatesWithWebsites)
-            || safeStr(candidatesNeedingWebsite)) && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs mt-2">
-              {[
-                ['Source pages found', sourcePagesFound],
-                ['Companies extracted', companiesExtracted],
-                ['Candidates with websites', candidatesWithWebsites],
-                ['Need website confirmation', candidatesNeedingWebsite],
-              ].map(([label, value]) => (
-                <div key={String(label)} className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
-                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">{String(label)}</p>
-                  <p className="text-sm font-semibold text-foreground">{safeStr(value, '0')}</p>
-                </div>
-              ))}
-            </div>
+          {safeStr(companiesExtracted) && (
+            <p className="text-xs text-muted-foreground leading-relaxed mt-3">
+              Companies extracted from research sources: <span className="font-semibold text-foreground">{safeStr(companiesExtracted, '0')}</span>
+            </p>
           )}
           {safeStr(candidateSummary.top_next_action) && (
             <p className="text-xs text-muted-foreground leading-relaxed mt-3">
@@ -1235,15 +1275,42 @@ function OriginationResultView({
 
       {groupedCandidates.confirmed.length === 0 && (
         <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
-          <p className="text-sm font-semibold text-foreground">No confirmed company websites yet.</p>
-          <p className="text-xs text-muted-foreground mt-1">Review research sources or provide known targets.</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Confirmed company candidates</p>
+          <p className="text-sm font-semibold text-foreground">No confirmed company candidates found yet.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Frontier OS found research sources, but official company websites must be confirmed before screening.
+          </p>
         </div>
       )}
 
       {renderCandidateGroup('Confirmed company candidates', groupedCandidates.confirmed, 'full')}
-      {renderCandidateGroup('Need website confirmation', groupedCandidates.needsWebsite, 'compact')}
-      {renderCandidateGroup('Research sources', researchSources, 'source')}
-      {renderCandidateGroup('Excluded / hidden', groupedCandidates.excluded, 'excluded')}
+      {renderCandidateGroup(
+        'Need website confirmation',
+        needsWebsiteCandidates,
+        'compact',
+        {
+          collapsed: needsWebsiteCandidates.length > 3,
+          description: 'Company mentions that need an official website before Run or Compare.',
+        },
+      )}
+      {renderCandidateGroup(
+        'Research sources used',
+        researchSources,
+        'source',
+        {
+          collapsed: true,
+          description: 'Source pages, listicles or articles used as supporting evidence.',
+        },
+      )}
+      {renderCandidateGroup(
+        'Rejected extractions',
+        rejectedExtractionItems,
+        'excluded',
+        {
+          collapsed: true,
+          description: 'Generic, invalid or low-quality extracted phrases hidden from candidate output.',
+        },
+      )}
 
       {/* Match rationale */}
       {rationale && (
