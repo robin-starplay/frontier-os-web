@@ -48,6 +48,7 @@ interface CompanyRow {
   candidateType?: string;
   evidenceStatus?: string;
   websiteStatus?: string;
+  screeningStatus?: string;
   compareReady?: boolean;
   compareNote?: string;
   storageCompanyName?: string;
@@ -115,6 +116,7 @@ function rowFromStoredCandidate(candidate: StoredCompareCandidate): CompanyRow {
     candidateType: candidate.candidate_type,
     evidenceStatus: candidate.evidence_status,
     websiteStatus: candidate.website_status,
+    screeningStatus: candidate.screening_status,
     compareReady: candidate.compare_ready,
     compareNote: candidate.compare_note,
     storageCompanyName: candidate.company_name,
@@ -391,6 +393,11 @@ function CompareForm({
                     {co.source === 'origination' && (
                       <SemanticBadge tone={co.compareReady === false || !co.url ? 'partial' : 'info'}>
                         Origination
+                      </SemanticBadge>
+                    )}
+                    {co.source === 'cockpit' && co.screeningStatus === 'screened' && (
+                      <SemanticBadge tone="verified">
+                        Screened Cockpit target
                       </SemanticBadge>
                     )}
                   </div>
@@ -1185,6 +1192,9 @@ export default function CompareTargetsPage() {
   const firstUnscreenedCompany = unscreenedCompanies[0];
   const hasUnscreenedCandidates = unscreenedCompanies.length > 0;
   const hasScreenedCandidates = populatedCompanies.length > 0 && unscreenedCompanies.length === 0;
+  const hasScreenedCockpitCandidates = populatedCompanies.some(company => (
+    company.source === 'cockpit' && company.screeningStatus === 'screened'
+  ));
   const compareSubmitLabel = hasScreenedCandidates ? 'Compare screened candidates' : 'Review workflow guidance';
 
   const pageHeader = (
@@ -1244,7 +1254,7 @@ export default function CompareTargetsPage() {
               </p>
               {hasScreenedCandidates && (
                 <p className="mt-2 text-xs font-medium text-[var(--semantic-verified-text)]">
-                  Using screened candidates.
+                  {hasScreenedCockpitCandidates ? 'Using screened Cockpit targets.' : 'Using screened candidates.'}
                 </p>
               )}
             </div>

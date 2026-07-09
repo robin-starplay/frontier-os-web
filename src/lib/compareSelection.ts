@@ -21,6 +21,9 @@ export interface StoredCompareCandidate {
   compare_ready?: boolean;
   run_ready?: boolean;
   compare_note?: string;
+  screening_status?: string;
+  cockpit_target_id?: string;
+  run_id?: string;
   saved_at?: string;
 }
 
@@ -66,6 +69,9 @@ export function readCompareCandidates(): StoredCompareCandidate[] {
         compare_ready: typeof item.compare_ready === 'boolean' ? item.compare_ready : undefined,
         run_ready: typeof item.run_ready === 'boolean' ? item.run_ready : undefined,
         compare_note: safeString(item.compare_note) || undefined,
+        screening_status: safeString(item.screening_status) || undefined,
+        cockpit_target_id: safeString(item.cockpit_target_id) || undefined,
+        run_id: safeString(item.run_id) || undefined,
         saved_at: safeString(item.saved_at) || undefined,
       }))
       .filter(item => item.company_name || item.website);
@@ -127,6 +133,9 @@ export function readSelectedCandidates(): StoredCompareCandidate[] {
         compare_ready: typeof item.compare_ready === 'boolean' ? item.compare_ready : undefined,
         run_ready: typeof item.run_ready === 'boolean' ? item.run_ready : undefined,
         compare_note: safeString(item.compare_note) || undefined,
+        screening_status: safeString(item.screening_status) || undefined,
+        cockpit_target_id: safeString(item.cockpit_target_id) || undefined,
+        run_id: safeString(item.run_id) || undefined,
         saved_at: safeString(item.saved_at) || undefined,
       }))
       .filter(item => item.company_name || item.website);

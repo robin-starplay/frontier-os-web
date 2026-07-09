@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { BetaCTA } from '@/components/BetaCTA';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
 import {
   GitCompare, Clock, ChevronRight, X,
   BookMarked, TrendingUp, AlertTriangle,
   Lock, ArrowRight,
-  ExternalLink, Filter,
+  ExternalLink, Filter, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EvidenceCard } from '@/components/EvidenceCard';
-import { getRuns, type RunEntry } from '@/lib/runHistory';
+import { getRuns, removeRun, type RunEntry } from '@/lib/runHistory';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { getWorkspaceId } from '@/lib/trialAccount';
 import { getCockpitRuns, type CockpitRunRecord } from '@/lib/frontierApi';
@@ -19,6 +19,7 @@ import { useOptionalUser } from '@/lib/optionalClerk';
 import type { RecommendationLevel } from '@/data/mockData';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
+import { writeCompareCandidates, type StoredCompareCandidate } from '@/lib/compareSelection';
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -31,6 +32,8 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'high-ai-risk',  label: 'High AI risk' },
   { key: 'evidence-gaps', label: 'Diligence blockers' },
 ];
+
+const COCKPIT_COMPARE_SELECTION_KEY = 'frontier_cockpit_compare_selection';
 
 function applyFilter(runs: RunEntry[], filter: FilterKey): RunEntry[] {
   switch (filter) {
@@ -135,6 +138,84 @@ function runRecommendation(run: RunEntry): string {
     run.type === 'compare' ? 'Compared target' :
     'Saved screen'
   );
+}
+
+function normalizeRunWebsite(website: string): string {
+  const trimmed = website.trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function runScreenHref(run: RunEntry): string {
+  const params = new URLSearchParams();
+  if (run.company) params.set('company_name', run.company);
+  if (run.website) params.set('website', normalizeRunWebsite(run.website));
+  return `/app/run?${params.toString()}`;
+}
+
+function isScreenedForCompare(run: RunEntry): boolean {
+  if (!displayText(run.website)) return false;
+  if (run.type === 'url') return true;
+  if (run.type === 'document' && run.documentSummary) return true;
+  return false;
+}
+
+function compareDisabledReason(run: RunEntry): string {
+  if (!displayText(run.website)) return 'Website required';
+  if (!isScreenedForCompare(run)) return 'Run screen first';
+  return '';
+}
+
+function cockpitCandidateFromRun(run: RunEntry): StoredCompareCandidate {
+  return {
+    company_name: run.company,
+    website: normalizeRunWebsite(run.website),
+    jurisdiction: 'UK',
+    source: 'cockpit',
+    source_label: 'Saved Cockpit target',
+    evidence_status: displayText(run.evidence_confidence) ?? 'screened',
+    fit_score_100: null,
+    recommendation: runRecommendation(run),
+    candidate_quality: 'screened_target',
+    website_status: 'known',
+    compare_ready: true,
+    run_ready: true,
+    screening_status: 'screened',
+    cockpit_target_id: run.id,
+    run_id: run.id,
+    saved_at: run.timestamp,
+  };
+}
+
+function readCockpitCompareSelectionIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(COCKPIT_COMPARE_SELECTION_KEY) || '[]');
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(
+      parsed
+        .map((item) => {
+          const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+          return typeof record.run_id === 'string'
+            ? record.run_id
+            : typeof record.cockpit_target_id === 'string'
+              ? record.cockpit_target_id
+              : '';
+        })
+        .filter(Boolean),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function writeCockpitCompareSelection(candidates: StoredCompareCandidate[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(COCKPIT_COMPARE_SELECTION_KEY, JSON.stringify(candidates));
+  } catch {
+    // Selection persistence is helpful, but Cockpit should remain usable without it.
+  }
 }
 
 // ─── Run Detail Panel (real run entries) ──────────────────────────────────────
@@ -575,45 +656,77 @@ function SavedRunCard({
   run,
   active,
   onSelect,
+  selected = false,
+  selectionDisabledReason = '',
+  onToggleCompare,
+  onRemove,
   compact = false,
 }: {
   run: RunEntry;
   active: boolean;
   onSelect: () => void;
+  selected?: boolean;
+  selectionDisabledReason?: string;
+  onToggleCompare?: () => void;
+  onRemove?: () => void;
   compact?: boolean;
 }) {
   const blocker = mainBlocker(run);
   const icReadiness = displayText(run.ic_readiness);
   const confidence = displayText(run.evidence_confidence);
   const nextAction = cockpitNextAction(run);
+  const canSelectForCompare = Boolean(onToggleCompare) && !selectionDisabledReason;
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <div
       className={cn(
         'w-full text-left rounded-lg border bg-card p-4 transition-colors',
-        active ? 'border-primary/50 bg-primary/5' : 'border-border hover:bg-muted/20',
+        active ? 'border-primary/50 bg-primary/5' : 'border-border',
       )}
     >
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className={cn(
-                'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-medium',
-                run.type === 'compare' ? 'text-blue-700' : run.type === 'document' ? 'text-violet-400' : run.type === 'origination' ? 'text-cyan-400' : 'text-primary',
-              )}>
-                {sourceTypeLabel(run.type)}
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Clock className="w-3 h-3" /> {formatTs(run.timestamp)}
-              </span>
-            </div>
-            <p className="text-base font-semibold text-foreground leading-snug break-words">{run.company}</p>
-            {displayText(run.website) && (
-              <p className="text-xs text-muted-foreground mt-0.5 break-all">{run.website}</p>
+          <div className="min-w-0 flex items-start gap-3">
+            {!compact && onToggleCompare && (
+              <div className="pt-1">
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  disabled={!canSelectForCompare}
+                  onChange={onToggleCompare}
+                  aria-label={`Select ${run.company} for compare`}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
+                />
+              </div>
             )}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <span className={cn(
+                  'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-medium',
+                  run.type === 'compare' ? 'text-blue-700' : run.type === 'document' ? 'text-violet-400' : run.type === 'origination' ? 'text-cyan-400' : 'text-primary',
+                )}>
+                  {sourceTypeLabel(run.type)}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Clock className="w-3 h-3" /> {formatTs(run.timestamp)}
+                </span>
+                {!compact && (
+                  <SemanticBadge tone={canSelectForCompare ? 'green' : 'grey'}>
+                    {canSelectForCompare ? 'Screened' : selectionDisabledReason || 'Not compare-ready'}
+                  </SemanticBadge>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={onSelect}
+                className="text-left hover:text-primary transition-colors"
+              >
+                <p className="text-base font-semibold text-foreground leading-snug break-words">{run.company}</p>
+              </button>
+              {displayText(run.website) && (
+                <p className="text-xs text-muted-foreground mt-0.5 break-all">{run.website}</p>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {chip(safeLevel(run.recommendation_level), runRecommendation(run))}
@@ -651,10 +764,47 @@ function SavedRunCard({
             <p className="text-[11px] font-medium text-primary mb-1">Next action</p>
             <p className="text-sm text-muted-foreground leading-relaxed">{nextAction}</p>
           </div>
-          {!compact && <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0 mt-0.5" />}
+          {!compact && (
+            <button
+              type="button"
+              onClick={onSelect}
+              className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0 mt-0.5"
+              aria-label={`View ${run.company}`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
+
+        {!compact && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onSelect}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              View
+            </button>
+            <Link
+              href={runScreenHref(run)}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              Run again
+            </Link>
+            {onRemove && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </button>
+            )}
+          </div>
+        )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -662,6 +812,7 @@ function SavedRunCard({
 
 export default function DealCockpitPage() {
   const { isLoaded, isSignedIn } = useOptionalUser();
+  const [, navigate] = useLocation();
 
   // ── Run history ──
   // Lazy initializer: reads localStorage synchronously on first render so
@@ -669,6 +820,7 @@ export default function DealCockpitPage() {
   // empty state when the user already has saved runs.
   const [runs, setRuns] = useState<RunEntry[]>(() => getRuns());
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+  const [selectedCompareIds, setSelectedCompareIds] = useState<Set<string>>(() => readCockpitCompareSelectionIds());
 
   // ── Backend run loading ──
   // When workspace_id is available, merge backend runs with localStorage runs.
@@ -710,6 +862,50 @@ export default function DealCockpitPage() {
   const filteredRuns = applyFilter(targetRuns, activeFilter);
   const filteredComparisons = applyFilter(comparisonRuns, activeFilter);
   const activeRun = runs.find(r => r.id === activeRunId) ?? null;
+  const selectedCompareRuns = targetRuns.filter(run => selectedCompareIds.has(run.id) && !compareDisabledReason(run)).slice(0, 5);
+  const selectedCompareCandidates = selectedCompareRuns.map(cockpitCandidateFromRun);
+  const compareButtonLabel = selectedCompareCandidates.length === 0
+    ? 'Select screened targets to compare'
+    : selectedCompareCandidates.length === 1
+      ? 'Select one more target'
+      : 'Compare selected screened targets';
+
+  function persistCockpitSelection(ids: Set<string>, sourceRuns = targetRuns): void {
+    const candidates = sourceRuns
+      .filter(run => ids.has(run.id) && !compareDisabledReason(run))
+      .slice(0, 5)
+      .map(cockpitCandidateFromRun);
+    writeCockpitCompareSelection(candidates);
+  }
+
+  function toggleCompareSelection(run: RunEntry): void {
+    if (compareDisabledReason(run)) return;
+    setSelectedCompareIds(prev => {
+      const next = new Set(prev);
+      if (next.has(run.id)) next.delete(run.id);
+      else if (selectedCompareRuns.length < 5) next.add(run.id);
+      persistCockpitSelection(next);
+      return next;
+    });
+  }
+
+  function handleCompareSelected(): void {
+    const candidates = selectedCompareCandidates;
+    if (candidates.length < 2) return;
+    writeCompareCandidates(candidates);
+    writeCockpitCompareSelection(candidates);
+    navigate('/app/compare');
+  }
+
+  function handleRemoveRun(runId: string): void {
+    const nextSelected = new Set(selectedCompareIds);
+    nextSelected.delete(runId);
+    setSelectedCompareIds(nextSelected);
+    persistCockpitSelection(nextSelected, targetRuns.filter(run => run.id !== runId));
+    removeRun(runId);
+    setRuns(prev => prev.filter(run => run.id !== runId));
+    setActiveRunId(prev => prev === runId ? null : prev);
+  }
 
   // ── Summary stats from real runs ──
   const stats = {
@@ -753,8 +949,13 @@ export default function DealCockpitPage() {
         <div>
           <p className="text-sm font-semibold text-foreground">Cockpit keeps screened targets.</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Save URL screens here, then compare screened candidates once evidence and unknowns are captured.
+            Select two or more saved screens to compare evidence side by side.
           </p>
+          {selectedCompareCandidates.length > 0 && (
+            <p className="mt-2 text-xs font-medium text-primary">
+              {selectedCompareCandidates.length} selected for compare
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -763,17 +964,19 @@ export default function DealCockpitPage() {
           >
             Back to Run
           </Link>
-          <Link
-            href="/app/compare"
+          <button
+            type="button"
+            onClick={handleCompareSelected}
+            disabled={selectedCompareCandidates.length < 2}
             className={cn(
               'inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors',
-              hasRealRuns
+              selectedCompareCandidates.length >= 2
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'pointer-events-none border border-border bg-muted text-muted-foreground opacity-60',
+                : 'cursor-not-allowed border border-border bg-muted text-muted-foreground opacity-70',
             )}
           >
-            Compare selected screened targets
-          </Link>
+            {compareButtonLabel}
+          </button>
         </div>
       </div>
 
@@ -901,6 +1104,16 @@ export default function DealCockpitPage() {
                       run={run}
                       active={activeRunId === run.id}
                       onSelect={() => setActiveRunId(prev => prev === run.id ? null : run.id)}
+                      selected={selectedCompareIds.has(run.id)}
+                      selectionDisabledReason={
+                        selectedCompareIds.has(run.id)
+                          ? compareDisabledReason(run)
+                          : selectedCompareCandidates.length >= 5
+                            ? 'Limit 5 targets'
+                            : compareDisabledReason(run)
+                      }
+                      onToggleCompare={() => toggleCompareSelection(run)}
+                      onRemove={() => handleRemoveRun(run.id)}
                     />
                   ))
                 ) : null}
@@ -921,6 +1134,7 @@ export default function DealCockpitPage() {
                         run={run}
                         active={activeRunId === run.id}
                         onSelect={() => setActiveRunId(prev => prev === run.id ? null : run.id)}
+                        onRemove={() => handleRemoveRun(run.id)}
                         compact
                       />
                     ))}
@@ -970,14 +1184,14 @@ export default function DealCockpitPage() {
           {/* ── 1. Empty state — always first ── */}
           <div className="flex flex-col items-center justify-center py-12 gap-5 text-center rounded-lg border border-border bg-card/30 mb-6">
             <div>
-              <p className="text-base font-semibold text-foreground mb-1">No screened targets yet.</p>
+              <p className="text-base font-semibold text-foreground mb-1">No screened targets saved yet.</p>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Run a URL screen and save it here.
+                Run a URL screen and save it to Cockpit before comparing.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               <Link href="/app/run" className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-md transition-colors">
-                Run first acquisition screen <ArrowRight className="w-3.5 h-3.5" />
+                Back to Run <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-foreground">
                 View pricing

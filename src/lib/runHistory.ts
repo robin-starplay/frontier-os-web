@@ -351,3 +351,9 @@ export function clearRuns(): void {
     // silently skip
   }
 }
+
+export function removeRun(runId: string): RunEntry[] {
+  const updated = getRuns().filter((entry) => entry.id !== runId);
+  persistRuns(updated);
+  return updated;
+}
