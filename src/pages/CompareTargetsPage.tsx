@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import {
   Trophy, AlertCircle, Plus, Trash2, ArrowRight,
   CheckCircle2, Loader2, Clock, Info, ExternalLink,
-  Lock as LockIcon,
+  Lock as LockIcon, PlayCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ import {
   type CompareTargetResult,
   type Level,
 } from '@/lib/frontierApi';
-import { saveCompareRun } from '@/lib/runHistory';
+import { getRuns, saveCompareRun, type RunEntry } from '@/lib/runHistory';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
@@ -57,7 +57,7 @@ interface CompanyRow {
 
 interface ProgressStage {
   label: string;
-  status: 'queued' | 'running' | 'complete';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'partial';
 }
 
 const EMPTY_COMPANY = (): CompanyRow => ({ name: '', url: '', jurisdiction: 'uk' });
@@ -170,6 +170,37 @@ function normalizeComparePayload({
   };
 }
 
+function compareRowKey(company: Pick<CompanyRow, 'name' | 'url'>): string {
+  const website = normalizeWebsiteUrl(company.url || '').trim().toLowerCase();
+  if (website && isValidWebsiteUrl(website)) return `website:${website}`;
+  return `name:${company.name.trim().toLowerCase()}`;
+}
+
+function runEntryKey(run: RunEntry): string {
+  const website = normalizeWebsiteUrl(run.website || '').trim().toLowerCase();
+  if (website && isValidWebsiteUrl(website)) return `website:${website}`;
+  return `name:${run.company.trim().toLowerCase()}`;
+}
+
+function readScreenedRunKeys(): Set<string> {
+  try {
+    return new Set(
+      getRuns()
+        .filter(run => run.type === 'url' || run.type === 'document')
+        .map(runEntryKey),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function isScreenedCompany(company: CompanyRow, screenedRunKeys: Set<string>): boolean {
+  if (!company.name.trim()) return false;
+  if (screenedRunKeys.has(compareRowKey(company))) return true;
+  if (company.source === 'cockpit' || company.source === 'run' || company.source === 'screened') return true;
+  return false;
+}
+
 function invalidCompareRowReason(company: CompanyRow): string {
   if (!company.name.trim()) return 'Company name required.';
   if (!company.url.trim()) return 'Website required.';
@@ -200,12 +231,14 @@ function CompareForm({
   companies, setCompanies,
   onRemoveStoredCandidate,
   onSubmit,
+  submitLabel,
 }: {
   buyer: string; setBuyer: (v: string) => void;
   buyerThesis: string; setBuyerThesis: (v: string) => void;
   companies: CompanyRow[]; setCompanies: (v: CompanyRow[]) => void;
   onRemoveStoredCandidate: (candidate: CompanyRow) => void;
   onSubmit: () => void;
+  submitLabel: string;
 }) {
   function updateCompany(i: number, field: keyof CompanyRow, value: string) {
     const updated = companies.map((c, idx) => {
@@ -376,7 +409,7 @@ function CompareForm({
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Button type="submit" disabled={!canSubmit} className="sm:flex-1 h-11 text-base">
-            Compare companies <ArrowRight className="w-4 h-4 ml-2" />
+            {submitLabel} <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
           <a
             href={BOOK_INTRO_URL}
@@ -395,37 +428,48 @@ function CompareForm({
 
 // ─── Loading phase ────────────────────────────────────────────────────────────
 
-function CompareLoading({ stages }: { stages: ProgressStage[] }) {
+function CompareLoading({ stages, manualQuickCompare }: { stages: ProgressStage[]; manualQuickCompare: boolean }) {
   return (
     <div className="w-full max-w-xl mx-auto">
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
+          {manualQuickCompare && (
+            <p className="mb-1 text-[11px] font-semibold text-primary">Manual quick compare · public-source preview</p>
+          )}
           <p className="text-xs text-muted-foreground">Comparing companies and checking public evidence...</p>
         </div>
         <div className="divide-y divide-border">
-          {stages.map((stage, i) => (
-            <div
-              key={i}
-              className={cn(
-                'px-4 py-3 flex items-center gap-3 transition-colors',
-                stage.status === 'running'  ? 'bg-primary/5' :
-                stage.status === 'complete' ? 'bg-background' :
-                'bg-muted/5 opacity-40',
-              )}
-            >
-              <div className="w-5 h-5 shrink-0 flex items-center justify-center">
-                {stage.status === 'complete' ? (
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                ) : stage.status === 'running' ? (
-                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                ) : (
-                  <Clock className="w-4 h-4 text-muted-foreground/30" />
+            {stages.map((stage, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'px-4 py-3 flex items-center gap-3 transition-colors',
+                  stage.status === 'running' ? 'bg-primary/5' :
+                  stage.status === 'completed' ? 'bg-background' :
+                  stage.status === 'failed' ? 'bg-destructive/5' :
+                  stage.status === 'partial' ? 'bg-[var(--semantic-claim-bg)]' :
+                  'bg-muted/5 opacity-40',
                 )}
-              </div>
-              <p className={cn(
-                'text-sm',
-                stage.status === 'queued' ? 'text-muted-foreground' : 'text-foreground',
-              )}>
+              >
+                <div className="w-5 h-5 shrink-0 flex items-center justify-center">
+                  {stage.status === 'completed' ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  ) : stage.status === 'running' ? (
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  ) : stage.status === 'failed' ? (
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                  ) : stage.status === 'partial' ? (
+                    <Info className="w-4 h-4 text-[var(--semantic-claim-text)]" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-muted-foreground/30" />
+                  )}
+                </div>
+                <p className={cn(
+                  'text-sm',
+                  stage.status === 'pending' ? 'text-muted-foreground' :
+                  stage.status === 'failed' ? 'text-destructive' :
+                  'text-foreground',
+                )}>
                 {stage.label}
               </p>
             </div>
@@ -442,10 +486,11 @@ function evidenceScore(s: string) {
   return s === 'High' ? 3 : s === 'Medium' ? 2 : s === 'Low' ? 1 : 0;
 }
 
-function CompareResultView({ result, onReset, saveSource }: {
+function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: {
   result: CompareResult;
   onReset: () => void;
   saveSource?: 'backend' | 'local';
+  manualQuickCompare: boolean;
 }) {
   const top = result.targets[0];
   const second = result.targets[1];
@@ -458,6 +503,13 @@ function CompareResultView({ result, onReset, saveSource }: {
     <div className="w-full max-w-4xl mx-auto space-y-6">
 
       {/* Fallback notice */}
+      {manualQuickCompare && (
+        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-info-bg)] border border-[var(--semantic-info-border)] text-xs text-[var(--semantic-info-text)]">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          Manual quick compare · public-source preview.
+        </div>
+      )}
+
       {result.partial_results && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-claim-bg)] border border-[var(--semantic-claim-border)] text-xs text-[var(--semantic-claim-text)]">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -516,13 +568,13 @@ function CompareResultView({ result, onReset, saveSource }: {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Best first target',    value: result.most_ic_ready,     color: 'text-green-700' },
+          { label: 'Best first target',    value: result.most_ic_ready || 'Unavailable',     color: 'text-green-700' },
           { label: 'Strongest evidence',   value: strongestEvidence,        color: 'text-blue-700' },
-          { label: 'Highest AI risk',      value: result.highest_ai_risk,   color: 'text-red-700' },
+          { label: 'Highest AI risk',      value: result.highest_ai_risk || 'Unavailable',   color: 'text-red-700' },
           { label: 'Biggest diligence gap',
             value: mostBlockers && mostBlockers.blockers.length > 0
               ? `${mostBlockers.company}: ${mostBlockers.blockers[0]}`
-              : result.most_evidence_gaps,
+              : result.most_evidence_gaps || 'Unavailable',
             color: 'text-amber-700' },
         ].map(card => (
           <div key={card.label} className="rounded-lg border border-border bg-card p-3">
@@ -530,13 +582,69 @@ function CompareResultView({ result, onReset, saveSource }: {
             <p className={cn('text-sm font-semibold leading-snug', card.color)}>{card.value}</p>
           </div>
         ))}
-        <div className="rounded-lg border border-border bg-card p-3 col-span-2 lg:col-span-1">
-          <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Best next action</p>
-          <p className="text-xs text-foreground leading-snug">{result.best_next_action}</p>
-        </div>
+      <div className="rounded-lg border border-border bg-card p-3 col-span-2 lg:col-span-1">
+        <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Best next action</p>
+        <p className="text-xs text-foreground leading-snug">{result.best_next_action || 'Run individual screens before IC use.'}</p>
       </div>
+    </div>
 
-      {/* Ranked targets */}
+        {Array.isArray(result.company_results) && result.company_results.length > 0 && (
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border bg-muted/20">
+              <p className="text-[10px] font-semibold tracking-normal text-primary">Company result status</p>
+            </div>
+            <div className="divide-y divide-border">
+              {result.company_results.map(company => (
+                <div key={`${company.company_name}-${company.website}`} className="px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{company.company_name}</p>
+                      {company.website && (
+                        <a
+                          href={company.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          {company.website} <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <SemanticBadge tone={company.status === 'ok' ? 'verified' : company.status === 'partial_timeout' ? 'partial' : 'blocker'}>
+                      {company.status === 'partial_timeout' ? 'Partial timeout' : company.status}
+                    </SemanticBadge>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <p className="font-semibold text-muted-foreground mb-1">Recommendation</p>
+                      <p className="text-foreground">{company.recommendation || 'Unavailable'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground mb-1">Evidence confidence</p>
+                      <p className="text-foreground">{company.evidence_confidence || 'Unavailable'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground mb-1">Next action</p>
+                      <p className="text-foreground">{company.next_action || 'Run URL screen for this company.'}</p>
+                    </div>
+                  </div>
+                  {company.warnings?.length > 0 && (
+                    <ul className="mt-3 space-y-1">
+                      {company.warnings.map((warning, index) => (
+                        <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
+                          <span className="mt-1 h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                          {warning}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Ranked targets */}
       <div className="space-y-4">
         {result.targets.map((t: CompareTargetResult) => (
           <div
@@ -733,7 +841,7 @@ export default function CompareTargetsPage() {
   const [buyerThesis, setBuyerThesis] = useState('');
   const [companies, setCompanies]     = useState<CompanyRow[]>(initialCompanyRows);
   const [progress, setProgress] = useState<ProgressStage[]>(
-    PROGRESS_STEPS.map(label => ({ label, status: 'queued' })),
+    PROGRESS_STEPS.map(label => ({ label, status: 'pending' })),
   );
   const [result, setResult] = useState<CompareResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
@@ -741,6 +849,7 @@ export default function CompareTargetsPage() {
   const [errorDiagnostics, setErrorDiagnostics] = useState<CompareRequestDiagnostics | null>(null);
   const [pendingCompareCandidates, setPendingCompareCandidates] = useState<StoredCompareCandidate[]>(readPendingCompareCandidates);
   const [invalidCompareRows, setInvalidCompareRows] = useState<CompanyRow[]>([]);
+  const [manualQuickCompare, setManualQuickCompare] = useState(false);
 
   function handleRemoveStoredCandidate(candidate: CompanyRow) {
     removeCompareCandidate({
@@ -755,6 +864,7 @@ export default function CompareTargetsPage() {
     setCompanies([EMPTY_COMPANY(), EMPTY_COMPANY()]);
     setPendingCompareCandidates([]);
     setInvalidCompareRows([]);
+    setManualQuickCompare(false);
   }
 
   function removePendingCompareCandidate(candidate: StoredCompareCandidate) {
@@ -762,7 +872,7 @@ export default function CompareTargetsPage() {
     setPendingCompareCandidates(readPendingCompareCandidates());
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(forceManualQuickCompare = false) {
     const normalizedCompanies = companies.map(company => ({
       ...company,
       name: company.name.trim(),
@@ -770,11 +880,14 @@ export default function CompareTargetsPage() {
     }));
     const submittedCompanies = normalizedCompanies.filter(company => company.name);
     const invalidSubmittedCompanies = submittedCompanies.filter(company => invalidCompareRowReason(company));
+    const screenedRunKeys = readScreenedRunKeys();
+    const unscreenedSubmittedCompanies = submittedCompanies.filter(company => !isScreenedCompany(company, screenedRunKeys));
     const hasInvalidTarget = submittedCompanies.length < 2
       || invalidSubmittedCompanies.length > 0
       || pendingCompareCandidates.length > 0;
     setCompanies(normalizedCompanies);
     if (hasInvalidTarget) {
+      setManualQuickCompare(false);
       setInvalidCompareRows(invalidSubmittedCompanies);
       setError(
         pendingCompareCandidates.length > 0 || invalidSubmittedCompanies.length > 0
@@ -784,14 +897,22 @@ export default function CompareTargetsPage() {
       setPhase('form');
       return;
     }
+    if (unscreenedSubmittedCompanies.length > 0 && !forceManualQuickCompare) {
+      setManualQuickCompare(false);
+      setInvalidCompareRows([]);
+      setError('These targets have not been individually screened yet. Run screens first for stronger comparison.');
+      setPhase('form');
+      return;
+    }
 
     // Reset progress
-    const fresh: ProgressStage[] = PROGRESS_STEPS.map(label => ({ label, status: 'queued' }));
+    const fresh: ProgressStage[] = PROGRESS_STEPS.map(label => ({ label, status: 'pending' }));
     setProgress(fresh);
     setResult(null);
     setError(null);
     setErrorDiagnostics(null);
     setInvalidCompareRows([]);
+    setManualQuickCompare(unscreenedSubmittedCompanies.length > 0 || forceManualQuickCompare);
     setPhase('loading');
 
     // Start API call with the strict compare contract.
@@ -803,32 +924,58 @@ export default function CompareTargetsPage() {
     if (showCompareDebug()) {
       console.info('[compare] request payload', comparePayload);
     }
+    let requestSettled = false;
     const apiPromise = compareCompanies(comparePayload).then(
       data => ({ data, error: null as Error | null }),
       err => ({ data: null as CompareResult | null, error: err instanceof Error ? err : new Error('Compare request failed.') }),
-    );
+    ).finally(() => {
+      requestSettled = true;
+    });
 
-    // Animate progress steps (~1400ms each)
-    const updated = [...fresh];
-    for (let i = 0; i < updated.length; i++) {
-      updated[i] = { ...updated[i], status: 'running' };
-      setProgress([...updated]);
-      await new Promise<void>(r => setTimeout(r, 1300 + Math.random() * 400));
-      updated[i] = { ...updated[i], status: 'complete' };
-      setProgress([...updated]);
-    }
+    let activeProgressIndex = 0;
+    const progressPromise = (async () => {
+      const updated = [...fresh];
+      for (let i = 0; i < updated.length; i++) {
+        activeProgressIndex = i;
+        updated[i] = { ...updated[i], status: 'running' };
+        setProgress([...updated]);
+        if (i === updated.length - 1) return;
+        await new Promise<void>(r => setTimeout(r, 1200));
+        if (requestSettled) return;
+        updated[i] = { ...updated[i], status: 'completed' };
+        setProgress([...updated]);
+      }
+    })();
 
     // Await API result (should already be resolved)
     let nextPhase: Phase = 'error';
     try {
       const { data: apiResult, error: apiError } = await apiPromise;
       if (apiError || !apiResult) throw apiError ?? new Error('Compare request failed.');
-      setResult(apiResult);
+      await progressPromise;
+      const safeResult: CompareResult = {
+        ...apiResult,
+        targets: Array.isArray(apiResult.targets) ? apiResult.targets : [],
+      };
+      if (safeResult.targets.length === 0 && (!Array.isArray(safeResult.company_results) || safeResult.company_results.length === 0)) {
+        throw new Error('The backend compare endpoint did not return a usable comparison result.');
+      }
+      setProgress(PROGRESS_STEPS.map((label, index) => ({
+        label,
+        status: safeResult.partial_results && index === PROGRESS_STEPS.length - 1 ? 'partial' : 'completed',
+      })));
+      setResult(safeResult);
       // Save each target to local run history so the Deal Cockpit shows them
-      try { saveCompareRun(apiResult); } catch { /* storage not available */ }
-      setSaveSource(apiResult.saved_to_cockpit ? 'backend' : 'local');
+      try {
+        if (safeResult.targets.length > 0) saveCompareRun(safeResult);
+      } catch { /* storage not available */ }
+      setSaveSource(safeResult.saved_to_cockpit ? 'backend' : 'local');
       nextPhase = 'result';
     } catch (err) {
+      setProgress(PROGRESS_STEPS.map((label, index) => ({
+        label,
+        status: index < activeProgressIndex ? 'completed' : index === activeProgressIndex ? 'failed' : 'pending',
+      })));
       if (err instanceof CompareRequestError) {
         console.warn('[compare] request failed', err.diagnostics);
         setError(err.status ? COMPARE_REQUEST_ERROR_MESSAGE : err.message || COMPARE_TIMEOUT_ERROR_MESSAGE);
@@ -848,14 +995,20 @@ export default function CompareTargetsPage() {
     setResult(null);
     setError(null);
     setErrorDiagnostics(null);
-    setProgress(PROGRESS_STEPS.map(label => ({ label, status: 'queued' })));
+    setProgress(PROGRESS_STEPS.map(label => ({ label, status: 'pending' })));
+    setManualQuickCompare(false);
   }
 
   const storedCompareCount = readCompareCandidates().length;
   const showBackToOrigination = hasStoredOriginationResult();
   const hasInvalidCompareItems = pendingCompareCandidates.length > 0 || invalidCompareRows.length > 0;
-  const hasOriginationCandidates = companies.some(company => company.source === 'origination');
-  const hasScreenedCandidates = companies.some(company => company.source && company.source !== 'origination');
+  const screenedRunKeys = readScreenedRunKeys();
+  const populatedCompanies = companies.filter(company => company.name.trim());
+  const unscreenedCompanies = populatedCompanies.filter(company => !isScreenedCompany(company, screenedRunKeys));
+  const firstUnscreenedCompany = unscreenedCompanies[0];
+  const hasUnscreenedCandidates = unscreenedCompanies.length > 0;
+  const hasScreenedCandidates = populatedCompanies.length > 0 && unscreenedCompanies.length === 0;
+  const compareSubmitLabel = hasScreenedCandidates ? 'Compare screened candidates' : 'Review workflow guidance';
 
   const pageHeader = (
     <div className="w-full border-b border-border bg-card/30">
@@ -919,22 +1072,32 @@ export default function CompareTargetsPage() {
               )}
             </div>
 
-            {hasOriginationCandidates && (
-              <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
-                <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
-                  These targets have not been individually screened yet.
-                </p>
-                <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
-                  Run screens first for stronger comparison.
-                </p>
-                <Link
-                  href="/app/run"
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  Run screens first
-                </Link>
-              </div>
-            )}
+              {hasUnscreenedCandidates && (
+                <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
+                  <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
+                    These targets have not been individually screened yet.
+                  </p>
+                  <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
+                    Run screens first for stronger comparison.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Link
+                      href="/app/run"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <PlayCircle className="h-3.5 w-3.5" />
+                      Run first screen{firstUnscreenedCompany?.name ? `: ${firstUnscreenedCompany.name}` : ''}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(true)}
+                      className="inline-flex items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-background/70 px-3 py-1.5 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-background transition-colors"
+                    >
+                      Manual quick compare
+                    </button>
+                  </div>
+                </div>
+              )}
 
             {hasInvalidCompareItems && (
               <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
@@ -975,9 +1138,10 @@ export default function CompareTargetsPage() {
               buyer={buyer}             setBuyer={setBuyer}
               buyerThesis={buyerThesis} setBuyerThesis={setBuyerThesis}
               companies={companies}     setCompanies={setCompanies}
-              onRemoveStoredCandidate={handleRemoveStoredCandidate}
-              onSubmit={handleSubmit}
-            />
+                onRemoveStoredCandidate={handleRemoveStoredCandidate}
+                onSubmit={handleSubmit}
+                submitLabel={compareSubmitLabel}
+              />
             {error && (
               <div className="mt-4 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-4 py-3 text-sm text-[var(--semantic-claim-text)]">
                 {error}
@@ -986,18 +1150,25 @@ export default function CompareTargetsPage() {
           </>
         )}
 
-        {phase === 'loading' && <CompareLoading stages={progress} />}
+          {phase === 'loading' && <CompareLoading stages={progress} manualQuickCompare={manualQuickCompare} />}
 
-        {phase === 'result' && result && (
-          <CompareResultView result={result} onReset={reset} saveSource={saveSource ?? 'local'} />
-        )}
+          {phase === 'result' && result && (
+            <CompareResultView result={result} onReset={reset} saveSource={saveSource ?? 'local'} manualQuickCompare={manualQuickCompare} />
+          )}
 
-        {phase === 'result' && !result && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <p className="text-sm">Building recommendation…</p>
-          </div>
-        )}
+          {phase === 'result' && !result && (
+            <div className="w-full max-w-xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 p-5">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Compare result unavailable.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The checklist completed without a usable result. Edit targets or run individual screens first.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
         {phase === 'error' && (
           <div className="w-full max-w-xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 p-5">
