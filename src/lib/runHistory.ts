@@ -195,18 +195,23 @@ function readCockpitTargets(): Record<string, unknown>[] {
 
 function persistCockpitTarget(entry: RunEntry, workflowState?: unknown): void {
   if (!entry.website || entry.type === 'origination' || entry.type === 'compare') return;
+  const resultRecord = asRecord(entry.result);
   const target = {
     company_name: entry.company,
     website: normalizeWebsite(entry.website),
     jurisdiction: 'UK',
-    source: 'cockpit',
-    source_label: 'Saved Cockpit target',
+    source: 'run',
+    source_label: entry.type === 'document' ? 'Document-assisted review' : 'URL screen',
     screening_status: 'screened',
     compare_ready: true,
     saved_at: entry.timestamp,
     run_id: entry.id,
     recommendation: entry.recommendation,
     evidence_confidence: entry.evidence_confidence,
+    verified_facts: asArray(resultRecord.verified_facts),
+    claims: asArray(resultRecord.claims),
+    unknowns: asArray(resultRecord.unknowns),
+    blockers: entry.blockers,
     workflow_state: workflowState ?? {
       stage: 'cockpit_target',
       recommended_next_step: 'compare',

@@ -52,10 +52,12 @@ export function ScreeningWorkflowGuide({
   active,
   className,
   compact = false,
+  originationAvailable = false,
 }: {
   active: ScreeningWorkflowStep;
   className?: string;
   compact?: boolean;
+  originationAvailable?: boolean;
 }) {
   return (
     <div className={cn('rounded-lg border border-border bg-card shadow-xs', className)}>
@@ -98,6 +100,19 @@ export function ScreeningWorkflowGuide({
                 </div>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{step.description}</p>
+              {step.id === 'originate' && originationAvailable && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] px-2 py-1 text-[11px] font-semibold leading-none text-[var(--semantic-info-text)]">
+                    Targets available
+                  </span>
+                  <Link
+                    href="/app/origination"
+                    className="inline-flex text-xs font-medium text-primary hover:text-primary/80"
+                  >
+                    Choose from Origination
+                  </Link>
+                </div>
+              )}
               {!isActive && (
                 <Link
                   href={step.href}

@@ -1,7 +1,15 @@
-import { normalizeWebsiteUrl } from '@/lib/urlUtils';
+import {
+  COMPARE_CANDIDATES_KEY,
+  SELECTED_CANDIDATES_KEY,
+  dedupeTargets,
+  getCompareCandidates,
+  normalizeWorkflowTarget,
+  saveCompareCandidates,
+  workflowTargetKey,
+  type WorkflowTarget,
+} from '@/lib/workflowTargets';
 
-export const COMPARE_CANDIDATES_KEY = 'frontier_compare_candidates';
-export const SELECTED_CANDIDATES_KEY = 'frontier_selected_candidates';
+export { COMPARE_CANDIDATES_KEY, SELECTED_CANDIDATES_KEY };
 
 export interface StoredCompareCandidate {
   company_name: string;
@@ -31,58 +39,65 @@ function storageAvailable(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
-function safeString(value: unknown): string {
+export function safeString(value: unknown): string {
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
     ? String(value)
     : '';
 }
 
 function candidateKey(candidate: Pick<StoredCompareCandidate, 'company_name' | 'website' | 'jurisdiction'>): string {
-  const website = safeString(candidate.website).trim();
-  if (website) return `website:${normalizeWebsiteUrl(website).toLowerCase()}`;
-  return `name:${safeString(candidate.company_name).trim().toLowerCase()}|${safeString(candidate.jurisdiction).trim().toLowerCase()}`;
+  return workflowTargetKey({
+    company_name: safeString(candidate.company_name),
+    website: safeString(candidate.website),
+    jurisdiction: safeString(candidate.jurisdiction),
+  });
 }
 
-export function readCompareCandidates(): StoredCompareCandidate[] {
+function toStoredCompareCandidate(target: WorkflowTarget): StoredCompareCandidate {
+  return {
+    company_name: target.company_name,
+    website: target.website,
+    jurisdiction: target.jurisdiction,
+    sector: target.sector || undefined,
+    source: target.source || 'origination',
+    source_label: target.source_label,
+    source_url: target.source_url || undefined,
+    candidate_type: target.candidate_type,
+    source_page_title: target.source_page_title,
+    evidence_status: target.evidence_confidence,
+    fit_score_100: target.fit_score_100 ?? null,
+    recommendation: target.recommendation,
+    candidate_quality: target.candidate_quality || undefined,
+    website_status: target.website_status || undefined,
+    compare_ready: target.compare_ready,
+    run_ready: target.run_ready,
+    compare_note: target.compare_note,
+    screening_status: target.screening_status || undefined,
+    cockpit_target_id: safeString(target.raw?.cockpit_target_id) || undefined,
+    run_id: target.run_id || undefined,
+    saved_at: target.saved_at || undefined,
+  };
+}
+
+function readCandidatesFromKey(key: string): StoredCompareCandidate[] {
   if (!storageAvailable()) return [];
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(COMPARE_CANDIDATES_KEY) || '[]');
+    const parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(item => item && typeof item === 'object')
-      .map(item => item as Record<string, unknown>)
-      .map(item => ({
-        company_name: safeString(item.company_name),
-        website: safeString(item.website),
-        jurisdiction: safeString(item.jurisdiction),
-        sector: safeString(item.sector) || undefined,
-        source: safeString(item.source) || 'origination',
-        source_label: safeString(item.source_label),
-        source_url: safeString(item.source_url) || undefined,
-        candidate_type: safeString(item.candidate_type) || undefined,
-        source_page_title: safeString(item.source_page_title) || undefined,
-        evidence_status: safeString(item.evidence_status),
-        fit_score_100: typeof item.fit_score_100 === 'number' ? item.fit_score_100 : null,
-        recommendation: safeString(item.recommendation),
-        candidate_quality: safeString(item.candidate_quality) || undefined,
-        website_status: safeString(item.website_status) || undefined,
-        compare_ready: typeof item.compare_ready === 'boolean' ? item.compare_ready : undefined,
-        run_ready: typeof item.run_ready === 'boolean' ? item.run_ready : undefined,
-        compare_note: safeString(item.compare_note) || undefined,
-        screening_status: safeString(item.screening_status) || undefined,
-        cockpit_target_id: safeString(item.cockpit_target_id) || undefined,
-        run_id: safeString(item.run_id) || undefined,
-        saved_at: safeString(item.saved_at) || undefined,
-      }))
+    return dedupeTargets(parsed.map(normalizeWorkflowTarget))
+      .map(toStoredCompareCandidate)
       .filter(item => item.company_name || item.website);
   } catch {
     return [];
   }
 }
 
+export function readCompareCandidates(): StoredCompareCandidate[] {
+  return getCompareCandidates().map(toStoredCompareCandidate);
+}
+
 export function writeCompareCandidates(candidates: StoredCompareCandidate[]): void {
-  if (!storageAvailable()) return;
-  window.localStorage.setItem(COMPARE_CANDIDATES_KEY, JSON.stringify(candidates));
+  saveCompareCandidates(candidates);
 }
 
 export function addCompareCandidate(candidate: StoredCompareCandidate): { added: boolean; candidates: StoredCompareCandidate[] } {
@@ -108,45 +123,13 @@ export function candidateStorageKey(candidate: Pick<StoredCompareCandidate, 'com
 }
 
 export function readSelectedCandidates(): StoredCompareCandidate[] {
-  if (!storageAvailable()) return [];
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(SELECTED_CANDIDATES_KEY) || '[]');
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(item => item && typeof item === 'object')
-      .map(item => item as Record<string, unknown>)
-      .map(item => ({
-        company_name: safeString(item.company_name),
-        website: safeString(item.website),
-        jurisdiction: safeString(item.jurisdiction),
-        sector: safeString(item.sector) || undefined,
-        source: safeString(item.source) || 'origination',
-        source_label: safeString(item.source_label),
-        source_url: safeString(item.source_url) || undefined,
-        candidate_type: safeString(item.candidate_type) || undefined,
-        source_page_title: safeString(item.source_page_title) || undefined,
-        evidence_status: safeString(item.evidence_status),
-        fit_score_100: typeof item.fit_score_100 === 'number' ? item.fit_score_100 : null,
-        recommendation: safeString(item.recommendation),
-        candidate_quality: safeString(item.candidate_quality) || undefined,
-        website_status: safeString(item.website_status) || undefined,
-        compare_ready: typeof item.compare_ready === 'boolean' ? item.compare_ready : undefined,
-        run_ready: typeof item.run_ready === 'boolean' ? item.run_ready : undefined,
-        compare_note: safeString(item.compare_note) || undefined,
-        screening_status: safeString(item.screening_status) || undefined,
-        cockpit_target_id: safeString(item.cockpit_target_id) || undefined,
-        run_id: safeString(item.run_id) || undefined,
-        saved_at: safeString(item.saved_at) || undefined,
-      }))
-      .filter(item => item.company_name || item.website);
-  } catch {
-    return [];
-  }
+  return readCandidatesFromKey(SELECTED_CANDIDATES_KEY);
 }
 
 export function writeSelectedCandidates(candidates: StoredCompareCandidate[]): void {
   if (!storageAvailable()) return;
-  window.localStorage.setItem(SELECTED_CANDIDATES_KEY, JSON.stringify(candidates));
+  const normalized = dedupeTargets(candidates.map(normalizeWorkflowTarget)).map(toStoredCompareCandidate);
+  window.localStorage.setItem(SELECTED_CANDIDATES_KEY, JSON.stringify(normalized));
 }
 
 export function addSelectedCandidate(candidate: StoredCompareCandidate): { added: boolean; candidates: StoredCompareCandidate[] } {
