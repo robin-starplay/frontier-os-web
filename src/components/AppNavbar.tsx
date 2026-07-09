@@ -12,12 +12,11 @@ import { OptionalUserButton } from '@/lib/optionalClerk';
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
 const APP_NAV = [
+  { label: 'Origination', href: '/app/origination' },
   { label: 'Run',         href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
-  { label: 'Origination', href: '/app/origination' },
   { label: 'Pricing',     href: '/pricing' },
-  { label: 'AI risk',     href: '/app/ai-risk' },
   { label: 'Trust',       href: '/trust' },
 ];
 
@@ -25,39 +24,40 @@ const APP_NAV = [
 // Secondary informational links (trust, pricing, faq) are intentionally included
 // so signed-in users can access them without leaving the app shell.
 const APP_MORE = [
+  { label: 'AI risk',           href: '/app/ai-risk' },
+  { label: 'Request pilot',     href: '/request-pilot' },
+  { label: 'Book intro',        href: BOOK_INTRO_URL, external: true },
   { label: 'Workspace',         href: '/app/settings' },
   { label: 'Exports',           href: '/app/exports' },
   { label: 'Evidence workflow', href: '/app/evidence' },
-  { label: 'Request pilot',     href: '/request-pilot' },
   { label: 'FAQ',               href: '/faq' },
 ];
 
 const APP_MOBILE_PRIMARY = [
-  { label: 'Run',     href: '/app/run' },
-  { label: 'Cockpit', href: '/app/cockpit' },
+  { label: 'Origination', href: '/app/origination' },
+  { label: 'Run',         href: '/app/run' },
+  { label: 'Cockpit',     href: '/app/cockpit' },
 ];
 
 const APP_MOBILE_MORE = [
   {
-    label: 'Screening',
+    label: 'Workflow',
     links: [
-      { label: 'Compare',     href: '/app/compare' },
-      { label: 'Origination', href: '/app/origination' },
-      { label: 'AI risk',     href: '/app/ai-risk' },
+      { label: 'Compare', href: '/app/compare' },
+      { label: 'Pricing', href: '/pricing' },
+      { label: 'Trust',   href: '/trust' },
+      { label: 'AI risk', href: '/app/ai-risk' },
     ],
   },
   {
     label: 'Commercial',
     links: [
-      { label: 'Pricing',       href: '/pricing' },
       { label: 'Request pilot', href: '/request-pilot' },
     ],
   },
   {
-    label: 'Trust',
-    links: [
-      { label: 'Trust', href: '/trust' },
-    ],
+    label: 'Support',
+    links: [],
   },
 ];
 
@@ -130,21 +130,35 @@ function AppMoreDropdown({
       </button>
       {open && (
         <div role="menu" className="absolute left-0 top-full mt-1 w-48 rounded-lg border border-border bg-popover shadow-lg py-1 z-50">
-          {APP_MORE.map(({ label, href }) => (
-            <Link
-              key={href}
-              href={href}
-              role="menuitem"
-              className={cn(
-                'block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
-                isActive(href)
-                  ? 'text-primary font-semibold bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
-              )}
-              onClick={() => setOpen(false)}
-            >
-              {label}
-            </Link>
+          {APP_MORE.map(({ label, href, external }) => (
+            external ? (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                className="block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                {label}
+              </a>
+            ) : (
+              <Link
+                key={href}
+                href={href}
+                role="menuitem"
+                className={cn(
+                  'block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
+                  isActive(href)
+                    ? 'text-primary font-semibold bg-primary/10'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
+                )}
+                onClick={() => setOpen(false)}
+              >
+                {label}
+              </Link>
+            )
           ))}
           <div className="border-t border-border mt-1 pt-1">
             <button
@@ -241,7 +255,7 @@ export function AppNavbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-border bg-background px-4 py-3">
-            <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="grid grid-cols-4 gap-2 mb-4">
               {APP_MOBILE_PRIMARY.map(({ label, href }) => (
                 <Link
                   key={href}
@@ -301,7 +315,7 @@ export function AppNavbar() {
                         Book intro
                       </a>
                     )}
-                    {group.label === 'Trust' && (
+                    {group.label === 'Support' && (
                       <button
                         onClick={() => { setMobileOpen(false); setFeedbackOpen(true); }}
                         className="flex min-h-11 w-full items-center rounded-md px-3 text-left text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
