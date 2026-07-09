@@ -634,6 +634,9 @@ function OriginationResultView({
   const companiesExtracted = extractedCandidateSummary.companies_extracted ?? candidateSummary.companies_extracted ?? '0';
   const candidatesNeedingWebsite = candidateSummary.needs_website_confirmation_count ?? extractedCandidateSummary.needs_website_confirmation ?? needsWebsiteCandidates.length;
   const rejectedExtractions = candidateSummary.rejected_extractions_count ?? candidateSummary.rejected_extractions ?? extractedCandidateSummary.rejected_extractions ?? rejectedExtractionItems.length;
+  const hasConfirmedCandidates = groupedCandidates.confirmed.length > 0;
+  const hasPossibleLeads = needsWebsiteCandidates.length > 0;
+  const openPossibleLeadsByDefault = !hasConfirmedCandidates && hasPossibleLeads;
 
   const isUnavailable = data.status === 'unavailable';
   const isReferenceUniverse = data.universe_mode === 'private_beta_reference_universe';
@@ -1117,11 +1120,16 @@ function OriginationResultView({
     title: string,
     items: Record<string, unknown>[],
     mode: 'full' | 'compact' | 'excluded' | 'source',
-    options: { collapsed?: boolean; description?: string; id?: string } = {},
+    options: { collapsed?: boolean; defaultOpen?: boolean; description?: string; id?: string; intro?: string; note?: string } = {},
   ) {
     if (items.length === 0) return null;
     const body = (
       <>
+        {options.intro && (
+          <div className="px-4 py-3 border-b border-border bg-card/30">
+            <p className="text-xs text-muted-foreground leading-relaxed">{options.intro}</p>
+          </div>
+        )}
         {mode === 'compact' && (
           <div className="hidden md:grid grid-cols-[1.2fr_1fr_1.6fr_1.2fr_.8fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
             <span>Company</span>
@@ -1146,11 +1154,12 @@ function OriginationResultView({
     );
     if (options.collapsed) {
       return (
-        <details id={options.id} className="group rounded-lg border border-border overflow-hidden bg-card/20">
+        <details id={options.id} open={options.defaultOpen} className="group rounded-lg border border-border overflow-hidden bg-card/20">
           <summary className="px-4 py-3 cursor-pointer list-none border-b border-border bg-card/50 flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
               {options.description && <p className="text-xs text-muted-foreground mt-1">{options.description}</p>}
+              {options.note && <p className="text-[11px] font-medium text-primary mt-1">{options.note}</p>}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
@@ -1164,7 +1173,11 @@ function OriginationResultView({
     return (
       <div id={options.id} className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
+            {options.description && <p className="text-xs text-muted-foreground mt-1">{options.description}</p>}
+            {options.note && <p className="text-[11px] font-medium text-primary mt-1">{options.note}</p>}
+          </div>
           <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
         </div>
         {body}
@@ -1235,11 +1248,11 @@ function OriginationResultView({
       )}
 
       {/* Candidate summary */}
-      {(candidates.length > 0 || researchSources.length > 0) && (
+      {(candidates.length > 0 || researchSources.length > 0 || needsWebsiteCandidates.length > 0) && (
         <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <p className="text-[10px] font-semibold tracking-normal text-primary">
-              {groupedCandidates.confirmed.length > 0 ? 'Candidate summary' : 'Research summary'}
+              {hasConfirmedCandidates ? 'Candidate summary' : 'Research summary'}
             </p>
             {safeStr(candidateSummary.discovery_quality) && (
               <SemanticBadge tone={safeStr(candidateSummary.discovery_quality) === 'low' ? 'partial' : safeStr(candidateSummary.discovery_quality) === 'high' ? 'verified' : 'info'}>
@@ -1250,7 +1263,7 @@ function OriginationResultView({
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
             {[
               ['Confirmed company candidates', groupedCandidates.confirmed.length],
-              ['Need website confirmation', needsWebsiteCandidates.length],
+              ['Possible leads needing website confirmation', needsWebsiteCandidates.length],
               ['Research sources', researchSources.length],
               ['Rejected/low quality extractions', rejectedExtractions],
               ['Discovery quality', humanLabel(safeStr(candidateSummary.discovery_quality, 'Unknown'))],
@@ -1285,18 +1298,35 @@ function OriginationResultView({
         </div>
       )}
 
-      {groupedCandidates.confirmed.length === 0 && (
-        <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
+      {!hasConfirmedCandidates && (
+        <div className="rounded-lg border border-border bg-card/30 px-4 py-3">
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Confirmed company candidates</p>
-          <p className="text-sm font-semibold text-foreground">No confirmed company candidates found yet.</p>
+          <p className="text-sm font-semibold text-foreground">No screenable company candidates yet.</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Frontier OS found research sources, but official company websites must be confirmed before screening.
+            {hasPossibleLeads
+              ? 'Possible leads are listed below for website confirmation.'
+              : 'Frontier OS found research sources, but official company websites must be confirmed before screening.'}
+          </p>
+        </div>
+      )}
+
+      {openPossibleLeadsByDefault && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+          <p className="text-sm font-semibold text-foreground">Possible leads found</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Review these leads, confirm official websites, then run individual screens.
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
+            <a
+              href="#origination-possible-leads"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+            >
+              Review possible leads
+            </a>
             <button
               type="button"
               onClick={onPasteKnownTargets}
-              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
             >
               Paste known targets
             </button>
@@ -1306,26 +1336,22 @@ function OriginationResultView({
             >
               Run URL screen
             </Link>
-            {researchSources.length > 0 && (
-              <a
-                href="#origination-research-sources"
-                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-              >
-                Review research sources
-              </a>
-            )}
           </div>
         </div>
       )}
 
       {renderCandidateGroup('Confirmed company candidates', groupedCandidates.confirmed, 'full')}
       {renderCandidateGroup(
-        'Need website confirmation',
+        'Possible leads needing website confirmation',
         needsWebsiteCandidates,
         'compact',
         {
-          collapsed: needsWebsiteCandidates.length > 3,
+          collapsed: needsWebsiteCandidates.length > 3 || openPossibleLeadsByDefault,
+          defaultOpen: openPossibleLeadsByDefault,
+          id: 'origination-possible-leads',
           description: 'Company mentions that need an official website before Run or Compare.',
+          intro: 'Frontier OS found company mentions, but official websites must be confirmed before screening.',
+          note: openPossibleLeadsByDefault ? 'Opened because no confirmed candidates were found.' : undefined,
         },
       )}
       {renderCandidateGroup(
@@ -1333,7 +1359,7 @@ function OriginationResultView({
         researchSources,
         'source',
         {
-          collapsed: true,
+          collapsed: hasPossibleLeads,
           id: 'origination-research-sources',
           description: 'Source pages, listicles or articles used as supporting evidence.',
         },
