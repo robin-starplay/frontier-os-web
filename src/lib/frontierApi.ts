@@ -23,7 +23,7 @@ import { WEBSITE_URL_VALIDATION_MESSAGE } from './urlUtils';
 
 const TIMEOUT_MS = 8_000;
 const URL_ANALYSIS_TIMEOUT_MS = 120_000;
-const COMPARE_TIMEOUT_MS = 90_000;
+const COMPARE_TIMEOUT_MS = 120_000;
 
 // ─── Payload types ────────────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ export interface ComparePayload {
 export const COMPARE_REQUEST_ERROR_MESSAGE =
   'Compare request could not complete. Please check required fields and website URLs.';
 export const COMPARE_TIMEOUT_ERROR_MESSAGE =
-  'Compare took too long. Try comparing fewer companies or run individual screens first.';
+  'Compare took too long. Try fewer companies or run individual URL screens first.';
 
 export interface CompareRequestDiagnostics {
   endpoint: string;

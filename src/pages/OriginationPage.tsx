@@ -9,6 +9,7 @@ import { getBackendBaseUrl } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
 import { SemanticBadge } from '@/components/SemanticBadge';
+import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
 import {
   addCompareCandidate,
@@ -802,38 +803,40 @@ function OriginationResultView({
   function renderSelectionTray() {
     if (selectedCandidates.length === 0) return null;
     const compareReady = selectedCandidates.filter(candidate => candidate.compare_ready !== false && candidate.website).length;
+    const runReady = selectedCandidates.filter(candidate => candidate.run_ready !== false && candidate.website).length;
     const missingWebsite = selectedCandidates.filter(candidate => !candidate.website).length;
     return (
       <div className="sticky bottom-4 z-20 rounded-lg border border-border bg-card shadow-lg px-4 py-3">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-foreground">{selectedCandidates.length} selected</p>
-            <p className="text-xs text-muted-foreground">{compareReady} compare-ready · {missingWebsite} missing website</p>
+            <p className="text-xs text-muted-foreground">{runReady} ready to screen · {compareReady} compare-ready · {missingWebsite} missing website</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              disabled={compareReady === 0}
-              onClick={handleCompareSelected}
-              className="inline-flex items-center gap-1 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed h-8 px-3 rounded-md transition-colors"
-              title={compareReady === 0 ? 'Website required before comparison.' : undefined}
-            >
-              Compare selected
-            </button>
-            <button
-              type="button"
-              disabled={compareReady === 0}
+              disabled={runReady === 0}
               onClick={handleRunFirstSelected}
-              className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed h-8 px-3 rounded-md transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed h-8 px-3 rounded-md transition-colors"
+              title={runReady === 0 ? 'Website required before URL screen.' : undefined}
             >
-              Run first ready
+              Run first selected
             </button>
             <button
               type="button"
               onClick={handleSaveSelected}
-              className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent h-8 px-3 rounded-md transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed h-8 px-3 rounded-md transition-colors"
             >
               Save selected leads
+            </button>
+            <button
+              type="button"
+              disabled={compareReady === 0}
+              onClick={handleCompareSelected}
+              className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent h-8 px-3 rounded-md transition-colors"
+              title={compareReady === 0 ? 'Run screens first to unlock a stronger comparison.' : undefined}
+            >
+              Compare screened only
             </button>
             <button
               type="button"
@@ -845,7 +848,7 @@ function OriginationResultView({
           </div>
         </div>
         {compareReady === 0 && (
-          <p className="text-[11px] text-muted-foreground mt-2">Website required before Run/Compare.</p>
+          <p className="text-[11px] text-muted-foreground mt-2">Run screens first to unlock a stronger comparison.</p>
         )}
       </div>
     );
@@ -1970,6 +1973,7 @@ function OriginationForm() {
   if (state.kind === 'result') {
     return (
       <div className="space-y-4">
+        <ScreeningWorkflowGuide active="originate" />
         {workspacePanel}
         {state.restored && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
@@ -1999,6 +2003,7 @@ function OriginationForm() {
   if (state.kind === 'error') {
     return (
       <div className="space-y-4">
+        <ScreeningWorkflowGuide active="originate" />
         {workspacePanel}
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -2055,7 +2060,16 @@ function OriginationForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <ScreeningWorkflowGuide active="originate" />
       {workspacePanel}
+      <div className="rounded-lg border border-border bg-card px-4 py-3">
+        <p className="text-sm font-semibold text-foreground">
+          Start with known targets or research sources. Frontier OS will not invent acquisition targets.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Best practice: run individual screens before comparing candidates.
+        </p>
+      </div>
       <div className="rounded-lg border border-border bg-card p-3">
         <p className="text-xs font-semibold text-foreground mb-2">Origination mode</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
