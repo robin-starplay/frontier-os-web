@@ -29,6 +29,7 @@ import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE 
 import {
   readCompareCandidates,
   removeCompareCandidate,
+  writeCompareCandidates,
   type StoredCompareCandidate,
 } from '@/lib/compareSelection';
 
@@ -66,6 +67,8 @@ const PROGRESS_STEPS: string[] = [
   'Comparing AI risk',
   'Building recommendation',
 ];
+
+const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -119,6 +122,15 @@ function initialCompanyRows(): CompanyRow[] {
   const rows = readCompareCandidates().slice(0, 5).map(rowFromStoredCandidate);
   while (rows.length < 2) rows.push(EMPTY_COMPANY());
   return rows;
+}
+
+function hasStoredOriginationResult(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return Boolean(window.localStorage.getItem(LAST_ORIGINATION_RESULT_KEY));
+  } catch {
+    return false;
+  }
 }
 
 function normalizeComparePayload({
@@ -203,6 +215,7 @@ function CompareForm({
   }
 
   const canSubmit = companies.filter(c => c.name.trim()).length >= 2;
+  const pendingCandidates = companies.filter(c => c.source === 'origination' && (c.compareReady === false || !c.url.trim()));
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -245,6 +258,11 @@ function CompareForm({
             <p className="text-[10px] font-semibold tracking-normal text-primary">Target companies</p>
             <span className="text-xs text-muted-foreground">{companies.length} / 5</span>
           </div>
+          {pendingCandidates.length > 0 && (
+            <div className="mx-5 mt-4 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
+              {pendingCandidates.length} origination candidate{pendingCandidates.length === 1 ? '' : 's'} pending. Website required before comparison.
+            </div>
+          )}
           <div className="divide-y divide-border">
             {companies.map((co, i) => (
               <div key={i} className="p-5">
@@ -704,6 +722,11 @@ export default function CompareTargetsPage() {
     });
   }
 
+  function clearCompareSelection() {
+    writeCompareCandidates([]);
+    setCompanies([EMPTY_COMPANY(), EMPTY_COMPANY()]);
+  }
+
   async function handleSubmit() {
     const normalizedCompanies = companies.map(company => ({
       ...company,
@@ -788,6 +811,9 @@ export default function CompareTargetsPage() {
     setProgress(PROGRESS_STEPS.map(label => ({ label, status: 'queued' })));
   }
 
+  const storedCompareCount = readCompareCandidates().length;
+  const showBackToOrigination = hasStoredOriginationResult();
+
   const pageHeader = (
     <div className="w-full border-b border-border bg-card/30">
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
@@ -817,7 +843,28 @@ export default function CompareTargetsPage() {
         {phase === 'form' && (
           <>
             <div className="mb-8 rounded-lg border border-border bg-card/60 px-5 py-4">
-              <p className="text-sm font-semibold text-foreground mb-1">Compare two or more real screened targets.</p>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-1">
+                <p className="text-sm font-semibold text-foreground">Compare two or more real screened targets.</p>
+                <div className="flex flex-wrap gap-2">
+                  {showBackToOrigination && (
+                    <Link
+                      href="/app/origination"
+                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                    >
+                      Back to origination results
+                    </Link>
+                  )}
+                  {storedCompareCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearCompareSelection}
+                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    >
+                      Clear compare selection
+                    </button>
+                  )}
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Enter known company websites below. Frontier OS will call the backend compare endpoint and render only returned evidence, claims, blockers and next actions.
               </p>

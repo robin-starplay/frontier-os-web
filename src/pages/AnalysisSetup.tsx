@@ -756,6 +756,17 @@ function isValidUrl(val: string): boolean {
   return isValidWebsiteUrl(val);
 }
 
+function normaliseJurisdictionCode(value: string | null): JurisdictionCode {
+  const normalized = (value || '').trim().toLowerCase();
+  if (normalized === 'uk' || normalized === 'gb' || normalized === 'united kingdom') return 'uk';
+  if (normalized === 'us' || normalized === 'usa' || normalized === 'united states') return 'us';
+  if (normalized === 'de' || normalized === 'germany') return 'de';
+  if (normalized === 'fr' || normalized === 'france') return 'fr';
+  if (normalized === 'it' || normalized === 'italy') return 'it';
+  if (normalized === 'other') return 'other';
+  return 'unknown';
+}
+
 function analysisPayloadError(value: unknown, fallback = 'Backend analysis failed.'): string {
   const record = asRecord(value);
   const lines = [
@@ -3244,6 +3255,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [documentType, setDocumentType] = useState<DocumentTypeCode>('pitch_deck');
   const [confidentialityAcknowledged, setConfidentialityAcknowledged] = useState(false);
   const [documentAssistedResult, setDocumentAssistedResult] = useState<DocumentAssistedResult | null>(null);
+  const [fromOrigination, setFromOrigination] = useState(false);
 
   // ── Railway backend state (optional async backend — primary path uses POST /api/analyse/url) ──
   const backendConfigured = isBackendConfigured();
@@ -3251,6 +3263,19 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const cancelRef = useRef<{ cancelled: boolean }>({ cancelled: false });
   const startedAtRef = useRef<number | null>(null);
   const [elapsedSecs, setElapsedSecs]       = useState(0);
+
+  useEffect(() => {
+    if (sampleMode || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('source') !== 'origination') return;
+    setFromOrigination(true);
+    const candidateCompany = params.get('company_name') || params.get('company');
+    const candidateWebsite = params.get('website');
+    const candidateJurisdiction = params.get('jurisdiction');
+    if (candidateCompany) setCompany(candidateCompany);
+    if (candidateWebsite) setWebsite(normaliseUrl(candidateWebsite));
+    if (candidateJurisdiction) setJurisdiction(normaliseJurisdictionCode(candidateJurisdiction));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isFinalising) {
@@ -3780,6 +3805,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setStages(NEUTRAL_STAGES.map(s => ({ ...s, status: 'queued' as StageStatus })));
     setResult(null);
     setSaveSource(null);
+    setFromOrigination(false);
   }
 
   // ── Render ────────────────────────────────────────────────────
@@ -4102,25 +4128,40 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
             {!sampleMode && <StepIndicator step={step} />}
 
             {!sampleMode && step === 1 && (
-              <Step1
-                sampleMode={sampleMode}
-                scenario={scenario}
-                company={company}           setCompany={setCompany}
-                website={website}           setWebsite={setWebsite}
-                buyer={buyer}               setBuyer={setBuyer}
-                buyerThesis={buyerThesis}   setBuyerThesis={setBuyerThesis}
-                jurisdiction={jurisdiction} setJurisdiction={setJurisdiction}
-                mode={mode}                 setMode={setMode}
-                documentFile={documentFile} setDocumentFile={setDocumentFile}
-                documentType={documentType} setDocumentType={setDocumentType}
-                confidentialityAcknowledged={confidentialityAcknowledged} setConfidentialityAcknowledged={setConfidentialityAcknowledged}
-                onScenarioSelect={handleScenarioSelect}
-                onRun={handleSubmit}
-                analysisInFlight={analysisInFlight}
-                backendConfigured={backendConfigured}
-                investmentStyle={investmentStyle} setInvestmentStyle={setInvestmentStyle}
-                riskPosture={riskPosture}         setRiskPosture={setRiskPosture}
-              />
+              <>
+                {fromOrigination && (
+                  <div className="mb-4 rounded-lg border border-border bg-card/70 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Prefilled from origination selection.
+                    </p>
+                    <Link
+                      href="/app/origination"
+                      className="inline-flex w-fit items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                    >
+                      Back to origination results
+                    </Link>
+                  </div>
+                )}
+                <Step1
+                  sampleMode={sampleMode}
+                  scenario={scenario}
+                  company={company}           setCompany={setCompany}
+                  website={website}           setWebsite={setWebsite}
+                  buyer={buyer}               setBuyer={setBuyer}
+                  buyerThesis={buyerThesis}   setBuyerThesis={setBuyerThesis}
+                  jurisdiction={jurisdiction} setJurisdiction={setJurisdiction}
+                  mode={mode}                 setMode={setMode}
+                  documentFile={documentFile} setDocumentFile={setDocumentFile}
+                  documentType={documentType} setDocumentType={setDocumentType}
+                  confidentialityAcknowledged={confidentialityAcknowledged} setConfidentialityAcknowledged={setConfidentialityAcknowledged}
+                  onScenarioSelect={handleScenarioSelect}
+                  onRun={handleSubmit}
+                  analysisInFlight={analysisInFlight}
+                  backendConfigured={backendConfigured}
+                  investmentStyle={investmentStyle} setInvestmentStyle={setInvestmentStyle}
+                  riskPosture={riskPosture}         setRiskPosture={setRiskPosture}
+                />
+              </>
             )}
 
             {step === 2 && (

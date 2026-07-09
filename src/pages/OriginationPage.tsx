@@ -10,7 +10,16 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
-import { addCompareCandidate } from '@/lib/compareSelection';
+import {
+  addCompareCandidate,
+  addSelectedCandidate,
+  candidateStorageKey,
+  clearSelectedCandidates,
+  readCompareCandidates,
+  readSelectedCandidates,
+  removeSelectedCandidate,
+  type StoredCompareCandidate,
+} from '@/lib/compareSelection';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
@@ -70,14 +79,26 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
   const controller = new AbortController();
   const startedAt = Date.now();
   let endpoint = req.targets && req.targets.length > 0 ? runUrl : thesisUrl;
-  const timeout = window.setTimeout(() => controller.abort(), ORIGINATION_REQUEST_TIMEOUT_MS);
+  let timeout: number | undefined;
   const requestInit: RequestInit = {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(req),
     signal:  controller.signal,
   };
-  try {
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = window.setTimeout(() => {
+      controller.abort();
+      reject(new OriginationTimeoutError({
+        endpoint,
+        timeout_ms: ORIGINATION_REQUEST_TIMEOUT_MS,
+        elapsed_ms: Date.now() - startedAt,
+      }));
+    }, ORIGINATION_REQUEST_TIMEOUT_MS);
+  });
+
+  const requestPromise = (async () => {
     let res = await fetch(endpoint, requestInit);
     if (res.status === 404) {
       endpoint = runUrl;
@@ -91,6 +112,10 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
       throw new Error(message);
     }
     return body ?? {};
+  })();
+
+  try {
+    return await Promise.race([requestPromise, timeoutPromise]);
   } catch (err) {
     if (
       (err instanceof DOMException && err.name === 'AbortError')
@@ -104,7 +129,7 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
     }
     throw err;
   } finally {
-    window.clearTimeout(timeout);
+    if (timeout !== undefined) window.clearTimeout(timeout);
   }
 }
 
@@ -351,6 +376,29 @@ function numericOrNull(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function storedCandidateFromOrigination(candidate: Record<string, unknown>): StoredCompareCandidate {
+  const name = safeStr(candidate.company_name ?? candidate.company ?? candidate.name) || 'Unnamed candidate';
+  const website = safeStr(candidate.website);
+  const hasWebsite = Boolean(website.trim());
+  return {
+    company_name: name,
+    website,
+    jurisdiction: safeStr(candidate.jurisdiction ?? candidate.country),
+    sector: safeStr(candidate.sector ?? candidate.vertical),
+    source: 'origination',
+    source_label: safeStr(candidate.source_label),
+    source_url: sourceUrls(candidate)[0] || '',
+    evidence_status: safeStr(candidate.evidence_status ?? candidate.verification_status),
+    fit_score_100: numericOrNull(candidate.fit_score_100 ?? candidate.fit_score ?? candidate.score),
+    recommendation: safeStr(candidate.recommendation ?? candidate.verdict),
+    candidate_quality: safeStr(candidate.candidate_quality),
+    website_status: hasWebsite ? safeStr(candidate.website_status, 'known') : 'missing',
+    compare_ready: hasWebsite,
+    run_ready: hasWebsite,
+    ...(hasWebsite ? {} : { compare_note: 'Website must be confirmed before comparison.' }),
+  };
+}
+
 // ─── Result renderer ──────────────────────────────────────────────────────────
 
 function OriginationResultView({
@@ -363,6 +411,7 @@ function OriginationResultView({
   const [showRejected, setShowRejected] = useState(false);
   const [savedCandidates, setSavedCandidates] = useState<Set<string>>(() => new Set());
   const [compareMessages, setCompareMessages] = useState<Record<string, string>>({});
+  const [selectedCandidates, setSelectedCandidates] = useState<StoredCompareCandidate[]>(() => readSelectedCandidates());
 
   // Normalise candidate list — backend may call this field anything
   const rawCandidates = (
@@ -435,36 +484,145 @@ function OriginationResultView({
   }
 
   function compareCandidateKey(candidate: Record<string, unknown>): string {
-    return safeStr(candidate.website) || `${safeStr(candidate.company_name ?? candidate.company ?? candidate.name)}-${safeStr(candidate.jurisdiction ?? candidate.country)}`;
+    return candidateStorageKey(storedCandidateFromOrigination(candidate));
+  }
+
+  function selectedCandidateKeys(): Set<string> {
+    return new Set(selectedCandidates.map(candidateStorageKey));
+  }
+
+  function compareCandidateKeys(): Set<string> {
+    return new Set(readCompareCandidates().map(candidateStorageKey));
+  }
+
+  function handleToggleSelected(candidate: Record<string, unknown>) {
+    const stored = storedCandidateFromOrigination(candidate);
+    const key = candidateStorageKey(stored);
+    const selected = selectedCandidateKeys().has(key);
+    const next = selected ? removeSelectedCandidate(stored) : addSelectedCandidate(stored).candidates;
+    setSelectedCandidates(next);
   }
 
   function handleAddToCompare(candidate: Record<string, unknown>) {
-    const name = safeStr(candidate.company_name ?? candidate.company ?? candidate.name) || 'Unnamed candidate';
-    const website = safeStr(candidate.website);
-    const hasWebsite = Boolean(website.trim());
-    const jurisdiction = safeStr(candidate.jurisdiction ?? candidate.country);
-    const { added } = addCompareCandidate({
-      company_name: name,
-      website,
-      jurisdiction,
-      source: 'origination',
-      source_label: safeStr(candidate.source_label),
-      evidence_status: safeStr(candidate.evidence_status ?? candidate.verification_status),
-      fit_score_100: numericOrNull(candidate.fit_score_100 ?? candidate.fit_score ?? candidate.score),
-      recommendation: safeStr(candidate.recommendation ?? candidate.verdict),
-      ...(hasWebsite
-        ? { website_status: safeStr(candidate.website_status, 'known'), compare_ready: true }
-        : {
-            website_status: 'missing',
-            compare_ready: false,
-            compare_note: 'Website must be confirmed before comparison.',
-          }),
-    });
+    const stored = storedCandidateFromOrigination(candidate);
+    const { added } = addCompareCandidate(stored);
     const key = compareCandidateKey(candidate);
-    setCompareMessages(prev => ({ ...prev, [key]: added ? 'Added to Compare' : 'Already in Compare' }));
-    window.setTimeout(() => {
-      window.location.href = '/app/compare';
-    }, 350);
+    setCompareMessages(prev => ({ ...prev, [key]: added ? 'Added to Compare' : 'In Compare' }));
+  }
+
+  function handleRunCandidate(candidate: Record<string, unknown>) {
+    const stored = storedCandidateFromOrigination(candidate);
+    if (!stored.website) {
+      const key = candidateStorageKey(stored);
+      setCompareMessages(prev => ({ ...prev, [key]: 'Website required before URL screen' }));
+      return;
+    }
+    const params = new URLSearchParams({
+      company_name: stored.company_name,
+      company: stored.company_name,
+      website: stored.website,
+      jurisdiction: stored.jurisdiction,
+      source: 'origination',
+    });
+    window.location.href = `/app/run?${params.toString()}`;
+  }
+
+  function handleCompareSelected() {
+    const ready = selectedCandidates.filter(candidate => candidate.compare_ready !== false && candidate.website).slice(0, 5);
+    ready.forEach(candidate => addCompareCandidate(candidate));
+    if (ready.length > 0) window.location.href = '/app/compare';
+  }
+
+  function handleRunFirstSelected() {
+    const first = selectedCandidates.find(candidate => candidate.run_ready !== false && candidate.website);
+    if (!first) return;
+    const params = new URLSearchParams({
+      company_name: first.company_name,
+      company: first.company_name,
+      website: first.website,
+      jurisdiction: first.jurisdiction,
+      source: 'origination',
+    });
+    window.location.href = `/app/run?${params.toString()}`;
+  }
+
+  function handleSaveSelected() {
+    selectedCandidates.forEach(candidate => {
+      saveOriginationTarget({
+        companyName: candidate.company_name,
+        website: candidate.website,
+        sector: candidate.sector || '',
+        country: candidate.jurisdiction,
+        fitScore: candidate.fit_score_100 == null ? '' : String(candidate.fit_score_100),
+        evidenceConfidence: candidate.evidence_status || 'Unknown',
+        aiRisk: 'Unknown',
+        whyItFits: candidate.recommendation,
+        missingEvidence: candidate.website ? [] : ['Website required before screening.'],
+        nextAction: candidate.website ? 'Run URL screen before outreach or IC use.' : 'Find and verify operating website.',
+      });
+    });
+    setSavedCandidates(prev => {
+      const next = new Set(prev);
+      selectedCandidates.forEach(candidate => next.add(candidate.company_name));
+      return next;
+    });
+  }
+
+  function handleClearSelection() {
+    clearSelectedCandidates();
+    setSelectedCandidates([]);
+  }
+
+  function renderSelectionTray() {
+    if (selectedCandidates.length === 0) return null;
+    const compareReady = selectedCandidates.filter(candidate => candidate.compare_ready !== false && candidate.website).length;
+    const missingWebsite = selectedCandidates.filter(candidate => !candidate.website).length;
+    return (
+      <div className="sticky bottom-4 z-20 rounded-lg border border-border bg-card shadow-lg px-4 py-3">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">{selectedCandidates.length} selected</p>
+            <p className="text-xs text-muted-foreground">{compareReady} compare-ready · {missingWebsite} missing website</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={compareReady === 0}
+              onClick={handleCompareSelected}
+              className="inline-flex items-center gap-1 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed h-8 px-3 rounded-md transition-colors"
+              title={compareReady === 0 ? 'Website required before comparison.' : undefined}
+            >
+              Compare selected
+            </button>
+            <button
+              type="button"
+              disabled={compareReady === 0}
+              onClick={handleRunFirstSelected}
+              className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed h-8 px-3 rounded-md transition-colors"
+            >
+              Run first ready
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveSelected}
+              className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent h-8 px-3 rounded-md transition-colors"
+            >
+              Save selected leads
+            </button>
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground h-8 px-2 transition-colors"
+            >
+              Clear selection
+            </button>
+          </div>
+        </div>
+        {compareReady === 0 && (
+          <p className="text-[11px] text-muted-foreground mt-2">Website required before Run/Compare.</p>
+        )}
+      </div>
+    );
   }
 
   function renderEvidenceCards(candidate: Record<string, unknown>) {
@@ -528,16 +686,20 @@ function OriginationResultView({
     const rank = safeStr(c.rank, String(i + 1));
     const urls = sourceUrls(c);
     const compareKey = compareCandidateKey(c);
-    const canSaveCandidate = website && (
-      safeStr(c.source_mode) === 'user_supplied_target_universe'
-      || sourceLabel === 'User supplied target universe'
-      || evidenceStatus === 'user_supplied_claim'
-      || sourceMode === 'user_supplied_target_universe'
-    );
+    const isSelected = selectedCandidateKeys().has(compareKey);
+    const inCompare = compareCandidateKeys().has(compareKey);
+    const canSaveCandidate = Boolean(name);
 
     return (
       <div key={`${name}-${rank}`} className="p-4">
         <div className="flex flex-wrap items-center gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => handleToggleSelected(c)}
+            className={`inline-flex items-center justify-center h-6 px-2 rounded border text-[11px] font-medium transition-colors ${isSelected ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground hover:text-foreground'}`}
+          >
+            {isSelected ? 'Selected' : 'Select'}
+          </button>
           <span className="text-[11px] font-medium text-muted-foreground/50">#{rank}</span>
           <p className="text-sm font-semibold text-foreground">{name}</p>
           {verdict && <SemanticBadge tone="info">{verdict}</SemanticBadge>}
@@ -576,28 +738,21 @@ function OriginationResultView({
         )}
         {renderEvidenceCards(c)}
         <div className="flex flex-wrap items-center gap-2 mt-3">
-          {website ? (
-            <Link
-              href={`/app/run?company=${encodeURIComponent(name)}&website=${encodeURIComponent(website)}`}
-              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
-            >
-              Run screen →
-            </Link>
-          ) : (
-            <Link
-              href="/app/run"
-              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
-            >
-              Run screen →
-            </Link>
-          )}
+          <button
+            type="button"
+            onClick={() => handleRunCandidate(c)}
+            disabled={!website}
+            className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Run screen →
+          </button>
           {canSaveCandidate && (
             <button
               type="button"
               onClick={() => handleSaveCandidate(c)}
               className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
             >
-              {savedCandidates.has(name) ? 'Saved to Cockpit' : 'Save to Cockpit'}
+              {savedCandidates.has(name) ? 'Saved lead' : 'Save lead'}
             </button>
           )}
           <button
@@ -605,8 +760,9 @@ function OriginationResultView({
             onClick={() => handleAddToCompare(c)}
             className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
           >
-            {compareMessages[compareKey] || 'Add to Compare'}
+            {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
           </button>
+          {!website && <span className="text-[11px] text-amber-700">Website required before Run/Compare</span>}
           {action && <span className="text-[11px] text-muted-foreground/60">{action}</span>}
         </div>
         <p className="text-[10px] font-medium text-muted-foreground/40 mt-2">
@@ -627,10 +783,20 @@ function OriginationResultView({
 
   function renderCompactCandidateRow(c: Record<string, unknown>, i: number) {
     const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
+    const website = safeStr(c.website);
     const companyHouseUrl = sourceUrls(c).find(url => url.includes('company-information.service.gov.uk') || url.includes('companieshouse'));
     const compareKey = compareCandidateKey(c);
+    const isSelected = selectedCandidateKeys().has(compareKey);
+    const inCompare = compareCandidateKeys().has(compareKey);
     return (
-      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-3 text-xs items-start">
+      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[.7fr_1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-3 text-xs items-start">
+        <button
+          type="button"
+          onClick={() => handleToggleSelected(c)}
+          className={`inline-flex w-fit items-center justify-center h-6 px-2 rounded border text-[11px] font-medium transition-colors ${isSelected ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground hover:text-foreground'}`}
+        >
+          {isSelected ? 'Selected' : 'Select'}
+        </button>
         <p className="font-semibold text-foreground">{name}</p>
         <p className="text-muted-foreground">{displayValue(c.source_label, 'Source-backed lead')}</p>
         <p className="text-muted-foreground">{humanLabel(displayValue(c.website_status))}</p>
@@ -644,13 +810,30 @@ function OriginationResultView({
         ) : (
           <span className="text-muted-foreground/50">No registry link</span>
         )}
-        <button
-          type="button"
-          onClick={() => handleAddToCompare(c)}
-          className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-        >
-          {compareMessages[compareKey] || 'Add to Compare'}
-        </button>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleAddToCompare(c)}
+            className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+          >
+            {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRunCandidate(c)}
+            disabled={!website}
+            className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          >
+            Run screen
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSaveCandidate(c)}
+            className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+          >
+            {savedCandidates.has(name) ? 'Saved lead' : 'Save lead'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -678,7 +861,8 @@ function OriginationResultView({
           <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
         </div>
         {mode === 'compact' && (
-          <div className="hidden md:grid grid-cols-[1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
+          <div className="hidden md:grid grid-cols-[.7fr_1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
+            <span>Select</span>
             <span>Company</span>
             <span>Source</span>
             <span>Website</span>
@@ -686,7 +870,7 @@ function OriginationResultView({
             <span>Decision</span>
             <span>Next action</span>
             <span>Registry</span>
-            <span>Compare</span>
+            <span>Actions</span>
           </div>
         )}
         <div className={mode === 'full' ? 'divide-y divide-border' : ''}>
@@ -920,6 +1104,7 @@ function OriginationResultView({
           Deal Cockpit
         </Link>
       </div>
+      {renderSelectionTray()}
     </div>
   );
 }

@@ -1,18 +1,23 @@
 import { normalizeWebsiteUrl } from '@/lib/urlUtils';
 
 export const COMPARE_CANDIDATES_KEY = 'frontier_compare_candidates';
+export const SELECTED_CANDIDATES_KEY = 'frontier_selected_candidates';
 
 export interface StoredCompareCandidate {
   company_name: string;
   website: string;
   jurisdiction: string;
+  sector?: string;
   source: string;
   source_label: string;
+  source_url?: string;
   evidence_status: string;
   fit_score_100: number | null;
   recommendation: string;
+  candidate_quality?: string;
   website_status?: string;
   compare_ready?: boolean;
+  run_ready?: boolean;
   compare_note?: string;
 }
 
@@ -44,13 +49,17 @@ export function readCompareCandidates(): StoredCompareCandidate[] {
         company_name: safeString(item.company_name),
         website: safeString(item.website),
         jurisdiction: safeString(item.jurisdiction),
+        sector: safeString(item.sector) || undefined,
         source: safeString(item.source) || 'origination',
         source_label: safeString(item.source_label),
+        source_url: safeString(item.source_url) || undefined,
         evidence_status: safeString(item.evidence_status),
         fit_score_100: typeof item.fit_score_100 === 'number' ? item.fit_score_100 : null,
         recommendation: safeString(item.recommendation),
+        candidate_quality: safeString(item.candidate_quality) || undefined,
         website_status: safeString(item.website_status) || undefined,
         compare_ready: typeof item.compare_ready === 'boolean' ? item.compare_ready : undefined,
+        run_ready: typeof item.run_ready === 'boolean' ? item.run_ready : undefined,
         compare_note: safeString(item.compare_note) || undefined,
       }))
       .filter(item => item.company_name || item.website);
@@ -80,4 +89,49 @@ export function removeCompareCandidate(candidate: Pick<StoredCompareCandidate, '
   const candidates = readCompareCandidates().filter(item => candidateKey(item) !== key);
   writeCompareCandidates(candidates);
   return candidates;
+}
+
+export function candidateStorageKey(candidate: Pick<StoredCompareCandidate, 'company_name' | 'website' | 'jurisdiction'>): string {
+  return candidateKey(candidate);
+}
+
+export function readSelectedCandidates(): StoredCompareCandidate[] {
+  if (!storageAvailable()) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SELECTED_CANDIDATES_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(item => item && typeof item === 'object')
+      .map(item => item as StoredCompareCandidate)
+      .filter(item => item.company_name || item.website);
+  } catch {
+    return [];
+  }
+}
+
+export function writeSelectedCandidates(candidates: StoredCompareCandidate[]): void {
+  if (!storageAvailable()) return;
+  window.localStorage.setItem(SELECTED_CANDIDATES_KEY, JSON.stringify(candidates));
+}
+
+export function addSelectedCandidate(candidate: StoredCompareCandidate): { added: boolean; candidates: StoredCompareCandidate[] } {
+  const existing = readSelectedCandidates();
+  const key = candidateKey(candidate);
+  if (existing.some(item => candidateKey(item) === key)) {
+    return { added: false, candidates: existing };
+  }
+  const candidates = [...existing, candidate];
+  writeSelectedCandidates(candidates);
+  return { added: true, candidates };
+}
+
+export function removeSelectedCandidate(candidate: Pick<StoredCompareCandidate, 'company_name' | 'website' | 'jurisdiction'>): StoredCompareCandidate[] {
+  const key = candidateKey(candidate);
+  const candidates = readSelectedCandidates().filter(item => candidateKey(item) !== key);
+  writeSelectedCandidates(candidates);
+  return candidates;
+}
+
+export function clearSelectedCandidates(): void {
+  writeSelectedCandidates([]);
 }
