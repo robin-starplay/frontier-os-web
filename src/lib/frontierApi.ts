@@ -23,6 +23,7 @@ import { WEBSITE_URL_VALIDATION_MESSAGE } from './urlUtils';
 
 const TIMEOUT_MS = 8_000;
 const URL_ANALYSIS_TIMEOUT_MS = 120_000;
+const COMPARE_TIMEOUT_MS = 90_000;
 
 // ─── Payload types ────────────────────────────────────────────────────────────
 
@@ -111,10 +112,14 @@ export interface ComparePayload {
 
 export const COMPARE_REQUEST_ERROR_MESSAGE =
   'Compare request could not complete. Please check required fields and website URLs.';
+export const COMPARE_TIMEOUT_ERROR_MESSAGE =
+  'Compare took too long. Try comparing fewer companies or run individual screens first.';
 
 export interface CompareRequestDiagnostics {
   endpoint: string;
   status?: number;
+  timeout_ms?: number;
+  elapsed_ms?: number;
   request_payload_shape: unknown;
   backend_validation_detail?: unknown;
   backend_body?: unknown;
@@ -229,10 +234,23 @@ export interface CompareTargetResult {
 }
 
 export interface CompareResult {
-  status: 'ok' | 'partial';
+  status: 'ok' | 'partial' | 'completed';
   data_mode: string;
   limitation?: string;
   targets: CompareTargetResult[];
+  compare_runtime_ms?: number;
+  compare_timed_out?: boolean;
+  partial_results?: boolean;
+  company_results?: Array<{
+    company_name: string;
+    website: string;
+    status: 'ok' | 'partial_timeout' | 'failed' | string;
+    warnings: string[];
+    evidence_confidence: string;
+    recommendation: string;
+    next_action: string;
+  }>;
+  warnings?: string[];
   most_ic_ready: string;
   highest_ai_risk: string;
   most_evidence_gaps: string;
@@ -579,26 +597,49 @@ export async function runDocumentAssistedAnalysis(payload: DocumentAssistedPaylo
  */
 export async function compareCompanies(payload: ComparePayload): Promise<CompareResult> {
   const endpoint = apiRequestUrl('/api/analyse/compare');
-  const res = await fetchWithTimeout(endpoint.requestUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const responseText = await res.text();
-  const body = parseJsonTextLenient(responseText);
-  if (!res.ok) {
+  const started = performance.now();
+  try {
+    const res = await fetchWithTimeout(endpoint.requestUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }, COMPARE_TIMEOUT_MS);
+    const elapsedMs = Math.round(performance.now() - started);
+    const responseText = await res.text();
+    const body = parseJsonTextLenient(responseText);
+    if (!res.ok) {
+      throw new CompareRequestError(
+        res.status === 422 ? COMPARE_REQUEST_ERROR_MESSAGE : `Compare request could not complete. Backend returned ${res.status}.`,
+        {
+          endpoint: endpoint.targetUrl,
+          status: res.status,
+          timeout_ms: COMPARE_TIMEOUT_MS,
+          elapsed_ms: elapsedMs,
+          request_payload_shape: comparePayloadShape(payload),
+          backend_validation_detail: body && typeof body === 'object' ? (body as Record<string, unknown>).detail : undefined,
+          backend_body: body,
+        },
+      );
+    }
+    return body as CompareResult;
+  } catch (err) {
+    if (err instanceof CompareRequestError) throw err;
+    const elapsedMs = Math.round(performance.now() - started);
+    const isAbort = err instanceof Error && err.name === 'AbortError';
     throw new CompareRequestError(
-      res.status === 422 ? COMPARE_REQUEST_ERROR_MESSAGE : `Compare request could not complete. Backend returned ${res.status}.`,
+      isAbort ? COMPARE_TIMEOUT_ERROR_MESSAGE : COMPARE_REQUEST_ERROR_MESSAGE,
       {
         endpoint: endpoint.targetUrl,
-        status: res.status,
+        timeout_ms: COMPARE_TIMEOUT_MS,
+        elapsed_ms: elapsedMs,
         request_payload_shape: comparePayloadShape(payload),
-        backend_validation_detail: body && typeof body === 'object' ? (body as Record<string, unknown>).detail : undefined,
-        backend_body: body,
+        backend_body: {
+          error_name: err instanceof Error ? err.name : typeof err,
+          error_message: err instanceof Error ? err.message : String(err),
+        },
       },
     );
   }
-  return body as CompareResult;
 }
 
 // ─── Cockpit API ─────────────────────────────────────────────────────────────

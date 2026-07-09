@@ -15,6 +15,7 @@ import {
   compareCompanies,
   CompareRequestError,
   COMPARE_REQUEST_ERROR_MESSAGE,
+  COMPARE_TIMEOUT_ERROR_MESSAGE,
   type ComparePayload,
   type CompareRequestDiagnostics,
   type CompareResult,
@@ -398,7 +399,7 @@ function CompareLoading({ stages }: { stages: ProgressStage[] }) {
     <div className="w-full max-w-xl mx-auto">
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-xs text-muted-foreground">Comparing targets. Building ranked recommendation…</p>
+          <p className="text-xs text-muted-foreground">Comparing companies and checking public evidence...</p>
         </div>
         <div className="divide-y divide-border">
           {stages.map((stage, i) => (
@@ -456,6 +457,13 @@ function CompareResultView({ result, onReset, saveSource }: {
     <div className="w-full max-w-4xl mx-auto space-y-6">
 
       {/* Fallback notice */}
+      {result.partial_results && (
+        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-claim-bg)] border border-[var(--semantic-claim-border)] text-xs text-[var(--semantic-claim-text)]">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          Partial compare returned. Some companies timed out or could not be verified.
+        </div>
+      )}
+
       {result.fallback_used && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
@@ -810,6 +818,7 @@ export default function CompareTargetsPage() {
     }
 
     // Await API result (should already be resolved)
+    let nextPhase: Phase = 'error';
     try {
       const { data: apiResult, error: apiError } = await apiPromise;
       if (apiError || !apiResult) throw apiError ?? new Error('Compare request failed.');
@@ -817,17 +826,19 @@ export default function CompareTargetsPage() {
       // Save each target to local run history so the Deal Cockpit shows them
       try { saveCompareRun(apiResult); } catch { /* storage not available */ }
       setSaveSource(apiResult.saved_to_cockpit ? 'backend' : 'local');
-      setPhase('result');
+      nextPhase = 'result';
     } catch (err) {
       if (err instanceof CompareRequestError) {
         console.warn('[compare] request failed', err.diagnostics);
-        setError(COMPARE_REQUEST_ERROR_MESSAGE);
+        setError(err.status ? COMPARE_REQUEST_ERROR_MESSAGE : err.message || COMPARE_TIMEOUT_ERROR_MESSAGE);
         setErrorDiagnostics(err.diagnostics);
       } else {
         setError(err instanceof Error ? err.message : 'Compare request failed.');
         setErrorDiagnostics(null);
       }
-      setPhase('error');
+      nextPhase = 'error';
+    } finally {
+      setPhase(nextPhase);
     }
   }
 
@@ -985,6 +996,14 @@ export default function CompareTargetsPage() {
                         <div>
                           <p className="text-[10px] font-semibold text-muted-foreground mb-1">Status</p>
                           <p className="text-xs text-foreground">{errorDiagnostics.status ?? 'Unknown'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground mb-1">Timeout / elapsed</p>
+                          <p className="text-xs text-foreground">
+                            {errorDiagnostics.timeout_ms ? `${errorDiagnostics.timeout_ms}ms` : 'Not set'}
+                            {' · '}
+                            {errorDiagnostics.elapsed_ms ? `${errorDiagnostics.elapsed_ms}ms elapsed` : 'elapsed unknown'}
+                          </p>
                         </div>
                         <div>
                           <p className="text-[10px] font-semibold text-muted-foreground mb-1">Payload shape</p>
