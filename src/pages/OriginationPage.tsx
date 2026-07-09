@@ -331,6 +331,28 @@ function isCompanyCandidate(candidate: Record<string, unknown>): boolean {
   return type === 'company_candidate' || type === 'extracted_company_candidate' || isUserSuppliedCandidate(candidate);
 }
 
+function officialWebsiteConfidence(candidate: Record<string, unknown>): string {
+  return safeStr(candidate.official_website_confidence, safeStr(candidate.website ? 'medium' : 'unknown'));
+}
+
+function isConfirmedCompanyCandidate(candidate: Record<string, unknown>): boolean {
+  const website = safeStr(candidate.website);
+  const confidence = officialWebsiteConfidence(candidate);
+  return isCompanyCandidate(candidate)
+    && !isResearchSourceCandidate(candidate)
+    && Boolean(website)
+    && (candidate.run_ready === true || candidate.compare_ready === true)
+    && ['high', 'medium'].includes(confidence);
+}
+
+function productSignalLevel(candidate: Record<string, unknown>): string {
+  const productSignal = candidate.product_signal;
+  if (productSignal && typeof productSignal === 'object' && !Array.isArray(productSignal)) {
+    return safeStr((productSignal as Record<string, unknown>).workflow_depth, 'unknown');
+  }
+  return safeStr(candidate.product_signal_level ?? candidate.product_signal, 'unknown');
+}
+
 function candidateQuality(candidate: Record<string, unknown>): string {
   return safeStr(candidate.candidate_quality || (
     safeStr(candidate.display_mode) === 'compact_row'
@@ -355,8 +377,8 @@ function candidateDisplayMode(candidate: Record<string, unknown>): string {
 function candidateGroups(candidates: Record<string, unknown>[]) {
   const companyCandidates = candidates.filter(c => isCompanyCandidate(c) && !isResearchSourceCandidate(c));
   return {
-    screenable: companyCandidates.filter(c => candidateDisplayMode(c) === 'full_card' && candidateQuality(c) !== 'excluded'),
-    needsWebsite: companyCandidates.filter(c => candidateQuality(c) === 'needs_website_confirmation' && candidateDisplayMode(c) !== 'full_card'),
+    confirmed: companyCandidates.filter(c => isConfirmedCompanyCandidate(c) && candidateQuality(c) !== 'excluded'),
+    needsWebsite: companyCandidates.filter(c => !isConfirmedCompanyCandidate(c) && candidateQuality(c) !== 'excluded'),
     lowPriority: companyCandidates.filter(c => candidateQuality(c) === 'low_priority' && candidateDisplayMode(c) !== 'full_card'),
     researchSources: candidates.filter(c => isResearchSourceCandidate(c)),
     excluded: candidates.filter(c => (isCompanyCandidate(c) && candidateQuality(c) === 'excluded') || candidateDisplayMode(c) === 'hidden_excluded'),
@@ -586,6 +608,7 @@ function OriginationResultView({
   const companiesExtracted = extractedCandidateSummary.companies_extracted ?? candidateSummary.companies_extracted ?? '0';
   const candidatesWithWebsites = extractedCandidateSummary.with_websites ?? candidateSummary.with_websites ?? candidateSummary.compare_ready ?? '0';
   const candidatesNeedingWebsite = extractedCandidateSummary.needs_website_confirmation ?? candidateSummary.needs_website_confirmation ?? '0';
+  const rejectedExtractions = candidateSummary.rejected_extractions ?? extractedCandidateSummary.rejected_extractions ?? candidateSummary.excluded_count ?? '0';
 
   const isUnavailable = data.status === 'unavailable';
   const isReferenceUniverse = data.universe_mode === 'private_beta_reference_universe';
@@ -847,7 +870,7 @@ function OriginationResultView({
     const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
     const website = safeStr(c.website ?? '');
     const type = candidateType(c);
-    const productSignal = safeStr(c.product_signal, 'unknown');
+    const productSignal = productSignalLevel(c);
     const sourceLabel = safeStr(c.source_label) || 'Public-source candidate signal';
     const evidenceStatus = safeStr(c.evidence_status ?? c.verification_status ?? 'not_independently_verified');
     const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
@@ -965,59 +988,30 @@ function OriginationResultView({
 
   function renderCompactCandidateRow(c: Record<string, unknown>, i: number) {
     const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
-    const website = safeStr(c.website);
     const type = candidateType(c);
-    const companyHouseUrl = sourceUrls(c).find(url => url.includes('company-information.service.gov.uk') || url.includes('companieshouse'));
-    const compareKey = compareCandidateKey(c);
-    const isSelected = selectedCandidateKeys().has(compareKey);
-    const inCompare = compareCandidateKeys().has(compareKey);
     const stored = storedCandidateFromOrigination(c);
+    const sourceUrl = sourceUrls(c)[0] || '';
+    const whyFound = safeStr(c.why_this_candidate_matters ?? c.why_it_fits ?? c.source_snippet ?? c.description, 'Source-backed company mention; website not confirmed.');
+    const nextAction = safeStr(c.next_best_action ?? c.next_action, 'Find official company website');
     return (
-      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[.7fr_1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-3 text-xs items-start">
-        <button
-          type="button"
-          onClick={() => handleToggleSelected(c)}
-          className={`inline-flex w-fit items-center justify-center h-6 px-2 rounded border text-[11px] font-medium transition-colors ${isSelected ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground hover:text-foreground'}`}
-        >
-          {isSelected ? 'Selected' : 'Select'}
-        </button>
+      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1.6fr_1.2fr_.8fr] gap-2 px-4 py-3 text-xs items-start">
         <div>
           <p className="font-semibold text-foreground">{name}</p>
           {type === 'extracted_company_candidate' && (
             <SemanticBadge tone="info" className="mt-1 text-[10px] px-2 py-1">Extracted from source page</SemanticBadge>
           )}
-          {!website && <p className="mt-1 text-[11px] text-[var(--semantic-claim-text)]">Website required before screening</p>}
+          <p className="mt-1 text-[11px] text-[var(--semantic-claim-text)]">Website required before screening</p>
         </div>
-        <p className="text-muted-foreground">{displayValue(c.source_label, 'Source-backed lead')}</p>
-        <p className="text-muted-foreground">{humanLabel(displayValue(c.website_status))}</p>
-        <p className="text-muted-foreground">{humanLabel(displayValue(c.product_signal))}</p>
-        <p className="text-muted-foreground">{humanLabel(displayValue(c.candidate_decision))}</p>
-        <p className="text-muted-foreground leading-relaxed">{displayValue(c.next_best_action, 'Find and verify website.')}</p>
-        {companyHouseUrl ? (
-          <a href={companyHouseUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-            Companies House
+        {sourceUrl ? (
+          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
+            {displayValue(c.source_label, 'Source')}
           </a>
         ) : (
-          <span className="text-muted-foreground/50">No registry link</span>
+          <p className="text-muted-foreground">{displayValue(c.source_label, 'Source-backed mention')}</p>
         )}
-        <div className="flex flex-wrap gap-1.5">
-          {stored.compare_ready !== false && website && (
-            <button
-              type="button"
-              onClick={() => handleAddToCompare(c)}
-              className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-            >
-              {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => handleRunCandidate(c)}
-            disabled={stored.run_ready === false || !website}
-            className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-          >
-            {stored.run_ready === false || !website ? 'Find website' : 'Run screen'}
-          </button>
+        <p className="text-muted-foreground leading-relaxed">{whyFound}</p>
+        <p className="text-muted-foreground leading-relaxed">{nextAction}</p>
+        <div>
           <button
             type="button"
             onClick={() => handleSaveCandidate(c)}
@@ -1097,16 +1091,12 @@ function OriginationResultView({
           <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
         </div>
         {mode === 'compact' && (
-          <div className="hidden md:grid grid-cols-[.7fr_1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
-            <span>Select</span>
+          <div className="hidden md:grid grid-cols-[1.2fr_1fr_1.6fr_1.2fr_.8fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
             <span>Company</span>
             <span>Source</span>
-            <span>Website</span>
-            <span>Product</span>
-            <span>Decision</span>
+            <span>Why found</span>
             <span>Next action</span>
-            <span>Registry</span>
-            <span>Actions</span>
+            <span>Save lead</span>
           </div>
         )}
         <div className={mode === 'full' ? 'divide-y divide-border' : ''}>
@@ -1194,11 +1184,11 @@ function OriginationResultView({
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
             {[
-              ['Total candidates', candidateSummary.total_candidates ?? candidates.length],
-              ['Screenable now', candidateSummary.screenable_now_count ?? groupedCandidates.screenable.length],
+              ['Confirmed company candidates', candidateSummary.confirmed_company_candidates ?? groupedCandidates.confirmed.length],
               ['Need website confirmation', candidateSummary.needs_website_confirmation_count ?? groupedCandidates.needsWebsite.length],
-              ['Low priority', candidateSummary.low_priority_count ?? groupedCandidates.lowPriority.length],
-              ['Excluded', candidateSummary.excluded_count ?? groupedCandidates.excluded.length],
+              ['Research sources', candidateSummary.research_sources_count ?? sourcePagesFound],
+              ['Rejected/low quality extractions', rejectedExtractions],
+              ['Discovery quality', humanLabel(safeStr(candidateSummary.discovery_quality, 'Unknown'))],
             ].map(([label, value]) => (
               <div key={String(label)} className="rounded-md border border-border/60 bg-background/60 px-3 py-2">
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">{String(label)}</p>
@@ -1238,15 +1228,21 @@ function OriginationResultView({
       {safeStr(candidateSummary.discovery_quality) === 'low' && (
         <div className="rounded-lg border border-amber-500/25 bg-[var(--semantic-claim-bg)] px-4 py-3">
           <p className="text-xs font-semibold text-[var(--semantic-claim-text)]">
-            These are registry leads, not verified acquisition targets. Product websites are required before screening.
+            Some sources mention companies, but official websites must be confirmed before screening.
           </p>
         </div>
       )}
 
-      {renderCandidateGroup('Screenable product candidates', groupedCandidates.screenable, 'full')}
+      {groupedCandidates.confirmed.length === 0 && (
+        <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
+          <p className="text-sm font-semibold text-foreground">No confirmed company websites yet.</p>
+          <p className="text-xs text-muted-foreground mt-1">Review research sources or provide known targets.</p>
+        </div>
+      )}
+
+      {renderCandidateGroup('Confirmed company candidates', groupedCandidates.confirmed, 'full')}
+      {renderCandidateGroup('Need website confirmation', groupedCandidates.needsWebsite, 'compact')}
       {renderCandidateGroup('Research sources', researchSources, 'source')}
-      {renderCandidateGroup('Registry leads needing website confirmation', groupedCandidates.needsWebsite, 'compact')}
-      {renderCandidateGroup('Low priority registry matches', groupedCandidates.lowPriority, 'compact')}
       {renderCandidateGroup('Excluded / hidden', groupedCandidates.excluded, 'excluded')}
 
       {/* Match rationale */}
