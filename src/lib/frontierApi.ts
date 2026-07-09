@@ -94,19 +94,44 @@ export interface DocumentAssistedResult {
 }
 
 export interface CompareCompany {
-  name: string;
-  url: string;
+  company_name: string;
+  website: string;
   jurisdiction: string;
 }
 
 export interface ComparePayload {
-  buyer: string;
-  buyer_thesis: string;
+  buyer_name?: string;
+  buyer_thesis?: string;
   companies: CompareCompany[];
   // Cockpit persistence — included when backend workspace IDs are available
   workspace_id?: string;
   user_id?: string;
   save_to_cockpit?: boolean;
+}
+
+export const COMPARE_REQUEST_ERROR_MESSAGE =
+  'Compare request could not complete. Please check required fields and website URLs.';
+
+export interface CompareRequestDiagnostics {
+  endpoint: string;
+  status?: number;
+  request_payload_shape: unknown;
+  backend_validation_detail?: unknown;
+  backend_body?: unknown;
+}
+
+export class CompareRequestError extends Error {
+  status?: number;
+  backendBody?: unknown;
+  diagnostics: CompareRequestDiagnostics;
+
+  constructor(message: string, diagnostics: CompareRequestDiagnostics) {
+    super(message);
+    this.name = 'CompareRequestError';
+    this.status = diagnostics.status;
+    this.backendBody = diagnostics.backend_body;
+    this.diagnostics = diagnostics;
+  }
 }
 
 // ─── Result types (mirrors backend schema) ────────────────────────────────────
@@ -382,6 +407,34 @@ function requestDiagnostics(endpoint: ReturnType<typeof apiRequestUrl>, failureT
   ];
 }
 
+function parseJsonTextLenient(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw_response: text.slice(0, 1000) };
+  }
+}
+
+function comparePayloadShape(payload: ComparePayload): unknown {
+  return {
+    fields: Object.keys(payload).sort(),
+    buyer_name_present: Boolean(payload.buyer_name),
+    buyer_thesis_present: Boolean(payload.buyer_thesis),
+    companies_count: payload.companies.length,
+    companies: payload.companies.map(company => ({
+      fields: Object.keys(company).sort(),
+      company_name_present: Boolean(company.company_name),
+      website_present: Boolean(company.website),
+      website_has_protocol: /^https?:\/\//i.test(company.website),
+      jurisdiction: company.jurisdiction || '',
+    })),
+    workspace_id_present: Boolean(payload.workspace_id),
+    user_id_present: Boolean(payload.user_id),
+    save_to_cockpit: Boolean(payload.save_to_cockpit),
+  };
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -525,16 +578,27 @@ export async function runDocumentAssistedAnalysis(payload: DocumentAssistedPaylo
  * Real compare runs do not fall back to sample data.
  */
 export async function compareCompanies(payload: ComparePayload): Promise<CompareResult> {
-  const res = await fetchWithTimeout(apiUrl('/api/analyse/compare'), {
+  const endpoint = apiRequestUrl('/api/analyse/compare');
+  const res = await fetchWithTimeout(endpoint.requestUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+  const responseText = await res.text();
+  const body = parseJsonTextLenient(responseText);
   if (!res.ok) {
-    if (res.status === 422) throw new Error(WEBSITE_URL_VALIDATION_MESSAGE);
-    throw new Error(`Backend returned ${res.status}`);
+    throw new CompareRequestError(
+      res.status === 422 ? COMPARE_REQUEST_ERROR_MESSAGE : `Compare request could not complete. Backend returned ${res.status}.`,
+      {
+        endpoint: endpoint.targetUrl,
+        status: res.status,
+        request_payload_shape: comparePayloadShape(payload),
+        backend_validation_detail: body && typeof body === 'object' ? (body as Record<string, unknown>).detail : undefined,
+        backend_body: body,
+      },
+    );
   }
-  return await res.json() as CompareResult;
+  return body as CompareResult;
 }
 
 // ─── Cockpit API ─────────────────────────────────────────────────────────────

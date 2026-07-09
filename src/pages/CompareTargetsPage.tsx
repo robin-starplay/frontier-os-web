@@ -11,7 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { BetaCTA } from '@/components/BetaCTA';
-import { compareCompanies, type CompareResult, type CompareTargetResult, type Level } from '@/lib/frontierApi';
+import {
+  compareCompanies,
+  CompareRequestError,
+  COMPARE_REQUEST_ERROR_MESSAGE,
+  type ComparePayload,
+  type CompareRequestDiagnostics,
+  type CompareResult,
+  type CompareTargetResult,
+  type Level,
+} from '@/lib/frontierApi';
 import { saveCompareRun } from '@/lib/runHistory';
 import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAccount';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
@@ -110,6 +119,46 @@ function initialCompanyRows(): CompanyRow[] {
   const rows = readCompareCandidates().slice(0, 5).map(rowFromStoredCandidate);
   while (rows.length < 2) rows.push(EMPTY_COMPANY());
   return rows;
+}
+
+function normalizeComparePayload({
+  buyer,
+  buyerThesis,
+  companies,
+  workspaceId,
+  userId,
+}: {
+  buyer: string;
+  buyerThesis: string;
+  companies: CompanyRow[];
+  workspaceId: string | null;
+  userId: string | null;
+}): ComparePayload {
+  return {
+    buyer_name: buyer.trim() || undefined,
+    buyer_thesis: buyerThesis.trim() || undefined,
+    companies: companies.map(company => ({
+      company_name: company.name.trim(),
+      website: normalizeWebsiteUrl(company.url),
+      jurisdiction: company.jurisdiction,
+    })),
+    ...(workspaceId && userId
+      ? { workspace_id: workspaceId, user_id: userId, save_to_cockpit: true }
+      : {}),
+  };
+}
+
+function showCompareDebug(): boolean {
+  return import.meta.env.DEV
+    || (typeof window !== 'undefined' && window.localStorage.getItem('frontier_debug_diagnostics') === '1');
+}
+
+function formatDiagnostics(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 // ─── Form phase ───────────────────────────────────────────────────────────────
@@ -645,6 +694,7 @@ export default function CompareTargetsPage() {
   const [result, setResult] = useState<CompareResult | null>(null);
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorDiagnostics, setErrorDiagnostics] = useState<CompareRequestDiagnostics | null>(null);
 
   function handleRemoveStoredCandidate(candidate: CompanyRow) {
     removeCompareCandidate({
@@ -675,6 +725,7 @@ export default function CompareTargetsPage() {
     setProgress(fresh);
     setResult(null);
     setError(null);
+    setErrorDiagnostics(null);
     setPhase('loading');
 
     // Provision backend workspace on first run (no-op if already done; silent on failure)
@@ -682,18 +733,17 @@ export default function CompareTargetsPage() {
     // Start API call — include workspace IDs when available for backend persistence
     const workspaceId = getWorkspaceId();
     const userId = getUserId();
-    const apiPromise = compareCompanies({
+    const comparePayload = normalizeComparePayload({
       buyer,
-      buyer_thesis: buyerThesis,
-      companies: submittedCompanies.map(c => ({
-        name: c.name,
-        url: c.url,
-        jurisdiction: c.jurisdiction,
-      })),
-      ...(workspaceId && userId
-        ? { workspace_id: workspaceId, user_id: userId, save_to_cockpit: true }
-        : {}),
-    }).then(
+      buyerThesis,
+      companies: submittedCompanies,
+      workspaceId,
+      userId,
+    });
+    if (showCompareDebug()) {
+      console.info('[compare] request payload', comparePayload);
+    }
+    const apiPromise = compareCompanies(comparePayload).then(
       data => ({ data, error: null as Error | null }),
       err => ({ data: null as CompareResult | null, error: err instanceof Error ? err : new Error('Compare request failed.') }),
     );
@@ -718,7 +768,14 @@ export default function CompareTargetsPage() {
       setSaveSource(apiResult.saved_to_cockpit ? 'backend' : 'local');
       setPhase('result');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Compare request failed.');
+      if (err instanceof CompareRequestError) {
+        console.warn('[compare] request failed', err.diagnostics);
+        setError(COMPARE_REQUEST_ERROR_MESSAGE);
+        setErrorDiagnostics(err.diagnostics);
+      } else {
+        setError(err instanceof Error ? err.message : 'Compare request failed.');
+        setErrorDiagnostics(null);
+      }
       setPhase('error');
     }
   }
@@ -727,6 +784,7 @@ export default function CompareTargetsPage() {
     setPhase('form');
     setResult(null);
     setError(null);
+    setErrorDiagnostics(null);
     setProgress(PROGRESS_STEPS.map(label => ({ label, status: 'queued' })));
   }
 
@@ -802,6 +860,45 @@ export default function CompareTargetsPage() {
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   {error || 'The backend compare endpoint did not return a usable response.'}
                 </p>
+                {errorDiagnostics && (
+                  <details className="mt-4 rounded-md border border-border bg-background/70">
+                    <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+                      Developer diagnostics
+                    </summary>
+                    <div className="border-t border-border px-3 py-3 space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1">Endpoint</p>
+                        <p className="text-xs text-foreground break-all">{errorDiagnostics.endpoint}</p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground mb-1">Status</p>
+                          <p className="text-xs text-foreground">{errorDiagnostics.status ?? 'Unknown'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground mb-1">Payload shape</p>
+                          <pre className="max-h-48 overflow-auto rounded bg-muted/40 p-2 text-[10px] text-muted-foreground whitespace-pre-wrap">
+                            {formatDiagnostics(errorDiagnostics.request_payload_shape)}
+                          </pre>
+                        </div>
+                      </div>
+                      {errorDiagnostics.backend_validation_detail !== undefined && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground mb-1">Backend validation detail</p>
+                          <pre className="max-h-56 overflow-auto rounded bg-muted/40 p-2 text-[10px] text-muted-foreground whitespace-pre-wrap">
+                            {formatDiagnostics(errorDiagnostics.backend_validation_detail)}
+                          </pre>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1">Backend body</p>
+                        <pre className="max-h-56 overflow-auto rounded bg-muted/40 p-2 text-[10px] text-muted-foreground whitespace-pre-wrap">
+                          {formatDiagnostics(errorDiagnostics.backend_body)}
+                        </pre>
+                      </div>
+                    </div>
+                  </details>
+                )}
                 <button
                   type="button"
                   onClick={reset}
