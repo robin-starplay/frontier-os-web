@@ -18,6 +18,7 @@ const APP_NAV = [
   { label: 'Cockpit',     href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
   { label: 'Pricing',     href: '/pricing' },
+  { label: 'AI risk',     href: '/app/ai-risk' },
   { label: 'Trust',       href: '/trust' },
 ];
 
@@ -25,7 +26,6 @@ const APP_NAV = [
 // Secondary informational links (trust, pricing, faq) are intentionally included
 // so signed-in users can access them without leaving the app shell.
 const APP_MORE = [
-  { label: 'AI risk',           href: '/app/ai-risk' },
   { label: 'Request pilot',     href: '/request-pilot' },
   { label: 'Book intro',        href: BOOK_INTRO_URL, external: true },
   { label: 'Workspace',         href: '/app/settings' },
@@ -47,8 +47,8 @@ const APP_MOBILE_MORE = [
     links: [
       { label: 'Compare', href: '/app/compare' },
       { label: 'Pricing', href: '/pricing' },
-      { label: 'Trust',   href: '/trust' },
       { label: 'AI risk', href: '/app/ai-risk' },
+      { label: 'Trust',   href: '/trust' },
     ],
   },
   {

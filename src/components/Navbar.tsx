@@ -19,11 +19,11 @@ const PUBLIC_NAV = [
   { label: 'Cockpit',     href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
   { label: 'Pricing',     href: '/pricing' },
+  { label: 'AI risk',     href: '/app/ai-risk' },
   { label: 'Trust',       href: '/trust' },
 ];
 
 const PUBLIC_MORE = [
-  { label: 'AI risk',              href: '/app/ai-risk' },
   { label: 'Request pilot',        href: '/request-pilot' },
   { label: 'Book intro',           href: BOOK_INTRO_URL, external: true },
   { label: 'Product',              href: '/product' },
@@ -52,8 +52,8 @@ const PUBLIC_MOBILE_MORE = [
     links: [
       { label: 'Compare', href: '/app/compare' },
       { label: 'Pricing', href: '/pricing' },
-      { label: 'Trust',   href: '/trust' },
       { label: 'AI risk', href: '/app/ai-risk' },
+      { label: 'Trust',   href: '/trust' },
     ],
   },
   {
