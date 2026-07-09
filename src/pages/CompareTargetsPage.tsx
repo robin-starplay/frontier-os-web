@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import {
   Trophy, AlertCircle, Plus, Trash2, ArrowRight,
   CheckCircle2, Loader2, Clock, Info, ExternalLink,
-  Lock as LockIcon, PlayCircle,
+  Lock as LockIcon, PlayCircle, ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,8 +72,27 @@ const PROGRESS_STEPS: string[] = [
 ];
 
 const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
+const SAVED_LEADS_KEY = 'frontier_saved_leads';
+const COCKPIT_TARGETS_KEY = 'frontier_cockpit_targets';
+const COCKPIT_COMPARE_SELECTION_KEY = 'frontier_cockpit_compare_selection';
 const COMPARE_READY_VALIDATION_MESSAGE = 'Some selected items are research sources or missing company websites. Remove them or confirm the company website before comparison.';
 const NON_COMPANY_CANDIDATE_TYPES = new Set(['source_page', 'directory_or_listicle', 'news_article', 'irrelevant']);
+
+interface SavedCompareTarget {
+  key: string;
+  companyName: string;
+  website: string;
+  jurisdiction: string;
+  recommendation: string;
+  evidenceConfidence: string;
+  savedAt: string;
+  source: string;
+  sourceLabel: string;
+  screeningStatus: string;
+  compareReady: boolean;
+  needsReason?: string;
+  raw: Record<string, unknown>;
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -123,6 +142,255 @@ function rowFromStoredCandidate(candidate: StoredCompareCandidate): CompanyRow {
     storageWebsite: candidate.website,
     storageJurisdiction: candidate.jurisdiction,
   };
+}
+
+function storageAvailable(): boolean {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function readStorageArray(key: string): Record<string, unknown>[] {
+  if (!storageAvailable()) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed)
+      ? parsed.filter(item => item && typeof item === 'object').map(item => item as Record<string, unknown>)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStorageArray(key: string, items: Record<string, unknown>[]): void {
+  if (!storageAvailable()) return;
+  window.localStorage.setItem(key, JSON.stringify(items));
+}
+
+function recordValue(record: Record<string, unknown>, keys: string[], fallback = ''): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      const text = String(value).trim();
+      if (text) return text;
+    }
+  }
+  return fallback;
+}
+
+function recordList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function savedTargetKey(target: Pick<SavedCompareTarget, 'companyName' | 'website' | 'jurisdiction'>): string {
+  const website = normalizeWebsiteUrl(target.website || '').trim().toLowerCase();
+  if (website && isValidWebsiteUrl(website)) return `website:${website}`;
+  return `name:${target.companyName.trim().toLowerCase()}|${target.jurisdiction.trim().toLowerCase()}`;
+}
+
+function sourceArrayItems(): Record<string, unknown>[] {
+  const compareCandidates = readCompareCandidates().map(item => ({
+    ...item,
+    __source_key: 'frontier_compare_candidates',
+  })) as Record<string, unknown>[];
+  return [
+    ...compareCandidates,
+    ...readStorageArray(COCKPIT_COMPARE_SELECTION_KEY).map(item => ({ ...item, __source_key: COCKPIT_COMPARE_SELECTION_KEY })),
+    ...readStorageArray(SAVED_LEADS_KEY).map(item => ({ ...item, __source_key: SAVED_LEADS_KEY })),
+    ...readStorageArray(COCKPIT_TARGETS_KEY).map(item => ({ ...item, __source_key: COCKPIT_TARGETS_KEY })),
+  ];
+}
+
+function targetFromRecord(item: Record<string, unknown>): SavedCompareTarget | null {
+  const result = asRecord(item.result);
+  const workflowState = asRecord(item.workflow_state ?? result.workflow_state);
+  const companyName = recordValue(item, ['company_name', 'company', 'name'], recordValue(result, ['company_name', 'company']));
+  const website = normalizeWebsiteUrl(recordValue(item, ['website', 'url', 'company_url'], recordValue(result, ['website', 'url'])));
+  const jurisdiction = recordValue(item, ['jurisdiction', 'country', 'geo'], 'UK');
+  if (!companyName && !website) return null;
+  const source = recordValue(item, ['source', 'type'], recordValue(result, ['source'], 'saved'));
+  const storageSource = recordValue(item, ['__source_key']);
+  const sourceLabel = recordValue(
+    item,
+    ['source_label'],
+    source === 'cockpit'
+      ? 'Saved Cockpit target'
+      : storageSource === SAVED_LEADS_KEY
+        ? 'Saved lead'
+        : storageSource === COCKPIT_COMPARE_SELECTION_KEY
+          ? 'Cockpit compare selection'
+          : 'Saved target',
+  );
+  const screeningStatus = recordValue(item, ['screening_status'], recordValue(workflowState, ['screening_status']));
+  const isLeadSource = source === 'origination' || source === 'lead' || storageSource === SAVED_LEADS_KEY;
+  const hasEvidence = Boolean(
+    item.saved_to_cockpit === true
+    || result.saved_to_cockpit === true
+    || recordList(result.verified_facts).length
+    || recordList(result.claims).length
+    || recordList(result.unknowns).length
+    || recordList(result.diligence_blockers).length
+    || (!isLeadSource && (
+      recordList(item.verified_facts).length
+      || recordList(item.claims).length
+      || recordList(item.unknowns).length
+      || recordList(item.blockers).length
+    ))
+    || ((source === 'url' || source === 'document') && (recordValue(item, ['recommendation']) || recordValue(result, ['recommendation'])))
+  );
+  const isScreened = Boolean(
+    screeningStatus === 'screened'
+    || recordValue(workflowState, ['screening_status']) === 'screened'
+    || source === 'cockpit'
+    || source === 'run'
+    || source === 'screened'
+    || hasEvidence
+  );
+  const candidateType = recordValue(item, ['candidate_type']);
+  const compareReady = Boolean(companyName && website && isScreened && !NON_COMPANY_CANDIDATE_TYPES.has(candidateType));
+  const needsReason = !companyName
+    ? 'Company name required'
+    : !website
+      ? 'Website required before comparison'
+      : !isScreened
+        ? 'Run screen first'
+        : NON_COMPANY_CANDIDATE_TYPES.has(candidateType)
+          ? 'Research source, not a screened company'
+          : undefined;
+  const target: SavedCompareTarget = {
+    key: '',
+    companyName,
+    website,
+    jurisdiction,
+    recommendation: recordValue(item, ['recommendation'], recordValue(result, ['recommendation'], 'Saved target')),
+    evidenceConfidence: recordValue(item, ['evidence_confidence', 'evidence_status'], recordValue(result, ['evidence_confidence'], 'Unknown')),
+    savedAt: recordValue(item, ['saved_at', 'timestamp', 'created_at']),
+    source,
+    sourceLabel,
+    screeningStatus: isScreened ? 'screened' : screeningStatus || 'not_screened',
+    compareReady,
+    needsReason,
+    raw: item,
+  };
+  target.key = savedTargetKey(target);
+  return target;
+}
+
+function targetsFromRuns(): SavedCompareTarget[] {
+  try {
+    return getRuns()
+      .filter(run => run.type !== 'compare')
+      .map(run => targetFromRecord({
+        ...run,
+        company_name: run.company,
+        website: run.website,
+        source: run.type === 'url' || run.type === 'document' ? 'cockpit' : run.type,
+        source_label: run.type === 'origination' ? 'Saved lead' : 'Saved Cockpit target',
+        screening_status: run.type === 'url' || run.type === 'document' ? 'screened' : 'not_screened',
+      }))
+      .filter((item): item is SavedCompareTarget => item !== null);
+  } catch {
+    return [];
+  }
+}
+
+function readSavedCompareTargets(): { screened: SavedCompareTarget[]; needsScreening: SavedCompareTarget[] } {
+  const all = [
+    ...sourceArrayItems().map(targetFromRecord).filter((item): item is SavedCompareTarget => item !== null),
+    ...targetsFromRuns(),
+  ];
+  const byKey = new Map<string, SavedCompareTarget>();
+  all.forEach(target => {
+    const existing = byKey.get(target.key);
+    if (!existing || (!existing.compareReady && target.compareReady)) {
+      byKey.set(target.key, target);
+    }
+  });
+  const deduped = Array.from(byKey.values());
+  return {
+    screened: deduped.filter(target => target.compareReady),
+    needsScreening: deduped.filter(target => !target.compareReady && (target.companyName || target.website)),
+  };
+}
+
+function storedCandidateFromSavedTarget(target: SavedCompareTarget): StoredCompareCandidate {
+  return {
+    company_name: target.companyName,
+    website: target.website,
+    jurisdiction: target.jurisdiction,
+    source: target.source === 'cockpit' ? 'cockpit' : 'screened',
+    source_label: target.sourceLabel || 'Saved Cockpit target',
+    evidence_status: target.evidenceConfidence,
+    fit_score_100: null,
+    recommendation: target.recommendation,
+    website_status: 'known',
+    compare_ready: true,
+    run_ready: true,
+    screening_status: 'screened',
+    cockpit_target_id: recordValue(target.raw, ['cockpit_target_id', 'id', 'run_id']) || undefined,
+    run_id: recordValue(target.raw, ['run_id', 'id']) || undefined,
+    saved_at: target.savedAt || undefined,
+  };
+}
+
+function rowFromSavedTarget(target: SavedCompareTarget): CompanyRow {
+  return {
+    name: target.companyName,
+    url: target.website,
+    jurisdiction: normalizeJurisdiction(target.jurisdiction),
+    source: target.source === 'cockpit' ? 'cockpit' : 'screened',
+    sourceLabel: target.sourceLabel,
+    evidenceStatus: target.evidenceConfidence,
+    websiteStatus: 'known',
+    screeningStatus: 'screened',
+    compareReady: true,
+    storageCompanyName: target.companyName,
+    storageWebsite: target.website,
+    storageJurisdiction: target.jurisdiction,
+  };
+}
+
+function removeSavedCompareTargetFromStorage(target: SavedCompareTarget): void {
+  removeCompareCandidate({
+    company_name: target.companyName,
+    website: target.website,
+    jurisdiction: target.jurisdiction,
+  });
+  [COCKPIT_COMPARE_SELECTION_KEY, SAVED_LEADS_KEY, COCKPIT_TARGETS_KEY].forEach(key => {
+    const filtered = readStorageArray(key).filter(item => {
+      const parsed = targetFromRecord(item);
+      return parsed ? parsed.key !== target.key : true;
+    });
+    writeStorageArray(key, filtered);
+  });
+}
+
+function saveLeadFromTarget(target: SavedCompareTarget): void {
+  const existing = readStorageArray(SAVED_LEADS_KEY);
+  const candidate = storedCandidateFromSavedTarget({
+    ...target,
+    compareReady: false,
+    screeningStatus: 'not_screened',
+  });
+  const next = [
+    {
+      ...candidate,
+      source: target.source || 'lead',
+      source_label: target.sourceLabel || 'Saved lead',
+      compare_ready: false,
+      run_ready: Boolean(target.website),
+      compare_note: 'Run screen first before comparison.',
+      screening_status: 'not_screened',
+      saved_at: new Date().toISOString(),
+    },
+    ...existing.filter(item => {
+      const parsed = targetFromRecord(item);
+      return parsed ? parsed.key !== target.key : true;
+    }),
+  ];
+  writeStorageArray(SAVED_LEADS_KEY, next as unknown as Record<string, unknown>[]);
 }
 
 function initialCompanyRows(): CompanyRow[] {
@@ -500,6 +768,214 @@ function CompareForm({
   );
 }
 
+function formatSavedDate(value: string): string {
+  if (!value) return 'Saved date unavailable';
+  try {
+    return new Date(value).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return value.slice(0, 10);
+  }
+}
+
+function CompareTargetSelector({
+  screenedTargets,
+  needsScreeningTargets,
+  selectedKeys,
+  onToggle,
+  onCompareSelected,
+  onRemove,
+  onSaveLead,
+  onManualOpen,
+}: {
+  screenedTargets: SavedCompareTarget[];
+  needsScreeningTargets: SavedCompareTarget[];
+  selectedKeys: Set<string>;
+  onToggle: (target: SavedCompareTarget) => void;
+  onCompareSelected: () => void;
+  onRemove: (target: SavedCompareTarget) => void;
+  onSaveLead: (target: SavedCompareTarget) => void;
+  onManualOpen: () => void;
+}) {
+  const selectedCount = screenedTargets.filter(target => selectedKeys.has(target.key)).length;
+  const compareLabel = selectedCount === 0
+    ? 'Select screened targets'
+    : selectedCount === 1
+      ? 'Select one more target'
+      : 'Compare selected screened targets';
+
+  return (
+    <div className="mb-6 rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-5 py-4 border-b border-border bg-card/80">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Select screened targets</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Compare works best with targets already screened and saved to Cockpit.
+            </p>
+            {selectedCount > 0 && (
+              <p className="mt-2 text-xs font-medium text-primary">{selectedCount} selected</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/app/cockpit"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              Back to Cockpit
+            </Link>
+            <Link
+              href="/app/run"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              Run another screen
+            </Link>
+            <button
+              type="button"
+              onClick={onCompareSelected}
+              disabled={selectedCount < 2}
+              className={cn(
+                'inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-semibold transition-colors',
+                selectedCount >= 2
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'cursor-not-allowed border border-border bg-muted text-muted-foreground opacity-70',
+              )}
+            >
+              {compareLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {screenedTargets.length > 0 ? (
+        <div className="divide-y divide-border">
+          {screenedTargets.map(target => {
+            const checked = selectedKeys.has(target.key);
+            const selectionDisabled = !checked && selectedCount >= 5;
+            return (
+              <div key={target.key} className="grid grid-cols-1 gap-3 px-5 py-4 lg:grid-cols-[auto_1.5fr_1fr_1fr_1fr_auto] lg:items-center">
+                <div>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={selectionDisabled}
+                    onChange={() => onToggle(target)}
+                    aria-label={`Select ${target.companyName} for compare`}
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{target.companyName}</p>
+                  <a href={companyWebsiteUrl(target.website)} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors break-all">
+                    {target.website} <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-1">Recommendation</p>
+                  <p className="text-xs text-foreground">{target.recommendation || 'Saved screen'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-1">Evidence confidence</p>
+                  <p className="text-xs text-foreground">{target.evidenceConfidence || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-1">Saved</p>
+                  <p className="text-xs text-muted-foreground">{formatSavedDate(target.savedAt)}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground/70">{target.sourceLabel}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                  <Link
+                    href={runScreenHref(target.companyName, target.website)}
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                  >
+                    View
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(target)}
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="px-5 py-6">
+          <p className="text-sm font-semibold text-foreground">No screened targets saved yet.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Run a URL screen and save it to Cockpit before comparing.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/app/run" className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+              Run screen
+            </Link>
+            <Link href="/app/cockpit" className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors">
+              Open Cockpit
+            </Link>
+            <button
+              type="button"
+              onClick={onManualOpen}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              Manual quick compare
+            </button>
+          </div>
+        </div>
+      )}
+
+      {needsScreeningTargets.length > 0 && (
+        <div className="border-t border-border bg-muted/10 px-5 py-4">
+          <p className="text-sm font-semibold text-foreground">Leads needing screening</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            These saved leads need an individual URL screen before screened comparison.
+          </p>
+          <div className="mt-3 space-y-2">
+            {needsScreeningTargets.slice(0, 6).map(target => (
+              <div key={target.key} className="flex flex-col gap-2 rounded-md border border-border bg-background px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground">{target.companyName || 'Saved lead'}</p>
+                  <p className="text-[11px] text-muted-foreground break-all">{target.website || target.needsReason || 'Website required'}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={runScreenHref(target.companyName, target.website)}
+                    className={cn(
+                      'inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-semibold transition-colors',
+                      target.website
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'cursor-not-allowed border border-border bg-muted text-muted-foreground',
+                    )}
+                    aria-disabled={!target.website}
+                    onClick={event => {
+                      if (!target.website) event.preventDefault();
+                    }}
+                  >
+                    Run screen
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onSaveLead(target)}
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                  >
+                    Save lead
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Loading phase ────────────────────────────────────────────────────────────
 
 function CompareLoading({ stages, manualQuickCompare }: { stages: ProgressStage[]; manualQuickCompare: boolean }) {
@@ -560,11 +1036,12 @@ function evidenceScore(s: string) {
   return s === 'High' ? 3 : s === 'Medium' ? 2 : s === 'Low' ? 1 : 0;
 }
 
-function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: {
+function CompareResultView({ result, onReset, saveSource, manualQuickCompare, usingScreenedCockpitTargets }: {
   result: CompareResult;
   onReset: () => void;
   saveSource?: 'backend' | 'local';
   manualQuickCompare: boolean;
+  usingScreenedCockpitTargets: boolean;
 }) {
   const isFastPreview = result.status === 'ok' && (result.compare_mode === 'fast_preview' || result.fast_compare_mode);
   const previewRows = fastPreviewRows(result);
@@ -593,7 +1070,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
 	          <div className="px-5 py-4 space-y-3">
 	            <div className="flex items-start gap-2 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
 	              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-	              These targets have not been individually screened yet. Run URL screens for evidence-backed ranking.
+	              Manual quick compare completed. Run individual screens for evidence-backed ranking.
 	            </div>
 	            {lacksDifferentiation && (
 	              <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -605,6 +1082,13 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
 	              <p className="text-sm text-muted-foreground leading-relaxed">{result.comparison_summary}</p>
 	            )}
 	          </div>
+	        </div>
+	      )}
+
+	      {usingScreenedCockpitTargets && (
+	        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-verified-bg)] border border-[var(--semantic-verified-border)] text-xs text-[var(--semantic-verified-text)]">
+	          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+	          Using screened Cockpit targets.
 	        </div>
 	      )}
 
@@ -1020,10 +1504,20 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CompareTargetsPage() {
+  const initialSavedTargets = readSavedCompareTargets();
   const [phase, setPhase]             = useState<Phase>('form');
   const [buyer, setBuyer]             = useState('');
   const [buyerThesis, setBuyerThesis] = useState('');
   const [companies, setCompanies]     = useState<CompanyRow[]>(initialCompanyRows);
+  const [screenedTargets, setScreenedTargets] = useState<SavedCompareTarget[]>(initialSavedTargets.screened);
+  const [needsScreeningTargets, setNeedsScreeningTargets] = useState<SavedCompareTarget[]>(initialSavedTargets.needsScreening);
+  const [selectedSavedKeys, setSelectedSavedKeys] = useState<Set<string>>(() => new Set(
+    initialSavedTargets.screened
+      .filter(target => readCompareCandidates().some(candidate => candidate.company_name === target.companyName && normalizeWebsiteUrl(candidate.website) === target.website))
+      .slice(0, 5)
+      .map(target => target.key),
+  ));
+  const [manualFormOpen, setManualFormOpen] = useState(false);
   const [progress, setProgress] = useState<ProgressStage[]>(
     PROGRESS_STEPS.map(label => ({ label, status: 'pending' })),
   );
@@ -1034,6 +1528,7 @@ export default function CompareTargetsPage() {
   const [pendingCompareCandidates, setPendingCompareCandidates] = useState<StoredCompareCandidate[]>(readPendingCompareCandidates);
   const [invalidCompareRows, setInvalidCompareRows] = useState<CompanyRow[]>([]);
   const [manualQuickCompare, setManualQuickCompare] = useState(false);
+  const [resultUsingScreenedCockpitTargets, setResultUsingScreenedCockpitTargets] = useState(false);
 
   function handleRemoveStoredCandidate(candidate: CompanyRow) {
     removeCompareCandidate({
@@ -1049,15 +1544,68 @@ export default function CompareTargetsPage() {
     setPendingCompareCandidates([]);
     setInvalidCompareRows([]);
     setManualQuickCompare(false);
+    setSelectedSavedKeys(new Set());
+    refreshSavedTargets();
   }
 
   function removePendingCompareCandidate(candidate: StoredCompareCandidate) {
     removeCompareCandidate(candidate);
     setPendingCompareCandidates(readPendingCompareCandidates());
+    refreshSavedTargets();
   }
 
-  async function handleSubmit(forceManualQuickCompare = false) {
-    const normalizedCompanies = companies.map(company => ({
+  function refreshSavedTargets() {
+    const next = readSavedCompareTargets();
+    setScreenedTargets(next.screened);
+    setNeedsScreeningTargets(next.needsScreening);
+    setSelectedSavedKeys(prev => new Set([...prev].filter(key => next.screened.some(target => target.key === key))));
+  }
+
+  function handleToggleSavedTarget(target: SavedCompareTarget) {
+    setSelectedSavedKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(target.key)) next.delete(target.key);
+      else if (next.size < 5) next.add(target.key);
+      return next;
+    });
+  }
+
+  function handleRemoveSavedTarget(target: SavedCompareTarget) {
+    removeSavedCompareTargetFromStorage(target);
+    setSelectedSavedKeys(prev => {
+      const next = new Set(prev);
+      next.delete(target.key);
+      return next;
+    });
+    refreshSavedTargets();
+    setPendingCompareCandidates(readPendingCompareCandidates());
+  }
+
+  function handleSaveLeadTarget(target: SavedCompareTarget) {
+    saveLeadFromTarget(target);
+    refreshSavedTargets();
+  }
+
+  async function handleCompareSelectedTargets() {
+    const selectedTargets = screenedTargets.filter(target => selectedSavedKeys.has(target.key)).slice(0, 5);
+    if (selectedTargets.length < 2) return;
+    const storedCandidates = selectedTargets.map(storedCandidateFromSavedTarget);
+    writeCompareCandidates(storedCandidates);
+    writeStorageArray(COCKPIT_COMPARE_SELECTION_KEY, storedCandidates as unknown as Record<string, unknown>[]);
+    setPendingCompareCandidates([]);
+    const selectedRows = selectedTargets.map(rowFromSavedTarget);
+    setCompanies(selectedRows);
+    await handleSubmit(false, selectedRows, { ignorePendingCandidates: true });
+  }
+
+  async function handleSubmit(
+    forceManualQuickCompare = false,
+    companyOverride?: CompanyRow[],
+    options: { ignorePendingCandidates?: boolean } = {},
+  ) {
+    const sourceCompanies = companyOverride ?? companies;
+    const pendingForSubmit = options.ignorePendingCandidates ? [] : pendingCompareCandidates;
+    const normalizedCompanies = sourceCompanies.map(company => ({
       ...company,
       name: company.name.trim(),
       url: normalizeWebsiteUrl(company.url),
@@ -1068,13 +1616,13 @@ export default function CompareTargetsPage() {
     const unscreenedSubmittedCompanies = submittedCompanies.filter(company => !isScreenedCompany(company, screenedRunKeys));
     const hasInvalidTarget = submittedCompanies.length < 2
       || invalidSubmittedCompanies.length > 0
-      || pendingCompareCandidates.length > 0;
+      || pendingForSubmit.length > 0;
     setCompanies(normalizedCompanies);
     if (hasInvalidTarget) {
       setManualQuickCompare(false);
       setInvalidCompareRows(invalidSubmittedCompanies);
       setError(
-        pendingCompareCandidates.length > 0 || invalidSubmittedCompanies.length > 0
+        pendingForSubmit.length > 0 || invalidSubmittedCompanies.length > 0
           ? COMPARE_READY_VALIDATION_MESSAGE
           : WEBSITE_URL_VALIDATION_MESSAGE,
       );
@@ -1097,6 +1645,9 @@ export default function CompareTargetsPage() {
     setErrorDiagnostics(null);
     setInvalidCompareRows([]);
     setManualQuickCompare(unscreenedSubmittedCompanies.length > 0 || forceManualQuickCompare);
+    setResultUsingScreenedCockpitTargets(submittedCompanies.some(company => (
+      company.source === 'cockpit' && company.screeningStatus === 'screened'
+    )));
     setPhase('loading');
 
     // Start API call with the strict compare contract.
@@ -1181,6 +1732,7 @@ export default function CompareTargetsPage() {
     setErrorDiagnostics(null);
     setProgress(PROGRESS_STEPS.map(label => ({ label, status: 'pending' })));
     setManualQuickCompare(false);
+    setResultUsingScreenedCockpitTargets(false);
   }
 
   const storedCompareCount = readCompareCandidates().length;
@@ -1226,18 +1778,52 @@ export default function CompareTargetsPage() {
 
         {phase === 'form' && (
           <>
-            <div className="mb-8 rounded-lg border border-border bg-card/60 px-5 py-4">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-1">
-                <p className="text-sm font-semibold text-foreground">Manual quick compare</p>
-                <div className="flex flex-wrap gap-2">
-                  {showBackToOrigination && (
-                    <Link
-                      href="/app/origination"
-                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-                    >
-                      Back to origination results
-                    </Link>
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Link href="/app/cockpit" className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors">
+                Back to Cockpit
+              </Link>
+              {showBackToOrigination && (
+                <Link href="/app/origination" className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors">
+                  Back to Origination results
+                </Link>
+              )}
+              <Link href="/app/run" className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors">
+                Run another screen
+              </Link>
+            </div>
+
+            <CompareTargetSelector
+              screenedTargets={screenedTargets}
+              needsScreeningTargets={needsScreeningTargets}
+              selectedKeys={selectedSavedKeys}
+              onToggle={handleToggleSavedTarget}
+              onCompareSelected={handleCompareSelectedTargets}
+              onRemove={handleRemoveSavedTarget}
+              onSaveLead={handleSaveLeadTarget}
+              onManualOpen={() => setManualFormOpen(true)}
+            />
+
+            <details
+              open={manualFormOpen}
+              onToggle={(event) => setManualFormOpen(event.currentTarget.open)}
+              className="group rounded-lg border border-border bg-card/60"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Manual quick compare</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Use this for a quick public-source preview. For stronger evidence, run individual screens first.
+                  </p>
+                  {hasScreenedCandidates && (
+                    <p className="mt-2 text-xs font-medium text-[var(--semantic-verified-text)]">
+                      {hasScreenedCockpitCandidates ? 'Using screened Cockpit targets.' : 'Using screened candidates.'}
+                    </p>
                   )}
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50 transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="border-t border-border px-5 py-5">
+                <div className="mb-5 flex flex-wrap gap-2">
                   {storedCompareCount > 0 && (
                     <button
                       type="button"
@@ -1248,100 +1834,98 @@ export default function CompareTargetsPage() {
                     </button>
                   )}
                 </div>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                For best results, screen each company first. Frontier OS will call the backend compare endpoint and render only returned evidence, claims, blockers and next actions.
-              </p>
-              {hasScreenedCandidates && (
-                <p className="mt-2 text-xs font-medium text-[var(--semantic-verified-text)]">
-                  {hasScreenedCockpitCandidates ? 'Using screened Cockpit targets.' : 'Using screened candidates.'}
-                </p>
-              )}
-            </div>
 
-              {hasUnscreenedCandidates && (
-                <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
-                  <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
-                    These targets have not been individually screened yet.
-                  </p>
-                  <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
-                    Run screens first for stronger comparison.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Link
-                      href="/app/run"
-                      className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                    >
-                      <PlayCircle className="h-3.5 w-3.5" />
-                      Run first screen{firstUnscreenedCompany?.name ? `: ${firstUnscreenedCompany.name}` : ''}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleSubmit(true)}
-                      className="inline-flex items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-background/70 px-3 py-1.5 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-background transition-colors"
-                    >
-                      Manual quick compare
-                    </button>
-                  </div>
-                </div>
-              )}
-
-            {hasInvalidCompareItems && (
-              <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
-                <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
-                  Some selected items are research sources or missing company websites.
-                </p>
-                <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
-                  Remove them or confirm the company website before comparison.
-                </p>
-                <div className="space-y-2">
-                  {pendingCompareCandidates.map(candidate => (
-                    <div key={`${candidate.company_name}-${candidate.source_url || candidate.website}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[var(--semantic-claim-text)]">
-                      <span>
-                        {candidate.company_name || candidate.source_page_title || 'Pending lead'} · {candidate.source_url || candidate.website || 'Website missing'}
-                      </span>
+                {hasUnscreenedCandidates && (
+                  <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
+                    <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
+                      These targets have not been individually screened yet.
+                    </p>
+                    <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
+                      Run screens first for stronger comparison.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Link
+                        href="/app/run"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        <PlayCircle className="h-3.5 w-3.5" />
+                        Run first screen{firstUnscreenedCompany?.name ? `: ${firstUnscreenedCompany.name}` : ''}
+                      </Link>
                       <button
                         type="button"
-                        onClick={() => removePendingCompareCandidate(candidate)}
-                        className="w-fit font-medium hover:underline"
+                        onClick={() => handleSubmit(true)}
+                        className="inline-flex items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-background/70 px-3 py-1.5 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-background transition-colors"
                       >
-                        Remove
+                        Manual quick compare
                       </button>
                     </div>
-                  ))}
-                  {invalidCompareRows.map((candidate, index) => (
-                    <div key={`${candidate.name}-${index}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[var(--semantic-claim-text)]">
-                      <span>
-                        {candidate.name || 'Missing company name'} · {candidate.url || 'Website missing'} · {invalidCompareRowReason(candidate)}
-                      </span>
-                      <span className="text-[11px]">Edit the row below</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                )}
 
-            <CompareForm
-              buyer={buyer}             setBuyer={setBuyer}
-              buyerThesis={buyerThesis} setBuyerThesis={setBuyerThesis}
-              companies={companies}     setCompanies={setCompanies}
-                onRemoveStoredCandidate={handleRemoveStoredCandidate}
-                onSubmit={handleSubmit}
-                submitLabel={compareSubmitLabel}
-              />
-            {error && (
-              <div className="mt-4 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-4 py-3 text-sm text-[var(--semantic-claim-text)]">
-                {error}
+                {hasInvalidCompareItems && (
+                  <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
+                    <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
+                      Some selected items are research sources or missing company websites.
+                    </p>
+                    <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
+                      Remove them or confirm the company website before comparison.
+                    </p>
+                    <div className="space-y-2">
+                      {pendingCompareCandidates.map(candidate => (
+                        <div key={`${candidate.company_name}-${candidate.source_url || candidate.website}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[var(--semantic-claim-text)]">
+                          <span>
+                            {candidate.company_name || candidate.source_page_title || 'Pending lead'} · {candidate.source_url || candidate.website || 'Website missing'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removePendingCompareCandidate(candidate)}
+                            className="w-fit font-medium hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      {invalidCompareRows.map((candidate, index) => (
+                        <div key={`${candidate.name}-${index}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[var(--semantic-claim-text)]">
+                          <span>
+                            {candidate.name || 'Missing company name'} · {candidate.url || 'Website missing'} · {invalidCompareRowReason(candidate)}
+                          </span>
+                          <span className="text-[11px]">Edit the row below</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <CompareForm
+                  buyer={buyer}             setBuyer={setBuyer}
+                  buyerThesis={buyerThesis} setBuyerThesis={setBuyerThesis}
+                  companies={companies}     setCompanies={setCompanies}
+                  onRemoveStoredCandidate={handleRemoveStoredCandidate}
+                  onSubmit={handleSubmit}
+                  submitLabel={compareSubmitLabel}
+                />
+                {error && (
+                  <div className="mt-4 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-4 py-3 text-sm text-[var(--semantic-claim-text)]">
+                    {error}
+                  </div>
+                )}
               </div>
-            )}
+            </details>
           </>
         )}
 
-          {phase === 'loading' && <CompareLoading stages={progress} manualQuickCompare={manualQuickCompare} />}
+        {phase === 'loading' && <CompareLoading stages={progress} manualQuickCompare={manualQuickCompare} />}
 
-          {phase === 'result' && result && (
-            <CompareResultView result={result} onReset={reset} saveSource={saveSource ?? 'local'} manualQuickCompare={manualQuickCompare} />
-          )}
+        {phase === 'result' && result && (
+          <CompareResultView
+            result={result}
+            onReset={reset}
+            saveSource={saveSource ?? 'local'}
+            manualQuickCompare={manualQuickCompare}
+            usingScreenedCockpitTargets={resultUsingScreenedCockpitTargets}
+          />
+        )}
 
           {phase === 'result' && !result && (
             <div className="w-full max-w-xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 p-5">
