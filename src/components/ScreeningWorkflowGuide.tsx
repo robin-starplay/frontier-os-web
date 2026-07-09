@@ -60,8 +60,8 @@ export function ScreeningWorkflowGuide({
   originationAvailable?: boolean;
 }) {
   return (
-    <div className={cn('rounded-lg border border-border bg-card shadow-xs', className)}>
-      <div className="border-b border-border px-4 py-3">
+    <div className={cn('rounded-lg border border-border/80 bg-card/80 shadow-xs', className)}>
+      <div className="border-b border-border/70 px-5 py-3">
         <p className="text-xs font-semibold text-foreground">Screening workflow</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Originate leads, screen one company at a time, save evidence, then compare screened targets.
@@ -79,17 +79,17 @@ export function ScreeningWorkflowGuide({
             <div
               key={step.id}
               className={cn(
-                'px-4 py-3',
-                isActive ? 'bg-primary/5' : 'bg-transparent',
+                'px-5 py-4',
+                isActive ? 'bg-primary/[0.04]' : 'bg-transparent',
               )}
             >
               <div className="flex items-center gap-2">
                 <span className={cn(
                   'inline-flex h-7 w-7 items-center justify-center rounded-full border',
                   isActive
-                    ? 'border-primary/30 bg-primary/10 text-primary'
+                    ? 'border-primary/25 bg-primary/[0.08] text-primary'
                     : isCompleted
-                      ? 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)]'
+                      ? 'border-border bg-muted/40 text-muted-foreground'
                       : 'border-border bg-background text-muted-foreground',
                 )}>
                   {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}

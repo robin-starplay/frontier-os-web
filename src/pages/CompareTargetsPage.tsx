@@ -33,6 +33,17 @@ import {
   writeCompareCandidates,
   type StoredCompareCandidate,
 } from '@/lib/compareSelection';
+import {
+  COCKPIT_COMPARE_SELECTION_KEY,
+  COCKPIT_TARGETS_KEY,
+  COMPARE_CANDIDATES_KEY,
+  LAST_ORIGINATION_RESULT_KEY,
+  SAVED_LEADS_KEY,
+  getCockpitTargets,
+  getSavedLeads,
+  saveCompareCandidates,
+  saveLead,
+} from '@/lib/workflowTargets';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -71,10 +82,6 @@ const PROGRESS_STEPS: string[] = [
   'Building recommendation',
 ];
 
-const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
-const SAVED_LEADS_KEY = 'frontier_saved_leads';
-const COCKPIT_TARGETS_KEY = 'frontier_cockpit_targets';
-const COCKPIT_COMPARE_SELECTION_KEY = 'frontier_cockpit_compare_selection';
 const COMPARE_READY_VALIDATION_MESSAGE = 'Some selected items are research sources or missing company websites. Remove them or confirm the company website before comparison.';
 const NON_COMPANY_CANDIDATE_TYPES = new Set(['source_page', 'directory_or_listicle', 'news_article', 'irrelevant']);
 
@@ -193,13 +200,13 @@ function savedTargetKey(target: Pick<SavedCompareTarget, 'companyName' | 'websit
 function sourceArrayItems(): Record<string, unknown>[] {
   const compareCandidates = readCompareCandidates().map(item => ({
     ...item,
-    __source_key: 'frontier_compare_candidates',
+    __source_key: COMPARE_CANDIDATES_KEY,
   })) as Record<string, unknown>[];
   return [
     ...compareCandidates,
     ...readStorageArray(COCKPIT_COMPARE_SELECTION_KEY).map(item => ({ ...item, __source_key: COCKPIT_COMPARE_SELECTION_KEY })),
-    ...readStorageArray(SAVED_LEADS_KEY).map(item => ({ ...item, __source_key: SAVED_LEADS_KEY })),
-    ...readStorageArray(COCKPIT_TARGETS_KEY).map(item => ({ ...item, __source_key: COCKPIT_TARGETS_KEY })),
+    ...getSavedLeads().map(item => ({ ...item, __source_key: SAVED_LEADS_KEY })),
+    ...getCockpitTargets().map(item => ({ ...item, __source_key: COCKPIT_TARGETS_KEY })),
   ];
 }
 
@@ -368,29 +375,21 @@ function removeSavedCompareTargetFromStorage(target: SavedCompareTarget): void {
 }
 
 function saveLeadFromTarget(target: SavedCompareTarget): void {
-  const existing = readStorageArray(SAVED_LEADS_KEY);
   const candidate = storedCandidateFromSavedTarget({
     ...target,
     compareReady: false,
     screeningStatus: 'not_screened',
   });
-  const next = [
-    {
-      ...candidate,
-      source: target.source || 'lead',
-      source_label: target.sourceLabel || 'Saved lead',
-      compare_ready: false,
-      run_ready: Boolean(target.website),
-      compare_note: 'Run screen first before comparison.',
-      screening_status: 'not_screened',
-      saved_at: new Date().toISOString(),
-    },
-    ...existing.filter(item => {
-      const parsed = targetFromRecord(item);
-      return parsed ? parsed.key !== target.key : true;
-    }),
-  ];
-  writeStorageArray(SAVED_LEADS_KEY, next as unknown as Record<string, unknown>[]);
+  saveLead({
+    ...candidate,
+    source: target.source || 'lead',
+    source_label: target.sourceLabel || 'Saved lead',
+    compare_ready: false,
+    run_ready: Boolean(target.website),
+    compare_note: 'Run screen first before comparison.',
+    screening_status: 'not_screened',
+    saved_at: new Date().toISOString(),
+  });
 }
 
 function initialCompanyRows(): CompanyRow[] {
@@ -1590,7 +1589,7 @@ export default function CompareTargetsPage() {
     const selectedTargets = screenedTargets.filter(target => selectedSavedKeys.has(target.key)).slice(0, 5);
     if (selectedTargets.length < 2) return;
     const storedCandidates = selectedTargets.map(storedCandidateFromSavedTarget);
-    writeCompareCandidates(storedCandidates);
+    saveCompareCandidates(storedCandidates);
     writeStorageArray(COCKPIT_COMPARE_SELECTION_KEY, storedCandidates as unknown as Record<string, unknown>[]);
     setPendingCompareCandidates([]);
     const selectedRows = selectedTargets.map(rowFromSavedTarget);
@@ -1751,7 +1750,7 @@ export default function CompareTargetsPage() {
 
   const pageHeader = (
     <div className="w-full border-b border-border bg-card/30">
-      <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
+      <div className="app-container py-10">
         <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Target comparison</p>
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
           Compare software acquisition targets.
@@ -1767,7 +1766,7 @@ export default function CompareTargetsPage() {
     <div className="flex-1 flex flex-col w-full">
       {pageHeader}
 
-      <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto px-4 md:px-8 py-8">
+      <div className="app-container flex-1 flex flex-col py-8">
         <ScreeningWorkflowGuide active="compare" className="mb-6" />
 
         {/* Beta notice */}
@@ -1928,7 +1927,7 @@ export default function CompareTargetsPage() {
         )}
 
           {phase === 'result' && !result && (
-            <div className="w-full max-w-xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 p-5">
+            <div className="w-full rounded-lg border border-destructive/30 bg-destructive/5 p-5">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                 <div>
@@ -1942,7 +1941,7 @@ export default function CompareTargetsPage() {
           )}
 
         {phase === 'error' && (
-          <div className="w-full max-w-xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 p-5">
+          <div className="w-full rounded-lg border border-destructive/30 bg-destructive/5 p-5">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
               <div className="min-w-0">

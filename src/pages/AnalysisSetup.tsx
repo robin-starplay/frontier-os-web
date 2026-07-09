@@ -42,6 +42,14 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
+import {
+  getCockpitTargets,
+  getCompareCandidates,
+  getOriginationTargets,
+  getSavedLeads,
+  saveCompareCandidates,
+  type WorkflowTarget,
+} from '@/lib/workflowTargets';
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -811,7 +819,7 @@ function TargetPickerSection({
           {targets.slice(0, 8).map(target => {
             const ready = Boolean(target.website);
             return (
-              <div key={target.key} className="px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div key={target.id} className="px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-foreground">{target.company_name}</p>
@@ -1004,7 +1012,7 @@ function Step1({
   ];
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-10">
         {/* Left: form */}
         <div className="lg:col-span-3">
@@ -3283,132 +3291,40 @@ type PipelineStageStatus = 'pending' | 'running' | 'complete' | 'failed';
 
 // ─── localStorage active run ──────────────────────────────────────────────────
 const ACTIVE_RUN_KEY = 'frontier_os_active_run';
-const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
-const SELECTED_CANDIDATES_KEY = 'frontier_selected_candidates';
-const SAVED_LEADS_KEY = 'frontier_saved_leads';
-const COMPARE_CANDIDATES_KEY = 'frontier_compare_candidates';
-const COCKPIT_TARGETS_KEY = 'frontier_cockpit_targets';
-
 type RunTargetSource = 'origination' | 'saved_lead' | 'cockpit' | 'manual';
-
-interface RunTarget {
-  key: string;
-  company_name: string;
-  website: string;
-  jurisdiction: string;
-  sector: string;
-  source: RunTargetSource;
-  source_label: string;
-  source_url: string;
-  candidate_quality: string;
-  website_status: string;
-  run_ready: boolean;
-  compare_ready: boolean;
-  screening_status: string;
-  saved_at: string;
-  run_id: string;
-}
-
-function storageArray(key: string): Record<string, unknown>[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
-    return Array.isArray(parsed)
-      ? parsed.filter(item => item && typeof item === 'object').map(item => item as Record<string, unknown>)
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function storageRecord(key: string): Record<string, unknown> {
-  if (typeof window === 'undefined') return {};
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) || '{}');
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
-  } catch {
-    return {};
-  }
-}
-
-function targetKey(companyName: string, website: string, jurisdiction: string): string {
-  const normalizedWebsite = normalizeWebsiteUrl(website || '').toLowerCase();
-  if (normalizedWebsite) return `website:${normalizedWebsite}`;
-  return `name:${companyName.trim().toLowerCase()}|${jurisdiction.trim().toLowerCase()}`;
-}
-
-function targetFromRecord(item: Record<string, unknown>, source: RunTargetSource): RunTarget | null {
-  const companyName = textValue(item.company_name ?? item.company ?? item.name, '');
-  const website = normalizeWebsiteUrl(textValue(item.website ?? item.url ?? item.company_url, ''));
-  const jurisdiction = textValue(item.jurisdiction ?? item.country ?? item.geo, 'unknown');
-  const sourceLabel = textValue(
-    item.source_label,
-    source === 'cockpit' ? 'Saved Cockpit target' : source === 'saved_lead' ? 'Saved lead' : 'Origination',
-  );
-  if (!companyName && !website && !textValue(item.source_url, '')) return null;
-  const websiteStatus = website ? textValue(item.website_status, 'known') : textValue(item.website_status, 'missing');
-  const screeningStatus = textValue(item.screening_status, source === 'cockpit' ? 'screened' : 'not_screened');
-  const target: RunTarget = {
-    key: '',
-    company_name: companyName || textValue(item.source_page_title ?? item.title, 'Saved lead'),
-    website,
-    jurisdiction,
-    sector: textValue(item.sector ?? item.vertical, ''),
-    source,
-    source_label: sourceLabel,
-    source_url: textValue(item.source_url ?? item.source_page_url ?? item.url, ''),
-    candidate_quality: textValue(item.candidate_quality, ''),
-    website_status: websiteStatus,
-    run_ready: Boolean(website) && item.run_ready !== false,
-    compare_ready: item.compare_ready === true,
-    screening_status: screeningStatus,
-    saved_at: textValue(item.saved_at ?? item.created_at ?? item.timestamp, ''),
-    run_id: textValue(item.run_id ?? item.id, ''),
-  };
-  target.key = targetKey(target.company_name, target.website, target.jurisdiction);
-  return target;
-}
-
-function originationTargetsFromStorage(): RunTarget[] {
-  const result = storageRecord(LAST_ORIGINATION_RESULT_KEY);
-  const lists = [
-    result.confirmed_company_candidates,
-    result.targets,
-    result.ranked_targets,
-    result.candidates,
-    result.needs_website_confirmation,
-    result.possible_leads_needing_website,
-  ].filter(Array.isArray) as unknown[][];
-  return lists
-    .flat()
-    .filter(item => item && typeof item === 'object')
-    .map(item => targetFromRecord(item as Record<string, unknown>, 'origination'))
-    .filter((item): item is RunTarget => item !== null);
-}
+type RunTarget = WorkflowTarget;
 
 function runTargetsFromStorage(): { origination: RunTarget[]; savedLeads: RunTarget[]; cockpit: RunTarget[] } {
-  const origination = originationTargetsFromStorage();
-  const selected = storageArray(SELECTED_CANDIDATES_KEY).map(item => targetFromRecord(item, 'origination'));
-  const savedLeads = storageArray(SAVED_LEADS_KEY).map(item => targetFromRecord(item, 'saved_lead'));
-  const compareCandidates = storageArray(COMPARE_CANDIDATES_KEY).map(item => targetFromRecord(item, 'saved_lead'));
-  const cockpitTargets = storageArray(COCKPIT_TARGETS_KEY).map(item => targetFromRecord(item, 'cockpit'));
+  const origination = getOriginationTargets();
+  const savedLeads = getSavedLeads();
+  const compareCandidates = getCompareCandidates().filter(target => target.source !== 'cockpit');
+  const cockpitTargets = getCockpitTargets();
   const runHistoryTargets = getRuns()
     .filter(run => run.type === 'url' || run.type === 'document')
-    .map(run => targetFromRecord({
+    .map(run => ({
+      id: run.id,
       company_name: run.company,
       website: run.website,
       jurisdiction: 'unknown',
+      sector: '',
+      source: 'cockpit',
       source_label: 'Saved Cockpit target',
-      screening_status: 'screened',
+      source_url: '',
+      candidate_quality: 'screened_target',
+      website_status: run.website ? 'known' : 'missing',
+      run_ready: Boolean(run.website),
       compare_ready: true,
+      screening_status: 'screened',
       saved_at: run.timestamp,
       run_id: run.id,
-    }, 'cockpit'));
+      recommendation: run.recommendation,
+      evidence_confidence: run.evidence_confidence,
+    }));
   const dedupe = (targets: Array<RunTarget | null>) => targets
     .filter((item): item is RunTarget => item !== null)
-    .filter((target, index, all) => all.findIndex(item => item.key === target.key) === index);
+    .filter((target, index, all) => all.findIndex(item => item.id === target.id) === index);
   return {
-    origination: dedupe([...origination, ...selected]),
+    origination: dedupe(origination),
     savedLeads: dedupe([...savedLeads, ...compareCandidates]).filter(target => target.source !== 'cockpit'),
     cockpit: dedupe([...cockpitTargets, ...runHistoryTargets]),
   };
@@ -3416,7 +3332,7 @@ function runTargetsFromStorage(): { origination: RunTarget[]; savedLeads: RunTar
 
 function addRunTargetToCompare(target: RunTarget): void {
   if (typeof window === 'undefined' || !target.website) return;
-  const compareTarget = {
+  saveCompareCandidates([{
     company_name: target.company_name,
     website: target.website,
     jurisdiction: target.jurisdiction,
@@ -3429,28 +3345,13 @@ function addRunTargetToCompare(target: RunTarget): void {
     screening_status: target.screening_status || (target.source === 'cockpit' ? 'screened' : 'not_screened'),
     compare_ready: target.source === 'cockpit' || target.compare_ready,
     run_ready: target.run_ready,
-    cockpit_target_id: target.source === 'cockpit' ? target.key : '',
+    cockpit_target_id: target.source === 'cockpit' ? target.id : '',
     run_id: target.run_id,
-  };
-  try {
-    const existing = storageArray(COMPARE_CANDIDATES_KEY);
-    const key = targetKey(compareTarget.company_name, compareTarget.website, compareTarget.jurisdiction);
-    const next = [
-      compareTarget,
-      ...existing.filter(item => targetKey(
-        textValue(item.company_name ?? item.company ?? item.name, ''),
-        textValue(item.website ?? item.company_url ?? item.url, ''),
-        textValue(item.jurisdiction ?? item.country, 'unknown'),
-      ) !== key),
-    ];
-    window.localStorage.setItem(COMPARE_CANDIDATES_KEY, JSON.stringify(next.slice(0, 10)));
-  } catch {
-    /* keep navigation usable even if storage is unavailable */
-  }
+  }, ...getCompareCandidates()]);
 }
 
 function hasLastOriginationResult(): boolean {
-  return Object.keys(storageRecord(LAST_ORIGINATION_RESULT_KEY)).length > 0;
+  return getOriginationTargets().length > 0;
 }
 
 interface ActiveRunRecord {
@@ -3886,7 +3787,6 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       const userId = getUserId();
       const normalizedWebsite = normaliseUrl(website);
       if (!isValidUrl(normalizedWebsite)) {
-        setUrlError('Please enter a valid company website URL.');
         throw new Error('Please enter a valid company website URL.');
       }
       if (normalizedWebsite !== website) setWebsite(normalizedWebsite);
@@ -3973,7 +3873,6 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       const userId = getUserId();
       const normalizedWebsite = normaliseUrl(website);
       if (!isValidUrl(normalizedWebsite)) {
-        setUrlError('Please enter a valid company website URL.');
         throw new Error('Please enter a valid company website URL.');
       }
       if (normalizedWebsite !== website) setWebsite(normalizedWebsite);
@@ -4162,7 +4061,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setWebsite(normaliseUrl(target.website));
     setJurisdiction(normaliseJurisdictionCode(target.jurisdiction));
     setFromOrigination(target.source === 'origination');
-    setTargetSource(target.source);
+    setTargetSource((['origination', 'saved_lead', 'cockpit'].includes(target.source) ? target.source : 'manual') as RunTargetSource);
     setStep(1);
     setResult(null);
     setDocumentAssistedResult(null);
@@ -4187,7 +4086,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
       {/* Page header */}
       <div className="w-full border-b border-border bg-card/30">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-10">
+        <div className="app-container py-10">
           <p className="text-xs font-semibold text-primary mb-2">
             {sampleMode ? 'Example screen' : 'Evidence-first acquisition screen'}
           </p>
@@ -4202,7 +4101,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col w-full max-w-5xl mx-auto px-4 md:px-8 py-8">
+      <div className="app-container flex-1 flex flex-col py-8">
         <ScreeningWorkflowGuide active="run" className="mb-6" originationAvailable={hasLastOriginationResult()} />
 
         {/* ── Screen note ──────────────────────────────────── */}
@@ -4232,7 +4131,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
         {/* ── Railway path: active states ────────────────────────────── */}
         {railwayActive && (
-          <div className="w-full max-w-6xl mx-auto">
+          <div className="w-full">
 
             {/* Resumed banner */}
             {resumedRun && (

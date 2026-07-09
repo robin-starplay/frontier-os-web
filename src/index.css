@@ -83,13 +83,13 @@
   --background: 210 40% 98%;
   --foreground: 222 47% 11%;
 
-  --border: 214 32% 88%;
-  --input: 214 32% 84%;
+  --border: 214 26% 90%;
+  --input: 214 28% 86%;
   --ring: 221 83% 53%;
 
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 88%;
+  --card-border: 214 26% 90%;
 
   --sidebar: 0 0% 100%;
   --sidebar-foreground: 222 47% 11%;
@@ -185,6 +185,31 @@
   --semantic-unknown-bg: #F8FAFC;
   --semantic-unknown-text: #475569;
   --semantic-unknown-border: #CBD5E1;
+}
+
+@layer components {
+  .app-container {
+    width: 100%;
+    max-width: 88rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .app-container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .app-container {
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+    }
+  }
 }
 
 [data-theme='dark'],

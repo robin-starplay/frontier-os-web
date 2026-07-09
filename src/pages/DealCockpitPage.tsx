@@ -19,7 +19,8 @@ import { useOptionalUser } from '@/lib/optionalClerk';
 import type { RecommendationLevel } from '@/data/mockData';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
-import { writeCompareCandidates, type StoredCompareCandidate } from '@/lib/compareSelection';
+import { type StoredCompareCandidate } from '@/lib/compareSelection';
+import { COCKPIT_COMPARE_SELECTION_KEY, saveCompareCandidates } from '@/lib/workflowTargets';
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -32,8 +33,6 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'high-ai-risk',  label: 'High AI risk' },
   { key: 'evidence-gaps', label: 'Diligence blockers' },
 ];
-
-const COCKPIT_COMPARE_SELECTION_KEY = 'frontier_cockpit_compare_selection';
 
 function applyFilter(runs: RunEntry[], filter: FilterKey): RunEntry[] {
   switch (filter) {
@@ -892,7 +891,7 @@ export default function DealCockpitPage() {
   function handleCompareSelected(): void {
     const candidates = selectedCompareCandidates;
     if (candidates.length < 2) return;
-    writeCompareCandidates(candidates);
+    saveCompareCandidates(candidates);
     writeCockpitCompareSelection(candidates);
     navigate('/app/compare');
   }

@@ -8,6 +8,7 @@
  */
 
 import type { AnalysisResult, CompareResult } from './frontierApi';
+import { COCKPIT_TARGETS_KEY, saveCockpitTarget, workflowTargetKey } from './workflowTargets';
 
 /** Structured summary saved when a document review is stored in the Cockpit.
  *  Does NOT include raw file content — only extracted structured data. */
@@ -47,7 +48,6 @@ export interface RunEntry {
 }
 
 const STORAGE_KEY = 'fos_run_history';
-const COCKPIT_TARGETS_KEY = 'frontier_cockpit_targets';
 const MAX_ENTRIES = 30;
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -176,27 +176,10 @@ function normalizeWebsite(website: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-function cockpitTargetKey(target: { company_name: string; website: string; jurisdiction: string }): string {
-  const website = normalizeWebsite(target.website).toLowerCase();
-  if (website) return `website:${website}`;
-  return `name:${target.company_name.trim().toLowerCase()}|${target.jurisdiction.trim().toLowerCase()}`;
-}
-
-function readCockpitTargets(): Record<string, unknown>[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(COCKPIT_TARGETS_KEY) || '[]');
-    return Array.isArray(parsed)
-      ? parsed.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 function persistCockpitTarget(entry: RunEntry, workflowState?: unknown): void {
   if (!entry.website || entry.type === 'origination' || entry.type === 'compare') return;
   const resultRecord = asRecord(entry.result);
-  const target = {
+  saveCockpitTarget({
     company_name: entry.company,
     website: normalizeWebsite(entry.website),
     jurisdiction: 'UK',
@@ -219,21 +202,7 @@ function persistCockpitTarget(entry: RunEntry, workflowState?: unknown): void {
       compare_readiness: 'ready',
       cockpit_readiness: 'ready',
     },
-  };
-  try {
-    const key = cockpitTargetKey(target);
-    const existing = readCockpitTargets().filter(item => {
-      const itemKey = cockpitTargetKey({
-        company_name: textValue(item.company_name),
-        website: textValue(item.website),
-        jurisdiction: textValue(item.jurisdiction, 'UK'),
-      });
-      return itemKey !== key;
-    });
-    localStorage.setItem(COCKPIT_TARGETS_KEY, JSON.stringify([target, ...existing].slice(0, MAX_ENTRIES)));
-  } catch {
-    // Keep existing run-history save working even when this compatibility cache fails.
-  }
+  });
 }
 
 /** Save a URL analysis result. De-dupes by company name (most recent wins). */
@@ -434,14 +403,18 @@ export function removeRun(runId: string): RunEntry[] {
   persistRuns(updated);
   if (removed) {
     try {
-      const removedKey = cockpitTargetKey({
+      const removedKey = workflowTargetKey({
         company_name: removed.company,
         website: removed.website,
         jurisdiction: 'UK',
       });
-      const targets = readCockpitTargets().filter(item => {
+      const parsed = JSON.parse(localStorage.getItem(COCKPIT_TARGETS_KEY) || '[]');
+      const existing = Array.isArray(parsed)
+        ? parsed.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+        : [];
+      const targets = existing.filter(item => {
         const runMatches = textValue(item.run_id) === runId;
-        const keyMatches = cockpitTargetKey({
+        const keyMatches = workflowTargetKey({
           company_name: textValue(item.company_name),
           website: textValue(item.website),
           jurisdiction: textValue(item.jurisdiction, 'UK'),

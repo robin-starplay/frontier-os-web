@@ -22,6 +22,13 @@ import {
   removeSelectedCandidate,
   type StoredCompareCandidate,
 } from '@/lib/compareSelection';
+import {
+  LAST_ORIGINATION_RESULT_KEY,
+  SAVED_LEADS_KEY,
+  getSavedLeads,
+  saveLead,
+  type WorkflowTarget,
+} from '@/lib/workflowTargets';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
@@ -44,10 +51,8 @@ interface OriginationRequestDiagnostics {
   elapsed_ms: number;
 }
 
-const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
 const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
 const ORIGINATION_RUNS_KEY = 'frontier_origination_runs';
-const SAVED_LEADS_KEY = 'frontier_saved_leads';
 
 type OriginationMode = 'rank_known_targets' | 'research_thesis';
 
@@ -162,7 +167,7 @@ function safeStr(v: unknown, fallback = ''): string {
 
 function asList(value: unknown): string[] {
   if (!Array.isArray(value)) return safeStr(value) ? [safeStr(value)] : [];
-  return value.map(safeStr).filter(Boolean);
+  return value.map(item => safeStr(item)).filter(Boolean);
 }
 
 function showDeveloperDiagnostics(): boolean {
@@ -299,7 +304,7 @@ function discoveryStatusCopy(
 
 function sourceUrls(candidate: Record<string, unknown>): string[] {
   const urls = Array.isArray(candidate.source_urls)
-    ? candidate.source_urls.map(safeStr).filter(Boolean)
+    ? candidate.source_urls.map(item => safeStr(item)).filter(Boolean)
     : [];
   const sourceUrl = safeStr(candidate.source_url);
   const sourcePageUrl = safeStr(candidate.source_page_url);
@@ -502,23 +507,33 @@ function deleteOriginationRun(id: string): StoredOriginationRun[] {
   return runs;
 }
 
-function readSavedLeads(): StoredCompareCandidate[] {
-  if (!storageAvailable()) return [];
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(SAVED_LEADS_KEY) || '[]');
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(item => item && typeof item === 'object')
-      .map(item => item as StoredCompareCandidate)
-      .filter(item => item.company_name || item.source_url || item.website);
-  } catch {
-    return [];
-  }
+function storedCandidateFromWorkflowTarget(target: WorkflowTarget): StoredCompareCandidate {
+  return {
+    company_name: target.company_name,
+    website: target.website,
+    jurisdiction: target.jurisdiction,
+    sector: target.sector || undefined,
+    source: target.source,
+    source_label: target.source_label,
+    source_url: target.source_url || undefined,
+    candidate_type: target.candidate_type,
+    source_page_title: target.source_page_title,
+    evidence_status: target.evidence_confidence,
+    fit_score_100: target.fit_score_100 ?? null,
+    recommendation: target.recommendation,
+    candidate_quality: target.candidate_quality || undefined,
+    website_status: target.website_status || undefined,
+    compare_ready: target.compare_ready,
+    run_ready: target.run_ready,
+    compare_note: target.compare_note,
+    screening_status: target.screening_status,
+    run_id: target.run_id || undefined,
+    saved_at: target.saved_at || undefined,
+  };
 }
 
-function writeSavedLeads(leads: StoredCompareCandidate[]): void {
-  if (!storageAvailable()) return;
-  window.localStorage.setItem(SAVED_LEADS_KEY, JSON.stringify(leads));
+function readSavedLeads(): StoredCompareCandidate[] {
+  return getSavedLeads().map(storedCandidateFromWorkflowTarget);
 }
 
 function addSavedLead(lead: StoredCompareCandidate): { added: boolean; leads: StoredCompareCandidate[] } {
@@ -527,15 +542,17 @@ function addSavedLead(lead: StoredCompareCandidate): { added: boolean; leads: St
   if (existing.some(item => candidateStorageKey(item) === key)) {
     return { added: false, leads: existing };
   }
-  const leads = [{ ...lead, saved_at: new Date().toISOString() }, ...existing];
-  writeSavedLeads(leads);
+  saveLead(lead);
+  const leads = readSavedLeads();
   return { added: true, leads };
 }
 
 function removeSavedLead(lead: Pick<StoredCompareCandidate, 'company_name' | 'website' | 'jurisdiction'>): StoredCompareCandidate[] {
   const key = candidateStorageKey(lead);
   const leads = readSavedLeads().filter(item => candidateStorageKey(item) !== key);
-  writeSavedLeads(leads);
+  if (storageAvailable()) {
+    window.localStorage.setItem(SAVED_LEADS_KEY, JSON.stringify(leads));
+  }
   return leads;
 }
 
