@@ -606,7 +606,7 @@ function CompareForm({
   const pendingCandidates = companies.filter(c => c.source === 'origination' && (c.compareReady === false || !c.url.trim()));
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full">
       <form onSubmit={e => { e.preventDefault(); if (canSubmit) onSubmit(); }}>
         {/* Buyer context */}
         <div className="rounded-lg border border-border bg-card mb-6">
@@ -979,7 +979,7 @@ function CompareTargetSelector({
 
 function CompareLoading({ stages, manualQuickCompare }: { stages: ProgressStage[]; manualQuickCompare: boolean }) {
   return (
-    <div className="w-full max-w-xl mx-auto">
+    <div className="w-full">
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
           {manualQuickCompare && (
@@ -1053,7 +1053,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
   const mostBlockers = [...result.targets].sort((a, b) => b.blockers.length - a.blockers.length)[0];
 
 	  return (
-	    <div className="w-full max-w-4xl mx-auto space-y-6">
+	    <div className="w-full space-y-6">
 
 	      {isFastPreview && (
 	        <div className="rounded-lg border border-border bg-card overflow-hidden">
