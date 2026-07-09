@@ -48,7 +48,10 @@ const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
 const ORIGINATION_RUNS_KEY = 'frontier_origination_runs';
 const SAVED_LEADS_KEY = 'frontier_saved_leads';
 
+type OriginationMode = 'rank_known_targets' | 'research_thesis';
+
 interface OriginationFormValues {
+  mode: OriginationMode;
   sector: string;
   geo: string;
   sizeCriteria: string;
@@ -396,6 +399,7 @@ function storageAvailable(): boolean {
 
 function readStoredOriginationForm(): OriginationFormValues {
   const empty: OriginationFormValues = {
+    mode: 'rank_known_targets',
     sector: '',
     geo: '',
     sizeCriteria: '',
@@ -407,6 +411,7 @@ function readStoredOriginationForm(): OriginationFormValues {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(LAST_ORIGINATION_FORM_KEY) || '{}') as Partial<OriginationFormValues>;
     return {
+      mode: parsed.mode === 'research_thesis' ? 'research_thesis' : 'rank_known_targets',
       sector: safeStr(parsed.sector),
       geo: safeStr(parsed.geo),
       sizeCriteria: safeStr(parsed.sizeCriteria),
@@ -573,10 +578,12 @@ function storedCandidateFromOrigination(candidate: Record<string, unknown>): Sto
 function OriginationResultView({
   data,
   onReset,
+  onPasteKnownTargets,
   onWorkspaceChange,
 }: {
   data: OriginationResult;
   onReset: () => void;
+  onPasteKnownTargets: () => void;
   onWorkspaceChange: () => void;
 }) {
   const [showRejected, setShowRejected] = useState(false);
@@ -1107,7 +1114,7 @@ function OriginationResultView({
     title: string,
     items: Record<string, unknown>[],
     mode: 'full' | 'compact' | 'excluded' | 'source',
-    options: { collapsed?: boolean; description?: string } = {},
+    options: { collapsed?: boolean; description?: string; id?: string } = {},
   ) {
     if (items.length === 0) return null;
     const body = (
@@ -1136,7 +1143,7 @@ function OriginationResultView({
     );
     if (options.collapsed) {
       return (
-        <details className="group rounded-lg border border-border overflow-hidden bg-card/20">
+        <details id={options.id} className="group rounded-lg border border-border overflow-hidden bg-card/20">
           <summary className="px-4 py-3 cursor-pointer list-none border-b border-border bg-card/50 flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
@@ -1152,7 +1159,7 @@ function OriginationResultView({
       );
     }
     return (
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div id={options.id} className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
           <p className="text-[10px] font-semibold tracking-normal text-primary">{title}</p>
           <span className="text-[10px] font-medium text-muted-foreground/60">{items.length}</span>
@@ -1228,7 +1235,9 @@ function OriginationResultView({
       {(candidates.length > 0 || researchSources.length > 0) && (
         <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">Candidate summary</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">
+              {groupedCandidates.confirmed.length > 0 ? 'Candidate summary' : 'Research summary'}
+            </p>
             {safeStr(candidateSummary.discovery_quality) && (
               <SemanticBadge tone={safeStr(candidateSummary.discovery_quality) === 'low' ? 'partial' : safeStr(candidateSummary.discovery_quality) === 'high' ? 'verified' : 'info'}>
                 Discovery quality: {humanLabel(safeStr(candidateSummary.discovery_quality))}
@@ -1280,6 +1289,29 @@ function OriginationResultView({
           <p className="text-xs text-muted-foreground mt-1">
             Frontier OS found research sources, but official company websites must be confirmed before screening.
           </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              type="button"
+              onClick={onPasteKnownTargets}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Paste known targets
+            </button>
+            <Link
+              href="/app/run"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+            >
+              Run URL screen
+            </Link>
+            {researchSources.length > 0 && (
+              <a
+                href="#origination-research-sources"
+                className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+              >
+                Review research sources
+              </a>
+            )}
+          </div>
         </div>
       )}
 
@@ -1299,6 +1331,7 @@ function OriginationResultView({
         'source',
         {
           collapsed: true,
+          id: 'origination-research-sources',
           description: 'Source pages, listicles or articles used as supporting evidence.',
         },
       )}
@@ -1773,6 +1806,7 @@ type FormState =
 
 function OriginationForm() {
   const storedForm = readStoredOriginationForm();
+  const [mode, setMode] = useState<OriginationMode>(storedForm.mode);
   const [sector,    setSector   ] = useState(storedForm.sector);
   const [geo,       setGeo      ] = useState(storedForm.geo);
   const [sizeCriteria, setSizeCriteria] = useState(storedForm.sizeCriteria);
@@ -1787,7 +1821,14 @@ function OriginationForm() {
     const storedResult = readStoredOriginationResult();
     return storedResult ? { kind: 'result', data: storedResult, restored: true } : { kind: 'idle' };
   });
-  const statusCopy = discoveryStatusCopy(targetUniverse);
+  const isRankKnownTargetsMode = mode === 'rank_known_targets';
+  const statusCopy = isRankKnownTargetsMode
+    ? 'Paste company names and websites. Frontier OS will rank and enrich only supplied/source-backed targets.'
+    : 'Frontier OS will return research sources and possible leads. It will not invent acquisition targets.';
+  const submitLabel = isRankKnownTargetsMode ? 'Rank supplied targets' : 'Research thesis';
+  const loadingLabel = isRankKnownTargetsMode
+    ? 'Ranking supplied/source-backed targets...'
+    : 'Researching source-backed thesis evidence...';
 
   function refreshWorkspace() {
     setRuns(readOriginationRuns());
@@ -1815,6 +1856,7 @@ function OriginationForm() {
 
   function restoreRun(run: StoredOriginationRun) {
     const form: OriginationFormValues = {
+      mode: run.form?.mode === 'research_thesis' ? 'research_thesis' : 'rank_known_targets',
       sector: run.form?.sector ?? run.sector ?? '',
       geo: run.form?.geo ?? run.geography ?? '',
       sizeCriteria: run.form?.sizeCriteria ?? run.size_criteria ?? '',
@@ -1822,6 +1864,7 @@ function OriginationForm() {
       buyerThesis: run.form?.buyerThesis ?? run.thesis ?? '',
       targetUniverse: run.form?.targetUniverse ?? '',
     };
+    setMode(form.mode);
     setSector(form.sector);
     setGeo(form.geo);
     setSizeCriteria(form.sizeCriteria);
@@ -1847,7 +1890,12 @@ function OriginationForm() {
     setState({ kind: 'idle' });
     try {
       const targets = parseKnownTargetUniverse(targetUniverse);
+      if (mode === 'rank_known_targets' && targets.length === 0) {
+        setState({ kind: 'error', message: 'Add at least one company and website to rank targets.' });
+        return;
+      }
       const formValues: OriginationFormValues = {
+        mode,
         sector,
         geo,
         sizeCriteria,
@@ -1861,7 +1909,7 @@ function OriginationForm() {
         geography: geo,
         size_criteria: sizeCriteria,
         strategic_rationale: rationale,
-        ...(targets.length > 0 ? { targets } : {}),
+        ...(mode === 'rank_known_targets' && targets.length > 0 ? { targets } : {}),
       });
       storeOriginationRun(formValues, data);
       const storedRun = saveOriginationRunToHistory(formValues, data);
@@ -1891,6 +1939,7 @@ function OriginationForm() {
     setRationale('');
     setBuyerThesis('');
     setTargetUniverse('');
+    setMode('rank_known_targets');
     setState({ kind: 'idle' });
   }
 
@@ -1934,7 +1983,15 @@ function OriginationForm() {
             </button>
           </div>
         )}
-        <OriginationResultView data={state.data} onReset={handleReset} onWorkspaceChange={refreshWorkspace} />
+        <OriginationResultView
+          data={state.data}
+          onReset={handleReset}
+          onPasteKnownTargets={() => {
+            setMode('rank_known_targets');
+            handleReset();
+          }}
+          onWorkspaceChange={refreshWorkspace}
+        />
       </div>
     );
   }
@@ -1999,6 +2056,40 @@ function OriginationForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {workspacePanel}
+      <div className="rounded-lg border border-border bg-card p-3">
+        <p className="text-xs font-semibold text-foreground mb-2">Origination mode</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[
+            {
+              value: 'rank_known_targets' as OriginationMode,
+              label: 'Rank known targets',
+              description: 'Rank and enrich a supplied/source-backed target universe.',
+            },
+            {
+              value: 'research_thesis' as OriginationMode,
+              label: 'Research thesis',
+              description: 'Find source pages and possible leads without inventing targets.',
+            },
+          ].map(option => {
+            const active = mode === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setMode(option.value)}
+                className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                  active
+                    ? 'border-primary/40 bg-primary/10 text-foreground'
+                    : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground'
+                }`}
+              >
+                <span className="block text-sm font-semibold">{option.label}</span>
+                <span className="block text-xs mt-0.5">{option.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <div>
         <label className="block text-xs font-medium text-foreground mb-1.5">
           Buyer thesis
@@ -2061,28 +2152,49 @@ function OriginationForm() {
           className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
         />
       </div>
-      <div>
-        <label className="block text-xs font-medium text-foreground mb-1.5">
-          Known target universe
-        </label>
-        <textarea
-          value={targetUniverse}
-          onChange={e => setTargetUniverse(e.target.value)}
-          rows={5}
-          placeholder={`Paste known targets, one per line:
+      {isRankKnownTargetsMode ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <label className="block text-xs font-semibold text-foreground mb-1.5">
+            Known target universe
+          </label>
+          <textarea
+            value={targetUniverse}
+            onChange={e => setTargetUniverse(e.target.value)}
+            rows={6}
+            placeholder={`Paste known targets, one per line:
 Company name, website, country, brief description
 
 Example format:
 [Company name], [website URL], [country], [brief description]`}
-          className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
-        />
-        <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
-          Paste one company per line. Frontier OS will rank only supplied/source-backed targets and will not invent acquisition targets.
-        </p>
-        <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1">
-          Only paste targets you are permitted to screen. Frontier OS will not invent or enrich targets without evidence.
-        </p>
-      </div>
+            className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+          />
+          <p className="text-[11px] text-muted-foreground/70 leading-relaxed mt-1.5">
+            Paste company names and websites. Frontier OS will rank and enrich only supplied/source-backed targets.
+          </p>
+          <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1">
+            Only paste targets you are permitted to screen. Frontier OS will not invent or enrich targets without evidence.
+          </p>
+        </div>
+      ) : (
+        <details className="rounded-lg border border-border bg-card/30 overflow-hidden">
+          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+            Optional: provide known targets instead
+          </summary>
+          <div className="border-t border-border p-3">
+            <textarea
+              value={targetUniverse}
+              onChange={e => setTargetUniverse(e.target.value)}
+              rows={4}
+              placeholder={`Paste known targets, one per line:
+[Company name], [website URL], [country], [brief description]`}
+              className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+            />
+            <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
+              Research thesis mode focuses on source pages. Switch to Rank known targets to rank supplied companies.
+            </p>
+          </div>
+        </details>
+      )}
 
       <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
         {statusCopy}
@@ -2094,9 +2206,9 @@ Example format:
         className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {isSubmitting ? (
-          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking source-backed discovery and ranking candidates...</>
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {loadingLabel}</>
         ) : (
-          <>Preview origination workflow <ArrowRight className="w-3.5 h-3.5" /></>
+          <>{submitLabel} <ArrowRight className="w-3.5 h-3.5" /></>
         )}
       </button>
 
@@ -2104,7 +2216,7 @@ Example format:
         <div className="rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 shadow-xs">
           <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-semibold text-foreground">Checking source-backed discovery and ranking candidates...</p>
+            <p className="text-xs font-semibold text-foreground">{loadingLabel}</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Frontier OS will not invent acquisition targets.
             </p>
