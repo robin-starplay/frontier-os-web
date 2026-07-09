@@ -223,6 +223,73 @@ function formatDiagnostics(value: unknown): string {
   }
 }
 
+function textValue(value: unknown, fallback = 'Unavailable'): string {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value).trim();
+    return text || fallback;
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return textValue(record.label ?? record.score ?? record.rationale ?? record.summary, fallback);
+  }
+  return fallback;
+}
+
+function companyWebsiteUrl(website: string): string {
+  return website.startsWith('http://') || website.startsWith('https://') ? website : `https://${website}`;
+}
+
+function runScreenHref(companyName: string, website: string): string {
+  const params = new URLSearchParams();
+  if (companyName) params.set('company_name', companyName);
+  if (website) params.set('website', companyWebsiteUrl(website));
+  return `/app/run${params.toString() ? `?${params.toString()}` : ''}`;
+}
+
+type FastPreviewRow = {
+  companyName: string;
+  website: string;
+  status: string;
+  evidenceConfidence: string;
+  strategicFit: string;
+  aiRisk: string;
+  recommendation: string;
+  nextAction: string;
+  warnings: string[];
+};
+
+function fastPreviewRows(result: CompareResult): FastPreviewRow[] {
+  const rows = Array.isArray(result.company_results)
+    ? result.company_results.map(company => ({
+      companyName: company.company_name || 'Target',
+      website: company.website || '',
+      status: company.status || 'ok',
+      evidenceConfidence: company.evidence_confidence || 'Unavailable',
+      strategicFit: textValue(company.strategic_fit),
+      aiRisk: company.ai_replica_risk || 'Unknown',
+      recommendation: company.recommendation || 'Run individual screen',
+      nextAction: company.next_action || 'Run screen',
+      warnings: Array.isArray(company.warnings) ? company.warnings : [],
+    }))
+    : [];
+  if (rows.length > 0) return rows;
+  const ranked = Array.isArray(result.ranked_companies) && result.ranked_companies.length > 0
+    ? result.ranked_companies
+    : Array.isArray(result.ranked_targets) ? result.ranked_targets : [];
+  return ranked.map(item => ({
+    companyName: textValue(item.company_name ?? item.company ?? item.name, 'Target'),
+    website: textValue(item.website ?? item.url, ''),
+    status: textValue(item.status, 'ok'),
+    evidenceConfidence: textValue(item.evidence_confidence),
+    strategicFit: textValue(item.strategic_fit),
+    aiRisk: textValue(item.ai_replica_risk, 'Unknown'),
+    recommendation: textValue(item.recommendation, 'Run individual screen'),
+    nextAction: textValue(item.next_action, 'Run screen'),
+    warnings: Array.isArray(item.warnings) ? item.warnings.map(warning => String(warning)) : [],
+  }));
+}
+
 // ─── Form phase ───────────────────────────────────────────────────────────────
 
 function CompareForm({
@@ -492,6 +559,9 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
   saveSource?: 'backend' | 'local';
   manualQuickCompare: boolean;
 }) {
+  const isFastPreview = result.status === 'ok' && (result.compare_mode === 'fast_preview' || result.fast_compare_mode);
+  const previewRows = fastPreviewRows(result);
+  const lacksDifferentiation = isFastPreview && result.evidence_backed_differentiation_available === false;
   const top = result.targets[0];
   const second = result.targets[1];
   const strongestEvidence = [...result.targets].sort(
@@ -499,16 +569,44 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
   )[0]?.company ?? '—';
   const mostBlockers = [...result.targets].sort((a, b) => b.blockers.length - a.blockers.length)[0];
 
-  return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+	  return (
+	    <div className="w-full max-w-4xl mx-auto space-y-6">
 
-      {/* Fallback notice */}
-      {manualQuickCompare && (
-        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-info-bg)] border border-[var(--semantic-info-border)] text-xs text-[var(--semantic-info-text)]">
-          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          Manual quick compare · public-source preview.
-        </div>
-      )}
+	      {isFastPreview && (
+	        <div className="rounded-lg border border-border bg-card overflow-hidden">
+	          <div className="px-5 py-4 border-b border-border bg-muted/20">
+	            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+	              <div>
+	                <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Manual quick compare</p>
+	                <h2 className="text-xl font-semibold text-foreground">Manual quick compare completed</h2>
+	              </div>
+	              <SemanticBadge tone="info">Public-source preview</SemanticBadge>
+	            </div>
+	          </div>
+	          <div className="px-5 py-4 space-y-3">
+	            <div className="flex items-start gap-2 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
+	              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+	              These targets have not been individually screened yet. Run URL screens for evidence-backed ranking.
+	            </div>
+	            {lacksDifferentiation && (
+	              <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+	                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+	                No evidence-backed differentiation yet.
+	              </div>
+	            )}
+	            {result.comparison_summary && (
+	              <p className="text-sm text-muted-foreground leading-relaxed">{result.comparison_summary}</p>
+	            )}
+	          </div>
+	        </div>
+	      )}
+
+	      {!isFastPreview && manualQuickCompare && (
+	        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-info-bg)] border border-[var(--semantic-info-border)] text-xs text-[var(--semantic-info-text)]">
+	          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+	          Manual quick compare · public-source preview.
+	        </div>
+	      )}
 
       {result.partial_results && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-claim-bg)] border border-[var(--semantic-claim-border)] text-xs text-[var(--semantic-claim-text)]">
@@ -524,16 +622,16 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
         </div>
       )}
 
-      {/* Public-source disclaimer */}
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-muted/20 border border-border text-xs text-muted-foreground">
-        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground/50" />
-        Public-source screen only. Financials and document evidence must be verified before IC/client use.
-      </div>
+	      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-muted/20 border border-border text-xs text-muted-foreground">
+	        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground/50" />
+	        Public-source screen only. Financials and document evidence must be verified before IC/client use.
+	      </div>
 
-      {/* Saved to Cockpit notice */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
-        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-        <span>
+	      {/* Saved to Cockpit notice */}
+	      {!isFastPreview && (
+	      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
+	        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+	        <span>
           {saveSource === 'backend'
             ? 'Saved to Cockpit'
             : 'Saved locally · create an account to sync across devices'}
@@ -542,13 +640,15 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
           href="/app/cockpit"
           className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
           onClick={e => { e.preventDefault(); window.location.href = '/app/cockpit'; }}
-        >
-          Open Cockpit →
-        </a>
-      </div>
+	        >
+	          Open Cockpit →
+	        </a>
+	      </div>
+	      )}
 
-      {/* Comparison verdict */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+	      {/* Comparison verdict */}
+	      {!isFastPreview && (
+	      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-5 py-3.5 border-b border-border bg-muted/20">
           <p className="text-[10px] font-semibold tracking-normal text-primary">Comparison verdict</p>
         </div>
@@ -562,11 +662,13 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
           ) : (
             <p className="text-sm text-muted-foreground">Ranking complete. See targets below.</p>
           )}
-        </div>
-      </div>
+	        </div>
+	      </div>
+	      )}
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+	      {/* Summary cards */}
+	      {!isFastPreview && (
+	      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label: 'Best first target',    value: result.most_ic_ready || 'Unavailable',     color: 'text-green-700' },
           { label: 'Strongest evidence',   value: strongestEvidence,        color: 'text-blue-700' },
@@ -586,10 +688,83 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
         <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Best next action</p>
         <p className="text-xs text-foreground leading-snug">{result.best_next_action || 'Run individual screens before IC use.'}</p>
       </div>
-    </div>
+	    </div>
+	      )}
 
-        {Array.isArray(result.company_results) && result.company_results.length > 0 && (
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
+	        {isFastPreview && previewRows.length > 0 && (
+	          <div className="rounded-lg border border-border bg-card overflow-hidden">
+	            <div className="px-5 py-3.5 border-b border-border bg-muted/20">
+	              <p className="text-[10px] font-semibold tracking-normal text-primary">Fast preview results</p>
+	            </div>
+	            <div className="divide-y divide-border">
+	              {previewRows.map(company => (
+	                <div key={`${company.companyName}-${company.website}`} className="px-5 py-4">
+	                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+	                    <div className="min-w-0">
+	                      <div className="flex flex-wrap items-center gap-2">
+	                        <p className="text-base font-semibold text-foreground">{company.companyName}</p>
+	                        <SemanticBadge tone={company.status === 'ok' ? 'info' : company.status === 'partial_timeout' ? 'partial' : 'blocker'}>
+	                          {company.status === 'partial_timeout' ? 'Partial timeout' : company.status}
+	                        </SemanticBadge>
+	                      </div>
+	                      {company.website && (
+	                        <a
+	                          href={companyWebsiteUrl(company.website)}
+	                          target="_blank"
+	                          rel="noopener noreferrer"
+	                          className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+	                        >
+	                          {company.website} <ExternalLink className="w-3 h-3" />
+	                        </a>
+	                      )}
+	                    </div>
+	                    <Link
+	                      href={runScreenHref(company.companyName, company.website)}
+	                      className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+	                    >
+	                      Run screen
+	                    </Link>
+	                  </div>
+	                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+	                    <div>
+	                      <p className="font-semibold text-muted-foreground mb-1">Evidence confidence</p>
+	                      <p className="text-foreground">{company.evidenceConfidence}</p>
+	                    </div>
+	                    <div>
+	                      <p className="font-semibold text-muted-foreground mb-1">Strategic fit</p>
+	                      <p className="text-foreground">{company.strategicFit}</p>
+	                    </div>
+	                    <div>
+	                      <p className="font-semibold text-muted-foreground mb-1">AI risk</p>
+	                      <p className="text-foreground">{company.aiRisk}</p>
+	                    </div>
+	                    <div>
+	                      <p className="font-semibold text-muted-foreground mb-1">Recommendation</p>
+	                      <p className="text-foreground">{company.recommendation}</p>
+	                    </div>
+	                    <div>
+	                      <p className="font-semibold text-muted-foreground mb-1">Next action</p>
+	                      <p className="text-foreground">{company.nextAction}</p>
+	                    </div>
+	                  </div>
+	                  {company.warnings.length > 0 && (
+	                    <ul className="mt-3 space-y-1">
+	                      {company.warnings.map((warning, index) => (
+	                        <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
+	                          <span className="mt-1 h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+	                          {warning}
+	                        </li>
+	                      ))}
+	                    </ul>
+	                  )}
+	                </div>
+	              ))}
+	            </div>
+	          </div>
+	        )}
+
+	        {!isFastPreview && Array.isArray(result.company_results) && result.company_results.length > 0 && (
+	          <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border bg-muted/20">
               <p className="text-[10px] font-semibold tracking-normal text-primary">Company result status</p>
             </div>
@@ -645,7 +820,8 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
         )}
 
         {/* Ranked targets */}
-      <div className="space-y-4">
+	      {!isFastPreview && (
+	      <div className="space-y-4">
         {result.targets.map((t: CompareTargetResult) => (
           <div
             key={t.company}
@@ -663,9 +839,9 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
               <div className={cn(
                 'flex items-center justify-center rounded-full shrink-0 font-bold text-sm w-9 h-9',
                 rankBadgeStyle(t.rank),
-              )}>
-                {t.rank === 1 ? <Trophy className="w-4 h-4" /> : `#${t.rank}`}
-              </div>
+	              )}>
+	                {t.rank === 1 ? <Trophy className="w-4 h-4" /> : `#${t.rank}`}
+	              </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
@@ -746,10 +922,11 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare }: 
               )}
             </div>
           </div>
-        ))}
-      </div>
+	        ))}
+	      </div>
+	      )}
 
-      {/* Locked premium features */}
+	      {/* Locked premium features */}
       <div>
         <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-3">Available in private beta</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

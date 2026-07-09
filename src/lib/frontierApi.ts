@@ -235,8 +235,13 @@ export interface CompareTargetResult {
 
 export interface CompareResult {
   status: 'ok' | 'partial' | 'completed';
+  analysis_mode?: string;
   data_mode: string;
   limitation?: string;
+  compare_mode?: string;
+  fast_compare_mode?: boolean;
+  evidence_backed_differentiation_available?: boolean;
+  comparison_summary?: string;
   targets: CompareTargetResult[];
   compare_runtime_ms?: number;
   compare_timed_out?: boolean;
@@ -247,9 +252,13 @@ export interface CompareResult {
     status: 'ok' | 'partial_timeout' | 'failed' | string;
     warnings: string[];
     evidence_confidence: string;
+    strategic_fit?: string | number | Record<string, unknown>;
+    ai_replica_risk?: string;
     recommendation: string;
     next_action: string;
   }>;
+  ranked_companies?: Array<Record<string, unknown>>;
+  ranked_targets?: Array<Record<string, unknown>>;
   warnings?: string[];
   most_ic_ready: string;
   highest_ai_risk: string;
