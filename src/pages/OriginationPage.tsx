@@ -17,6 +17,7 @@ import {
   clearSelectedCandidates,
   readCompareCandidates,
   readSelectedCandidates,
+  removeCompareCandidate,
   removeSelectedCandidate,
   type StoredCompareCandidate,
 } from '@/lib/compareSelection';
@@ -44,6 +45,8 @@ interface OriginationRequestDiagnostics {
 
 const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
 const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
+const ORIGINATION_RUNS_KEY = 'frontier_origination_runs';
+const SAVED_LEADS_KEY = 'frontier_saved_leads';
 
 interface OriginationFormValues {
   sector: string;
@@ -52,6 +55,19 @@ interface OriginationFormValues {
   rationale: string;
   buyerThesis: string;
   targetUniverse: string;
+}
+
+interface StoredOriginationRun {
+  id: string;
+  created_at: string;
+  thesis: string;
+  sector: string;
+  geography: string;
+  size_criteria: string;
+  strategic_rationale: string;
+  result_summary: string;
+  result: OriginationResult;
+  form: OriginationFormValues;
 }
 
 interface KnownTarget {
@@ -282,8 +298,26 @@ function sourceUrls(candidate: Record<string, unknown>): string[] {
     ? candidate.source_urls.map(safeStr).filter(Boolean)
     : [];
   const sourceUrl = safeStr(candidate.source_url);
+  const sourcePageUrl = safeStr(candidate.source_page_url);
   if (sourceUrl && !urls.includes(sourceUrl)) urls.unshift(sourceUrl);
+  if (sourcePageUrl && !urls.includes(sourcePageUrl)) urls.unshift(sourcePageUrl);
   return urls;
+}
+
+function candidateType(candidate: Record<string, unknown>): string {
+  return safeStr(candidate.candidate_type) || (
+    safeStr(candidate.display_mode) === 'source_page_row'
+      ? 'source_page'
+      : safeStr(candidate.classification) === 'user_supplied_claim'
+      ? 'company_candidate'
+      : 'company_candidate'
+  );
+}
+
+function isResearchSourceCandidate(candidate: Record<string, unknown>): boolean {
+  return ['source_page', 'directory_or_listicle', 'news_article'].includes(candidateType(candidate))
+    || safeStr(candidate.display_mode) === 'source_page_row'
+    || safeStr(candidate.candidate_quality) === 'research_source';
 }
 
 function candidateQuality(candidate: Record<string, unknown>): string {
@@ -297,6 +331,7 @@ function candidateQuality(candidate: Record<string, unknown>): string {
 }
 
 function candidateDisplayMode(candidate: Record<string, unknown>): string {
+  if (isResearchSourceCandidate(candidate)) return 'source_page_row';
   const explicit = safeStr(candidate.display_mode);
   if (explicit) return explicit;
   const quality = candidateQuality(candidate);
@@ -307,9 +342,10 @@ function candidateDisplayMode(candidate: Record<string, unknown>): string {
 
 function candidateGroups(candidates: Record<string, unknown>[]) {
   return {
-    screenable: candidates.filter(c => candidateDisplayMode(c) === 'full_card' && candidateQuality(c) !== 'excluded'),
+    screenable: candidates.filter(c => candidateDisplayMode(c) === 'full_card' && candidateQuality(c) !== 'excluded' && !isResearchSourceCandidate(c)),
     needsWebsite: candidates.filter(c => candidateQuality(c) === 'needs_website_confirmation' && candidateDisplayMode(c) !== 'full_card'),
     lowPriority: candidates.filter(c => candidateQuality(c) === 'low_priority' && candidateDisplayMode(c) !== 'full_card'),
+    researchSources: candidates.filter(c => isResearchSourceCandidate(c)),
     excluded: candidates.filter(c => candidateQuality(c) === 'excluded' || candidateDisplayMode(c) === 'hidden_excluded'),
   };
 }
@@ -370,6 +406,98 @@ function clearStoredOriginationRun(): void {
   window.localStorage.removeItem(LAST_ORIGINATION_RESULT_KEY);
 }
 
+function readOriginationRuns(): StoredOriginationRun[] {
+  if (!storageAvailable()) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(ORIGINATION_RUNS_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(item => item && typeof item === 'object')
+      .map(item => item as StoredOriginationRun)
+      .filter(item => item.id && item.result && typeof item.result === 'object')
+      .sort((a, b) => safeStr(b.created_at).localeCompare(safeStr(a.created_at)));
+  } catch {
+    return [];
+  }
+}
+
+function writeOriginationRuns(runs: StoredOriginationRun[]): void {
+  if (!storageAvailable()) return;
+  window.localStorage.setItem(ORIGINATION_RUNS_KEY, JSON.stringify(runs.slice(0, 20)));
+}
+
+function candidateCount(result: OriginationResult): number {
+  const raw = (
+    (result.targets as unknown[] | undefined) ??
+    (result.ranked_targets as unknown[] | undefined) ??
+    (result.candidates as unknown[] | undefined) ??
+    []
+  );
+  return raw.filter(item => item && typeof item === 'object' && !isSyntheticReferenceCandidate(item as Record<string, unknown>)).length;
+}
+
+function saveOriginationRunToHistory(form: OriginationFormValues, result: OriginationResult): StoredOriginationRun {
+  const createdAt = new Date().toISOString();
+  const run: StoredOriginationRun = {
+    id: `orig_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
+    created_at: createdAt,
+    thesis: form.buyerThesis,
+    sector: form.sector,
+    geography: form.geo,
+    size_criteria: form.sizeCriteria,
+    strategic_rationale: form.rationale,
+    result_summary: safeStr(result.summary ?? result.thesis_summary) || `${candidateCount(result)} candidates`,
+    result,
+    form,
+  };
+  const existing = readOriginationRuns();
+  writeOriginationRuns([run, ...existing]);
+  return run;
+}
+
+function deleteOriginationRun(id: string): StoredOriginationRun[] {
+  const runs = readOriginationRuns().filter(run => run.id !== id);
+  writeOriginationRuns(runs);
+  return runs;
+}
+
+function readSavedLeads(): StoredCompareCandidate[] {
+  if (!storageAvailable()) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SAVED_LEADS_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(item => item && typeof item === 'object')
+      .map(item => item as StoredCompareCandidate)
+      .filter(item => item.company_name || item.source_url || item.website);
+  } catch {
+    return [];
+  }
+}
+
+function writeSavedLeads(leads: StoredCompareCandidate[]): void {
+  if (!storageAvailable()) return;
+  window.localStorage.setItem(SAVED_LEADS_KEY, JSON.stringify(leads));
+}
+
+function addSavedLead(lead: StoredCompareCandidate): { added: boolean; leads: StoredCompareCandidate[] } {
+  const existing = readSavedLeads();
+  const key = candidateStorageKey(lead);
+  if (existing.some(item => candidateStorageKey(item) === key)) {
+    return { added: false, leads: existing };
+  }
+  const leads = [{ ...lead, saved_at: new Date().toISOString() }, ...existing];
+  writeSavedLeads(leads);
+  return { added: true, leads };
+}
+
+function removeSavedLead(lead: Pick<StoredCompareCandidate, 'company_name' | 'website' | 'jurisdiction'>): StoredCompareCandidate[] {
+  const key = candidateStorageKey(lead);
+  const leads = readSavedLeads().filter(item => candidateStorageKey(item) !== key);
+  writeSavedLeads(leads);
+  return leads;
+}
+
 function numericOrNull(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   const parsed = Number(safeStr(value));
@@ -379,7 +507,10 @@ function numericOrNull(value: unknown): number | null {
 function storedCandidateFromOrigination(candidate: Record<string, unknown>): StoredCompareCandidate {
   const name = safeStr(candidate.company_name ?? candidate.company ?? candidate.name) || 'Unnamed candidate';
   const website = safeStr(candidate.website);
-  const hasWebsite = Boolean(website.trim());
+  const type = candidateType(candidate);
+  const sourceUrl = sourceUrls(candidate)[0] || '';
+  const compareReady = candidate.compare_ready === true || (type === 'company_candidate' && Boolean(website.trim()) && candidate.compare_ready !== false);
+  const runReady = candidate.run_ready === true || (type === 'company_candidate' && Boolean(website.trim()) && candidate.run_ready !== false);
   return {
     company_name: name,
     website,
@@ -387,15 +518,17 @@ function storedCandidateFromOrigination(candidate: Record<string, unknown>): Sto
     sector: safeStr(candidate.sector ?? candidate.vertical),
     source: 'origination',
     source_label: safeStr(candidate.source_label),
-    source_url: sourceUrls(candidate)[0] || '',
+    source_url: sourceUrl,
+    candidate_type: type,
+    source_page_title: safeStr(candidate.source_page_title ?? candidate.source_title),
     evidence_status: safeStr(candidate.evidence_status ?? candidate.verification_status),
     fit_score_100: numericOrNull(candidate.fit_score_100 ?? candidate.fit_score ?? candidate.score),
     recommendation: safeStr(candidate.recommendation ?? candidate.verdict),
     candidate_quality: safeStr(candidate.candidate_quality),
-    website_status: hasWebsite ? safeStr(candidate.website_status, 'known') : 'missing',
-    compare_ready: hasWebsite,
-    run_ready: hasWebsite,
-    ...(hasWebsite ? {} : { compare_note: 'Website must be confirmed before comparison.' }),
+    website_status: website.trim() ? safeStr(candidate.website_status, 'known') : 'missing',
+    compare_ready: compareReady,
+    run_ready: runReady,
+    ...(compareReady ? {} : { compare_note: 'Website/company target required before comparison.' }),
   };
 }
 
@@ -404,12 +537,14 @@ function storedCandidateFromOrigination(candidate: Record<string, unknown>): Sto
 function OriginationResultView({
   data,
   onReset,
+  onWorkspaceChange,
 }: {
   data: OriginationResult;
   onReset: () => void;
+  onWorkspaceChange: () => void;
 }) {
   const [showRejected, setShowRejected] = useState(false);
-  const [savedCandidates, setSavedCandidates] = useState<Set<string>>(() => new Set());
+  const [savedCandidates, setSavedCandidates] = useState<Set<string>>(() => new Set(readSavedLeads().map(candidateStorageKey)));
   const [compareMessages, setCompareMessages] = useState<Record<string, string>>({});
   const [selectedCandidates, setSelectedCandidates] = useState<StoredCompareCandidate[]>(() => readSelectedCandidates());
 
@@ -466,21 +601,22 @@ function OriginationResultView({
   }
 
   function handleSaveCandidate(candidate: Record<string, unknown>) {
-    const name = safeStr(candidate.company_name ?? candidate.company ?? candidate.name) || 'Unnamed candidate';
-    const missingEvidence = asList(candidate.missing_evidence ?? candidate.evidence_gaps);
+    const stored = storedCandidateFromOrigination(candidate);
     saveOriginationTarget({
-      companyName: name,
-      website: safeStr(candidate.website),
-      sector: safeStr(candidate.sector ?? candidate.vertical),
-      country: safeStr(candidate.country ?? candidate.jurisdiction),
+      companyName: stored.company_name,
+      website: stored.website,
+      sector: stored.sector || '',
+      country: stored.jurisdiction,
       fitScore: safeStr(candidate.fit_score),
       evidenceConfidence: safeStr(candidate.evidence_confidence, 'Low'),
       aiRisk: safeStr(candidate.ai_risk ?? candidate.ai_risk_view, 'Unknown'),
       whyItFits: safeStr(candidate.why_it_fits ?? candidate.why_fits ?? candidate.rationale),
-      missingEvidence,
-      nextAction: safeStr(candidate.next_action, 'Run URL screen before outreach or IC use.'),
+      missingEvidence: asList(candidate.missing_evidence ?? candidate.evidence_gaps),
+      nextAction: safeStr(candidate.next_action, stored.run_ready ? 'Run URL screen before outreach or IC use.' : 'Find and verify operating website.'),
     });
-    setSavedCandidates(prev => new Set(prev).add(name));
+    addSavedLead(stored);
+    setSavedCandidates(prev => new Set(prev).add(candidateStorageKey(stored)));
+    onWorkspaceChange();
   }
 
   function compareCandidateKey(candidate: Record<string, unknown>): string {
@@ -501,13 +637,20 @@ function OriginationResultView({
     const selected = selectedCandidateKeys().has(key);
     const next = selected ? removeSelectedCandidate(stored) : addSelectedCandidate(stored).candidates;
     setSelectedCandidates(next);
+    onWorkspaceChange();
   }
 
   function handleAddToCompare(candidate: Record<string, unknown>) {
     const stored = storedCandidateFromOrigination(candidate);
+    if (stored.compare_ready === false) {
+      const key = compareCandidateKey(candidate);
+      setCompareMessages(prev => ({ ...prev, [key]: 'Website/company target required before comparison' }));
+      return;
+    }
     const { added } = addCompareCandidate(stored);
     const key = compareCandidateKey(candidate);
     setCompareMessages(prev => ({ ...prev, [key]: added ? 'Added to Compare' : 'In Compare' }));
+    onWorkspaceChange();
   }
 
   function handleRunCandidate(candidate: Record<string, unknown>) {
@@ -530,6 +673,7 @@ function OriginationResultView({
   function handleCompareSelected() {
     const ready = selectedCandidates.filter(candidate => candidate.compare_ready !== false && candidate.website).slice(0, 5);
     ready.forEach(candidate => addCompareCandidate(candidate));
+    onWorkspaceChange();
     if (ready.length > 0) window.location.href = '/app/compare';
   }
 
@@ -560,17 +704,20 @@ function OriginationResultView({
         missingEvidence: candidate.website ? [] : ['Website required before screening.'],
         nextAction: candidate.website ? 'Run URL screen before outreach or IC use.' : 'Find and verify operating website.',
       });
+      addSavedLead(candidate);
     });
     setSavedCandidates(prev => {
       const next = new Set(prev);
-      selectedCandidates.forEach(candidate => next.add(candidate.company_name));
+      selectedCandidates.forEach(candidate => next.add(candidateStorageKey(candidate)));
       return next;
     });
+    onWorkspaceChange();
   }
 
   function handleClearSelection() {
     clearSelectedCandidates();
     setSelectedCandidates([]);
+    onWorkspaceChange();
   }
 
   function renderSelectionTray() {
@@ -688,6 +835,7 @@ function OriginationResultView({
     const compareKey = compareCandidateKey(c);
     const isSelected = selectedCandidateKeys().has(compareKey);
     const inCompare = compareCandidateKeys().has(compareKey);
+    const stored = storedCandidateFromOrigination(c);
     const canSaveCandidate = Boolean(name);
 
     return (
@@ -741,10 +889,10 @@ function OriginationResultView({
           <button
             type="button"
             onClick={() => handleRunCandidate(c)}
-            disabled={!website}
+            disabled={stored.run_ready === false || !website}
             className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Run screen →
+            {stored.run_ready === false || !website ? 'Find website' : 'Run screen →'}
           </button>
           {canSaveCandidate && (
             <button
@@ -752,16 +900,18 @@ function OriginationResultView({
               onClick={() => handleSaveCandidate(c)}
               className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
             >
-              {savedCandidates.has(name) ? 'Saved lead' : 'Save lead'}
+              {savedCandidates.has(candidateStorageKey(stored)) ? 'Saved lead' : 'Save lead'}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => handleAddToCompare(c)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-          >
-            {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
-          </button>
+          {stored.compare_ready !== false && website && (
+            <button
+              type="button"
+              onClick={() => handleAddToCompare(c)}
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+            >
+              {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
+            </button>
+          )}
           {!website && <span className="text-[11px] text-amber-700">Website required before Run/Compare</span>}
           {action && <span className="text-[11px] text-muted-foreground/60">{action}</span>}
         </div>
@@ -788,6 +938,7 @@ function OriginationResultView({
     const compareKey = compareCandidateKey(c);
     const isSelected = selectedCandidateKeys().has(compareKey);
     const inCompare = compareCandidateKeys().has(compareKey);
+    const stored = storedCandidateFromOrigination(c);
     return (
       <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[.7fr_1.4fr_1fr_.8fr_.8fr_.9fr_1.4fr_.8fr_.9fr] gap-2 px-4 py-3 text-xs items-start">
         <button
@@ -811,28 +962,77 @@ function OriginationResultView({
           <span className="text-muted-foreground/50">No registry link</span>
         )}
         <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => handleAddToCompare(c)}
-            className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-          >
-            {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
-          </button>
+          {stored.compare_ready !== false && website && (
+            <button
+              type="button"
+              onClick={() => handleAddToCompare(c)}
+              className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+            >
+              {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => handleRunCandidate(c)}
-            disabled={!website}
+            disabled={stored.run_ready === false || !website}
             className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
           >
-            Run screen
+            {stored.run_ready === false || !website ? 'Find website' : 'Run screen'}
           </button>
           <button
             type="button"
             onClick={() => handleSaveCandidate(c)}
             className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
           >
-            {savedCandidates.has(name) ? 'Saved lead' : 'Save lead'}
+            {savedCandidates.has(candidateStorageKey(stored)) ? 'Saved lead' : 'Save lead'}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderResearchSourceRow(c: Record<string, unknown>, i: number) {
+    const stored = storedCandidateFromOrigination(c);
+    const title = stored.source_page_title || stored.company_name || 'Research source';
+    const sourceUrl = stored.source_url;
+    return (
+      <div key={`${title}-${i}`} className="px-4 py-3 border-t border-border/50">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <p className="text-sm font-semibold text-foreground">{title}</p>
+              <SemanticBadge tone="unknown">{humanLabel(stored.candidate_type || 'source_page')}</SemanticBadge>
+              <SemanticBadge tone="partial">Extraction required</SemanticBadge>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {safeStr(c.source_snippet ?? c.description, 'Research source only. Extract actual company targets before screening.')}
+            </p>
+            {sourceUrl && (
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex text-xs text-primary hover:underline">
+                {sourceUrl}
+              </a>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleSaveCandidate(c)}
+              className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+            >
+              {savedCandidates.has(candidateStorageKey(stored)) ? 'Saved source' : 'Save source'}
+            </button>
+            {sourceUrl && (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
+              >
+                Review source
+              </a>
+            )}
+            <span className="inline-flex items-center text-[11px] text-muted-foreground px-1">Extract companies later</span>
+          </div>
         </div>
       </div>
     );
@@ -852,7 +1052,7 @@ function OriginationResultView({
     );
   }
 
-  function renderCandidateGroup(title: string, items: Record<string, unknown>[], mode: 'full' | 'compact' | 'excluded') {
+  function renderCandidateGroup(title: string, items: Record<string, unknown>[], mode: 'full' | 'compact' | 'excluded' | 'source') {
     if (items.length === 0) return null;
     return (
       <div className="rounded-lg border border-border overflow-hidden">
@@ -879,6 +1079,8 @@ function OriginationResultView({
               ? renderFullCandidateCard(item, index)
               : mode === 'compact'
               ? renderCompactCandidateRow(item, index)
+              : mode === 'source'
+              ? renderResearchSourceRow(item, index)
               : renderExcludedCandidate(item, index)
           ))}
         </div>
@@ -988,6 +1190,7 @@ function OriginationResultView({
       )}
 
       {renderCandidateGroup('Screenable product candidates', groupedCandidates.screenable, 'full')}
+      {renderCandidateGroup('Research sources', groupedCandidates.researchSources, 'source')}
       {renderCandidateGroup('Registry leads needing website confirmation', groupedCandidates.needsWebsite, 'compact')}
       {renderCandidateGroup('Low priority registry matches', groupedCandidates.lowPriority, 'compact')}
       {renderCandidateGroup('Excluded / hidden', groupedCandidates.excluded, 'excluded')}
@@ -1234,11 +1437,221 @@ function OriginationUnavailable({
   );
 }
 
+function formatStoredTime(value: string): string {
+  if (!value) return 'Unknown date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function shortText(value: string, fallback: string, limit = 88): string {
+  const text = value.trim() || fallback;
+  return text.length > limit ? `${text.slice(0, limit - 1).trim()}…` : text;
+}
+
+function OriginationWorkspacePanel({
+  runs,
+  savedLeads,
+  compareCandidates,
+  currentRunId,
+  onRestoreRun,
+  onDeleteRun,
+  onRunLead,
+  onAddLeadToCompare,
+  onRemoveLead,
+  onRemoveCompare,
+  onClearCompare,
+}: {
+  runs: StoredOriginationRun[];
+  savedLeads: StoredCompareCandidate[];
+  compareCandidates: StoredCompareCandidate[];
+  currentRunId?: string;
+  onRestoreRun: (run: StoredOriginationRun) => void;
+  onDeleteRun: (id: string) => void;
+  onRunLead: (lead: StoredCompareCandidate) => void;
+  onAddLeadToCompare: (lead: StoredCompareCandidate) => void;
+  onRemoveLead: (lead: StoredCompareCandidate) => void;
+  onRemoveCompare: (lead: StoredCompareCandidate) => void;
+  onClearCompare: () => void;
+}) {
+  const compareReady = compareCandidates.filter(candidate => candidate.compare_ready !== false && candidate.website);
+  const comparePending = compareCandidates.filter(candidate => candidate.compare_ready === false || !candidate.website);
+  const researchSources = savedLeads.filter(lead => ['source_page', 'directory_or_listicle', 'news_article'].includes(lead.candidate_type || ''));
+
+  return (
+    <div className="rounded-lg border border-border bg-card/70 overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Origination workspace</p>
+          <p className="text-xs text-muted-foreground">Runs, saved leads, compare selection and research sources.</p>
+        </div>
+        <Link
+          href="/app/compare"
+          className={`inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${compareReady.length > 0 ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-border bg-background text-muted-foreground pointer-events-none opacity-60'}`}
+        >
+          Go to Compare
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 divide-y xl:divide-y-0 xl:divide-x divide-border">
+        <section className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Origination history</p>
+            <span className="text-[10px] text-muted-foreground">{runs.length}</span>
+          </div>
+          {runs.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No saved origination runs yet.</p>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-auto pr-1">
+              {runs.slice(0, 8).map(run => {
+                const summary = asRecord(run.result.candidate_summary);
+                return (
+                  <div key={run.id} className={`rounded-md border px-3 py-2 ${run.id === currentRunId ? 'border-primary/30 bg-primary/5' : 'border-border bg-background/60'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold text-foreground">{formatStoredTime(run.created_at)}</p>
+                      {run.id === currentRunId && <SemanticBadge tone="info" className="text-[10px] px-2 py-1">Current</SemanticBadge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                      {shortText(run.thesis, `${run.geography || 'Any'} / ${run.sector || 'Any'}`)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-1">
+                      {candidateCount(run.result)} candidates
+                      {safeStr(summary.discovery_quality) ? ` · ${humanLabel(safeStr(summary.discovery_quality))} quality` : ''}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <button type="button" onClick={() => onRestoreRun(run)} className="text-[11px] font-medium text-primary hover:underline">
+                        Restore
+                      </button>
+                      <button type="button" onClick={() => onDeleteRun(run.id)} className="text-[11px] font-medium text-muted-foreground hover:text-destructive">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Saved leads</p>
+            <span className="text-[10px] text-muted-foreground">{savedLeads.length}</span>
+          </div>
+          {savedLeads.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Save candidates or sources from results to keep them here.</p>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-auto pr-1">
+              {savedLeads.slice(0, 10).map(lead => (
+                <div key={candidateStorageKey(lead)} className="rounded-md border border-border bg-background/60 px-3 py-2">
+                  <p className="text-xs font-semibold text-foreground">{lead.company_name || lead.source_page_title || 'Saved lead'}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 break-all">{lead.website || lead.source_url || 'Website not confirmed'}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <SemanticBadge tone={lead.candidate_type === 'company_candidate' ? 'info' : 'unknown'} className="text-[10px] px-2 py-1">
+                      {humanLabel(lead.candidate_type || 'company_candidate')}
+                    </SemanticBadge>
+                    <SemanticBadge tone={lead.compare_ready === false ? 'unknown' : 'verified'} className="text-[10px] px-2 py-1">
+                      {lead.compare_ready === false ? 'Not compare-ready' : 'Compare-ready'}
+                    </SemanticBadge>
+                    <SemanticBadge tone={lead.run_ready === false ? 'unknown' : 'verified'} className="text-[10px] px-2 py-1">
+                      {lead.run_ready === false ? 'Run not ready' : 'Run-ready'}
+                    </SemanticBadge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                    {lead.source_label || 'Origination'} · saved {formatStoredTime(lead.saved_at || '')}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {lead.run_ready !== false && lead.website ? (
+                      <button type="button" onClick={() => onRunLead(lead)} className="text-[11px] font-medium text-primary hover:underline">Run screen</button>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">Find website</span>
+                    )}
+                    {lead.compare_ready !== false && lead.website ? (
+                      <button type="button" onClick={() => onAddLeadToCompare(lead)} className="text-[11px] font-medium text-primary hover:underline">Add to Compare</button>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">Website/company target required before comparison.</span>
+                    )}
+                    <button type="button" onClick={() => onRemoveLead(lead)} className="text-[11px] font-medium text-muted-foreground hover:text-destructive">Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Compare selection</p>
+            <span className="text-[10px] text-muted-foreground">{compareCandidates.length}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Compare selection: {compareReady.length}
+            {comparePending.length > 0 ? ` · ${comparePending.length} pending` : ''}
+          </p>
+          {comparePending.length > 0 && (
+            <p className="rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
+              Website/company target required before comparison.
+            </p>
+          )}
+          {compareCandidates.length > 0 && (
+            <div className="space-y-2 max-h-80 overflow-auto pr-1">
+              {compareCandidates.slice(0, 8).map(candidate => (
+                <div key={candidateStorageKey(candidate)} className="rounded-md border border-border bg-background/60 px-3 py-2">
+                  <p className="text-xs font-semibold text-foreground">{candidate.company_name}</p>
+                  <p className="text-[11px] text-muted-foreground break-all">{candidate.website || candidate.source_url || 'Website missing'}</p>
+                  <button type="button" onClick={() => onRemoveCompare(candidate)} className="mt-1 text-[11px] font-medium text-muted-foreground hover:text-destructive">
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={onClearCompare} className="text-[11px] font-medium text-muted-foreground hover:text-foreground">
+                Clear compare selection
+              </button>
+            </div>
+          )}
+        </section>
+
+        <section className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Research sources</p>
+            <span className="text-[10px] text-muted-foreground">{researchSources.length}</span>
+          </div>
+          {researchSources.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Source pages/listicles saved from discovery will appear here.</p>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-auto pr-1">
+              {researchSources.slice(0, 8).map(source => (
+                <div key={candidateStorageKey(source)} className="rounded-md border border-border bg-background/60 px-3 py-2">
+                  <p className="text-xs font-semibold text-foreground">{source.source_page_title || source.company_name}</p>
+                  <p className="text-[11px] text-muted-foreground break-all">{source.source_url}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {source.source_url && (
+                      <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-primary hover:underline">
+                        Review source
+                      </a>
+                    )}
+                    <span className="text-[11px] text-muted-foreground">Extract companies later</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 // ─── Origination form ─────────────────────────────────────────────────────────
 
 type FormState =
   | { kind: 'idle' }
-  | { kind: 'result'; data: OriginationResult; restored?: boolean }
+  | { kind: 'result'; data: OriginationResult; restored?: boolean; runId?: string }
   | { kind: 'error'; message: string; diagnostics?: OriginationRequestDiagnostics };
 
 function OriginationForm() {
@@ -1250,11 +1663,66 @@ function OriginationForm() {
   const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
   const [targetUniverse, setTargetUniverse] = useState(storedForm.targetUniverse);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [runs, setRuns] = useState<StoredOriginationRun[]>(() => readOriginationRuns());
+  const [savedLeads, setSavedLeads] = useState<StoredCompareCandidate[]>(() => readSavedLeads());
+  const [compareCandidates, setCompareCandidates] = useState<StoredCompareCandidate[]>(() => readCompareCandidates());
   const [state,     setState    ] = useState<FormState>(() => {
     const storedResult = readStoredOriginationResult();
     return storedResult ? { kind: 'result', data: storedResult, restored: true } : { kind: 'idle' };
   });
   const statusCopy = discoveryStatusCopy(targetUniverse);
+
+  function refreshWorkspace() {
+    setRuns(readOriginationRuns());
+    setSavedLeads(readSavedLeads());
+    setCompareCandidates(readCompareCandidates());
+  }
+
+  function navigateRunLead(lead: StoredCompareCandidate) {
+    if (!lead.website || lead.run_ready === false) return;
+    const params = new URLSearchParams({
+      company_name: lead.company_name,
+      company: lead.company_name,
+      website: lead.website,
+      jurisdiction: lead.jurisdiction,
+      source: 'origination',
+    });
+    window.location.href = `/app/run?${params.toString()}`;
+  }
+
+  function addLeadToCompare(lead: StoredCompareCandidate) {
+    if (!lead.website || lead.compare_ready === false) return;
+    addCompareCandidate(lead);
+    refreshWorkspace();
+  }
+
+  function restoreRun(run: StoredOriginationRun) {
+    const form: OriginationFormValues = {
+      sector: run.form?.sector ?? run.sector ?? '',
+      geo: run.form?.geo ?? run.geography ?? '',
+      sizeCriteria: run.form?.sizeCriteria ?? run.size_criteria ?? '',
+      rationale: run.form?.rationale ?? run.strategic_rationale ?? '',
+      buyerThesis: run.form?.buyerThesis ?? run.thesis ?? '',
+      targetUniverse: run.form?.targetUniverse ?? '',
+    };
+    setSector(form.sector);
+    setGeo(form.geo);
+    setSizeCriteria(form.sizeCriteria);
+    setRationale(form.rationale);
+    setBuyerThesis(form.buyerThesis);
+    setTargetUniverse(form.targetUniverse);
+    storeOriginationRun(form, run.result);
+    setState({ kind: 'result', data: run.result, restored: true, runId: run.id });
+  }
+
+  function deleteRun(id: string) {
+    const updated = deleteOriginationRun(id);
+    setRuns(updated);
+    if (state.kind === 'result' && state.runId === id) {
+      clearStoredOriginationRun();
+      setState({ kind: 'idle' });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1279,7 +1747,9 @@ function OriginationForm() {
         ...(targets.length > 0 ? { targets } : {}),
       });
       storeOriginationRun(formValues, data);
-      setState({ kind: 'result', data, restored: false });
+      const storedRun = saveOriginationRunToHistory(formValues, data);
+      refreshWorkspace();
+      setState({ kind: 'result', data, restored: false, runId: storedRun.id });
     } catch (err) {
       console.error('[origination] run failed', err);
       setState({
@@ -1307,9 +1777,34 @@ function OriginationForm() {
     setState({ kind: 'idle' });
   }
 
+  const workspacePanel = (
+    <OriginationWorkspacePanel
+      runs={runs}
+      savedLeads={savedLeads}
+      compareCandidates={compareCandidates}
+      currentRunId={state.kind === 'result' ? state.runId : undefined}
+      onRestoreRun={restoreRun}
+      onDeleteRun={deleteRun}
+      onRunLead={navigateRunLead}
+      onAddLeadToCompare={addLeadToCompare}
+      onRemoveLead={lead => {
+        setSavedLeads(removeSavedLead(lead));
+      }}
+      onRemoveCompare={lead => {
+        removeCompareCandidate(lead);
+        refreshWorkspace();
+      }}
+      onClearCompare={() => {
+        compareCandidates.forEach(candidate => removeCompareCandidate(candidate));
+        refreshWorkspace();
+      }}
+    />
+  );
+
   if (state.kind === 'result') {
     return (
       <div className="space-y-4">
+        {workspacePanel}
         {state.restored && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
             <span>Restored last origination run</span>
@@ -1322,7 +1817,7 @@ function OriginationForm() {
             </button>
           </div>
         )}
-        <OriginationResultView data={state.data} onReset={handleReset} />
+        <OriginationResultView data={state.data} onReset={handleReset} onWorkspaceChange={refreshWorkspace} />
       </div>
     );
   }
@@ -1330,6 +1825,7 @@ function OriginationForm() {
   if (state.kind === 'error') {
     return (
       <div className="space-y-4">
+        {workspacePanel}
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>{state.message}</span>
@@ -1385,6 +1881,7 @@ function OriginationForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {workspacePanel}
       <div>
         <label className="block text-xs font-medium text-foreground mb-1.5">
           Buyer thesis

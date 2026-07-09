@@ -11,6 +11,8 @@ export interface StoredCompareCandidate {
   source: string;
   source_label: string;
   source_url?: string;
+  candidate_type?: string;
+  source_page_title?: string;
   evidence_status: string;
   fit_score_100: number | null;
   recommendation: string;
@@ -19,6 +21,7 @@ export interface StoredCompareCandidate {
   compare_ready?: boolean;
   run_ready?: boolean;
   compare_note?: string;
+  saved_at?: string;
 }
 
 function storageAvailable(): boolean {
@@ -53,6 +56,8 @@ export function readCompareCandidates(): StoredCompareCandidate[] {
         source: safeString(item.source) || 'origination',
         source_label: safeString(item.source_label),
         source_url: safeString(item.source_url) || undefined,
+        candidate_type: safeString(item.candidate_type) || undefined,
+        source_page_title: safeString(item.source_page_title) || undefined,
         evidence_status: safeString(item.evidence_status),
         fit_score_100: typeof item.fit_score_100 === 'number' ? item.fit_score_100 : null,
         recommendation: safeString(item.recommendation),
@@ -61,6 +66,7 @@ export function readCompareCandidates(): StoredCompareCandidate[] {
         compare_ready: typeof item.compare_ready === 'boolean' ? item.compare_ready : undefined,
         run_ready: typeof item.run_ready === 'boolean' ? item.run_ready : undefined,
         compare_note: safeString(item.compare_note) || undefined,
+        saved_at: safeString(item.saved_at) || undefined,
       }))
       .filter(item => item.company_name || item.website);
   } catch {
@@ -102,7 +108,27 @@ export function readSelectedCandidates(): StoredCompareCandidate[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter(item => item && typeof item === 'object')
-      .map(item => item as StoredCompareCandidate)
+      .map(item => item as Record<string, unknown>)
+      .map(item => ({
+        company_name: safeString(item.company_name),
+        website: safeString(item.website),
+        jurisdiction: safeString(item.jurisdiction),
+        sector: safeString(item.sector) || undefined,
+        source: safeString(item.source) || 'origination',
+        source_label: safeString(item.source_label),
+        source_url: safeString(item.source_url) || undefined,
+        candidate_type: safeString(item.candidate_type) || undefined,
+        source_page_title: safeString(item.source_page_title) || undefined,
+        evidence_status: safeString(item.evidence_status),
+        fit_score_100: typeof item.fit_score_100 === 'number' ? item.fit_score_100 : null,
+        recommendation: safeString(item.recommendation),
+        candidate_quality: safeString(item.candidate_quality) || undefined,
+        website_status: safeString(item.website_status) || undefined,
+        compare_ready: typeof item.compare_ready === 'boolean' ? item.compare_ready : undefined,
+        run_ready: typeof item.run_ready === 'boolean' ? item.run_ready : undefined,
+        compare_note: safeString(item.compare_note) || undefined,
+        saved_at: safeString(item.saved_at) || undefined,
+      }))
       .filter(item => item.company_name || item.website);
   } catch {
     return [];

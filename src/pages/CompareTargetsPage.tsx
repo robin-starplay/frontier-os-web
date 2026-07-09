@@ -22,7 +22,6 @@ import {
   type Level,
 } from '@/lib/frontierApi';
 import { saveCompareRun } from '@/lib/runHistory';
-import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAccount';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
@@ -44,6 +43,7 @@ interface CompanyRow {
   jurisdiction: Jurisdiction;
   source?: string;
   sourceLabel?: string;
+  candidateType?: string;
   evidenceStatus?: string;
   websiteStatus?: string;
   compareReady?: boolean;
@@ -69,6 +69,8 @@ const PROGRESS_STEPS: string[] = [
 ];
 
 const LAST_ORIGINATION_RESULT_KEY = 'frontier_last_origination_result';
+const COMPARE_READY_VALIDATION_MESSAGE = 'Some selected items are research sources or missing company websites. Remove them or confirm the company website before comparison.';
+const NON_COMPANY_CANDIDATE_TYPES = new Set(['source_page', 'directory_or_listicle', 'news_article', 'irrelevant']);
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -108,6 +110,7 @@ function rowFromStoredCandidate(candidate: StoredCompareCandidate): CompanyRow {
     jurisdiction: normalizeJurisdiction(candidate.jurisdiction),
     source: candidate.source,
     sourceLabel: candidate.source_label,
+    candidateType: candidate.candidate_type,
     evidenceStatus: candidate.evidence_status,
     websiteStatus: candidate.website_status,
     compareReady: candidate.compare_ready,
@@ -119,9 +122,21 @@ function rowFromStoredCandidate(candidate: StoredCompareCandidate): CompanyRow {
 }
 
 function initialCompanyRows(): CompanyRow[] {
-  const rows = readCompareCandidates().slice(0, 5).map(rowFromStoredCandidate);
+  const rows = readCompareCandidates()
+    .filter(candidate => candidate.compare_ready !== false && Boolean(candidate.website))
+    .slice(0, 5)
+    .map(rowFromStoredCandidate);
   while (rows.length < 2) rows.push(EMPTY_COMPANY());
   return rows;
+}
+
+function readPendingCompareCandidates(): StoredCompareCandidate[] {
+  return readCompareCandidates().filter(candidate => (
+    candidate.compare_ready === false
+    || !candidate.company_name
+    || !candidate.website
+    || NON_COMPANY_CANDIDATE_TYPES.has(candidate.candidate_type || '')
+  ));
 }
 
 function hasStoredOriginationResult(): boolean {
@@ -137,14 +152,10 @@ function normalizeComparePayload({
   buyer,
   buyerThesis,
   companies,
-  workspaceId,
-  userId,
 }: {
   buyer: string;
   buyerThesis: string;
   companies: CompanyRow[];
-  workspaceId: string | null;
-  userId: string | null;
 }): ComparePayload {
   return {
     buyer_name: buyer.trim() || undefined,
@@ -154,10 +165,16 @@ function normalizeComparePayload({
       website: normalizeWebsiteUrl(company.url),
       jurisdiction: company.jurisdiction,
     })),
-    ...(workspaceId && userId
-      ? { workspace_id: workspaceId, user_id: userId, save_to_cockpit: true }
-      : {}),
   };
+}
+
+function invalidCompareRowReason(company: CompanyRow): string {
+  if (!company.name.trim()) return 'Company name required.';
+  if (!company.url.trim()) return 'Website required.';
+  if (!isValidWebsiteUrl(normalizeWebsiteUrl(company.url))) return 'Valid website required.';
+  if (NON_COMPANY_CANDIDATE_TYPES.has(company.candidateType || '')) return 'Research source, not a company candidate.';
+  if (company.compareReady === false) return 'Not marked compare-ready.';
+  return '';
 }
 
 function showCompareDebug(): boolean {
@@ -713,6 +730,8 @@ export default function CompareTargetsPage() {
   const [saveSource, setSaveSource] = useState<'backend' | 'local' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorDiagnostics, setErrorDiagnostics] = useState<CompareRequestDiagnostics | null>(null);
+  const [pendingCompareCandidates, setPendingCompareCandidates] = useState<StoredCompareCandidate[]>(readPendingCompareCandidates);
+  const [invalidCompareRows, setInvalidCompareRows] = useState<CompanyRow[]>([]);
 
   function handleRemoveStoredCandidate(candidate: CompanyRow) {
     removeCompareCandidate({
@@ -725,6 +744,13 @@ export default function CompareTargetsPage() {
   function clearCompareSelection() {
     writeCompareCandidates([]);
     setCompanies([EMPTY_COMPANY(), EMPTY_COMPANY()]);
+    setPendingCompareCandidates([]);
+    setInvalidCompareRows([]);
+  }
+
+  function removePendingCompareCandidate(candidate: StoredCompareCandidate) {
+    removeCompareCandidate(candidate);
+    setPendingCompareCandidates(readPendingCompareCandidates());
   }
 
   async function handleSubmit() {
@@ -734,11 +760,18 @@ export default function CompareTargetsPage() {
       url: normalizeWebsiteUrl(company.url),
     }));
     const submittedCompanies = normalizedCompanies.filter(company => company.name);
+    const invalidSubmittedCompanies = submittedCompanies.filter(company => invalidCompareRowReason(company));
     const hasInvalidTarget = submittedCompanies.length < 2
-      || submittedCompanies.some(company => !company.url || !isValidWebsiteUrl(company.url));
+      || invalidSubmittedCompanies.length > 0
+      || pendingCompareCandidates.length > 0;
     setCompanies(normalizedCompanies);
     if (hasInvalidTarget) {
-      setError(WEBSITE_URL_VALIDATION_MESSAGE);
+      setInvalidCompareRows(invalidSubmittedCompanies);
+      setError(
+        pendingCompareCandidates.length > 0 || invalidSubmittedCompanies.length > 0
+          ? COMPARE_READY_VALIDATION_MESSAGE
+          : WEBSITE_URL_VALIDATION_MESSAGE,
+      );
       setPhase('form');
       return;
     }
@@ -749,19 +782,14 @@ export default function CompareTargetsPage() {
     setResult(null);
     setError(null);
     setErrorDiagnostics(null);
+    setInvalidCompareRows([]);
     setPhase('loading');
 
-    // Provision backend workspace on first run (no-op if already done; silent on failure)
-    await createBackendAccount(buyer, buyerThesis).catch(() => null);
-    // Start API call — include workspace IDs when available for backend persistence
-    const workspaceId = getWorkspaceId();
-    const userId = getUserId();
+    // Start API call with the strict compare contract.
     const comparePayload = normalizeComparePayload({
       buyer,
       buyerThesis,
       companies: submittedCompanies,
-      workspaceId,
-      userId,
     });
     if (showCompareDebug()) {
       console.info('[compare] request payload', comparePayload);
@@ -813,6 +841,7 @@ export default function CompareTargetsPage() {
 
   const storedCompareCount = readCompareCandidates().length;
   const showBackToOrigination = hasStoredOriginationResult();
+  const hasInvalidCompareItems = pendingCompareCandidates.length > 0 || invalidCompareRows.length > 0;
 
   const pageHeader = (
     <div className="w-full border-b border-border bg-card/30">
@@ -869,6 +898,41 @@ export default function CompareTargetsPage() {
                 Enter known company websites below. Frontier OS will call the backend compare endpoint and render only returned evidence, claims, blockers and next actions.
               </p>
             </div>
+
+            {hasInvalidCompareItems && (
+              <div className="mb-6 rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-5 py-4">
+                <p className="text-sm font-semibold text-[var(--semantic-claim-text)] mb-1">
+                  Some selected items are research sources or missing company websites.
+                </p>
+                <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
+                  Remove them or confirm the company website before comparison.
+                </p>
+                <div className="space-y-2">
+                  {pendingCompareCandidates.map(candidate => (
+                    <div key={`${candidate.company_name}-${candidate.source_url || candidate.website}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[var(--semantic-claim-text)]">
+                      <span>
+                        {candidate.company_name || candidate.source_page_title || 'Pending lead'} · {candidate.source_url || candidate.website || 'Website missing'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removePendingCompareCandidate(candidate)}
+                        className="w-fit font-medium hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {invalidCompareRows.map((candidate, index) => (
+                    <div key={`${candidate.name}-${index}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[var(--semantic-claim-text)]">
+                      <span>
+                        {candidate.name || 'Missing company name'} · {candidate.url || 'Website missing'} · {invalidCompareRowReason(candidate)}
+                      </span>
+                      <span className="text-[11px]">Edit the row below</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <CompareForm
               buyer={buyer}             setBuyer={setBuyer}
