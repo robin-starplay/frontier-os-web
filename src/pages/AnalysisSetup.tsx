@@ -1157,7 +1157,7 @@ function TargetPickerSection({
                       <SemanticBadge tone="info">Already screened</SemanticBadge>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground break-all">
+                  <p className="mt-1 max-w-full overflow-hidden break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
                     {target.website || target.source_url || 'Add official website before screening'}
                   </p>
                   <p className="mt-1 text-[11px] text-muted-foreground/70">{target.source_label}</p>
@@ -1175,7 +1175,7 @@ function TargetPickerSection({
                     onClick={event => { event.stopPropagation(); onAddWebsite(target); }}
                     className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
                   >
-                    {ready ? 'Edit website' : 'Add website'}
+                    {ready ? 'Edit website' : 'Find website'}
                   </button>
                   {ready ? (
                     <button
@@ -1191,7 +1191,7 @@ function TargetPickerSection({
                       onClick={event => { event.stopPropagation(); onAddWebsite(target); }}
                       className="inline-flex h-8 items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-accent transition-colors"
                     >
-                      Add website
+                      Find website
                     </button>
                   )}
                   {target.screening_status === 'screened' && onCompare && (
@@ -1254,6 +1254,7 @@ function TargetPicker({
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [editTarget, setEditTarget] = React.useState<RunTarget | null>(null);
   const [editMode, setEditMode] = React.useState<LeadEditMode>('details');
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const targets = React.useMemo(() => runTargetsFromStorage(), [refreshKey]);
   const hasTargets = targets.origination.length > 0 || targets.savedLeads.length > 0 || targets.cockpit.length > 0;
   const readySavedLeads = targets.savedLeads.filter(target => Boolean(target.website));
@@ -1278,9 +1279,24 @@ function TargetPicker({
     setRefreshKey(key => key + 1);
     if (target.website) onUseTarget(target);
   };
+  React.useEffect(() => {
+    const openPicker = () => {
+      setPickerOpen(true);
+      window.setTimeout(() => {
+        document.getElementById('screen-target-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    };
+    window.addEventListener('frontier:open-target-picker', openPicker);
+    return () => window.removeEventListener('frontier:open-target-picker', openPicker);
+  }, []);
   return (
     <>
-      <details id="screen-target-picker" className="mt-6 rounded-lg border border-border bg-card/80 overflow-hidden">
+      <details
+        id="screen-target-picker"
+        open={pickerOpen}
+        onToggle={event => setPickerOpen(event.currentTarget.open)}
+        className="mt-6 rounded-lg border border-border bg-card/80 overflow-hidden"
+      >
         <summary className="cursor-pointer list-none px-5 py-4 border-b border-border bg-card/90">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -1429,12 +1445,13 @@ function Step1({
               <p className="text-sm font-medium text-[var(--semantic-info-text)]">
                 {readySavedLeadCount} ready-to-screen saved lead{readySavedLeadCount === 1 ? '' : 's'} available
               </p>
-              <a
-                href="#screen-target-picker"
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('frontier:open-target-picker'))}
                 className="inline-flex h-8 w-fit items-center justify-center rounded-md border border-[var(--semantic-info-border)] bg-background px-3 text-xs font-semibold text-[var(--semantic-info-text)] hover:bg-accent transition-colors"
               >
                 Choose saved lead
-              </a>
+              </button>
             </div>
           )}
           <Card id="screen-company-form" className="border-border bg-card/90">

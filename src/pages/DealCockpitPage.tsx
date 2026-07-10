@@ -723,7 +723,7 @@ function SavedRunCard({
                 <p className="text-base font-semibold text-foreground leading-snug break-words">{run.company}</p>
               </button>
               {displayText(run.website) && (
-                <p className="text-xs text-muted-foreground mt-0.5 break-all">{run.website}</p>
+                <p className="mt-0.5 max-w-full overflow-hidden break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">{run.website}</p>
               )}
             </div>
           </div>
