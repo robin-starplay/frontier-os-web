@@ -269,7 +269,7 @@ function writeCockpitCompareSelection(candidates: StoredCompareCandidate[]): voi
 // ─── Screen Detail Panel (real run entries) ──────────────────────────────────────
 
 type CockpitTab = 'summary' | 'evidence' | 'ai-risk' | 'diligence' | 'decisions' | 'exports';
-type CockpitEditMode = 'target' | 'website' | 'financials' | 'clients' | 'team' | 'product_ai' | 'note';
+type CockpitEditMode = 'target' | 'website' | 'evidence' | 'financials' | 'clients' | 'team' | 'product_ai' | 'note';
 
 function ContextActionRow({
   actions,
@@ -339,6 +339,22 @@ function RunDetailPanel({
               <PencilLine className="h-3.5 w-3.5" />
               Edit target
             </button>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onEdit(run, 'website')}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+              >
+                {run.website ? 'Edit website' : 'Add website'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onAddEvidence(run, 'evidence')}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+              >
+                Add evidence
+              </button>
+            </div>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5"><X className="w-4 h-4" /></button>
         </div>
@@ -772,6 +788,7 @@ function cockpitNextAction(run: RunEntry): string {
 const editModeTitle: Record<CockpitEditMode, string> = {
   target: 'Edit target',
   website: 'Add website',
+  evidence: 'Add evidence',
   financials: 'Add financials',
   clients: 'Add clients',
   team: 'Add team size',
@@ -801,6 +818,7 @@ function CockpitEditSheet({
   const [sourceNote, setSourceNote] = useState('');
   const [allowSourceOverride, setAllowSourceOverride] = useState(false);
   const [error, setError] = useState('');
+  const [activeEvidenceSection, setActiveEvidenceSection] = useState<CockpitEditMode>('financials');
 
   const [revenue, setRevenue] = useState('');
   const [arr, setArr] = useState('');
@@ -847,6 +865,7 @@ function CockpitEditSheet({
     setSourceNote('');
     setAllowSourceOverride(false);
     setError('');
+    setActiveEvidenceSection(mode === 'evidence' ? 'financials' : mode);
 
     setRevenue(textValue(financials.revenue, ''));
     setArr(textValue(financials.arr, ''));
@@ -875,6 +894,7 @@ function CockpitEditSheet({
 
   if (!run) return null;
 
+  const activeMode = mode === 'evidence' ? activeEvidenceSection : mode;
   const sourcePageWarning = website.trim() && looksLikeSourcePageUrl(website);
 
   const patchRun = (patch: Partial<RunEntry>, evidencePatch?: Record<string, unknown>, message = 'Target updated') => {
@@ -898,7 +918,7 @@ function CockpitEditSheet({
 
   const saveTarget = () => {
     const normalizedWebsite = normalizeWebsiteUrl(website);
-    if ((mode === 'website' || normalizedWebsite) && normalizedWebsite && !/^https?:\/\/[^.\s]+\.[^\s]+/i.test(normalizedWebsite)) {
+    if ((activeMode === 'website' || normalizedWebsite) && normalizedWebsite && !/^https?:\/\/[^.\s]+\.[^\s]+/i.test(normalizedWebsite)) {
       setError('Enter a valid company website URL.');
       return;
     }
@@ -949,7 +969,7 @@ function CockpitEditSheet({
 
   const saveEvidence = () => {
     let evidencePatch: Record<string, unknown> = {};
-    if (mode === 'financials') {
+    if (activeMode === 'financials') {
       evidencePatch = {
         user_supplied_financials: {
           revenue,
@@ -965,7 +985,7 @@ function CockpitEditSheet({
         },
         evidence_confidence: 'User-supplied claim',
       };
-    } else if (mode === 'clients') {
+    } else if (activeMode === 'clients') {
       evidencePatch = {
         user_supplied_clients: {
           client_names: clientNames,
@@ -975,7 +995,7 @@ function CockpitEditSheet({
           evidence_status: clientSource ? 'source_backed_unverified' : 'user_supplied_claim',
         },
       };
-    } else if (mode === 'team') {
+    } else if (activeMode === 'team') {
       evidencePatch = {
         team_size_signal: {
           team_size: teamSize,
@@ -984,7 +1004,7 @@ function CockpitEditSheet({
           evidence_status: teamSource ? 'source_backed_unverified' : 'user_supplied_claim',
         },
       };
-    } else if (mode === 'product_ai') {
+    } else if (activeMode === 'product_ai') {
       evidencePatch = {
         product_signal: {
           product_summary: productSummary,
@@ -998,7 +1018,7 @@ function CockpitEditSheet({
           evidence_status: productSource ? 'source_backed_unverified' : 'user_supplied_claim',
         },
       };
-    } else if (mode === 'note') {
+    } else if (activeMode === 'note') {
       evidencePatch = {
         note: {
           note: notes,
@@ -1013,20 +1033,50 @@ function CockpitEditSheet({
     onOpenChange(false);
   };
 
-  const save = mode === 'target' || mode === 'website' ? saveTarget : saveEvidence;
+  const save = activeMode === 'target' || activeMode === 'website' ? saveTarget : saveEvidence;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>{mode === 'website' ? 'Confirm official website' : editModeTitle[mode]}</SheetTitle>
+          <SheetTitle>{activeMode === 'website' ? 'Confirm official website' : editModeTitle[mode]}</SheetTitle>
           <SheetDescription>
             Edits are saved locally and treated as user-supplied claims unless independently verified by a later screen.
           </SheetDescription>
         </SheetHeader>
 
         <div className="mt-6 space-y-5">
-          {(mode === 'target' || mode === 'website') && (
+          {mode === 'evidence' && (
+            <div className="rounded-lg border border-border bg-card/60 p-3">
+              <p className="mb-3 text-xs font-semibold text-muted-foreground">Evidence section</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {([
+                  ['website', 'Website'],
+                  ['financials', 'Financials'],
+                  ['clients', 'Clients'],
+                  ['team', 'Team size'],
+                  ['product_ai', 'Product / AI'],
+                  ['note', 'Notes'],
+                ] as [CockpitEditMode, string][]).map(([section, label]) => (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() => setActiveEvidenceSection(section)}
+                    className={cn(
+                      'inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-semibold transition-colors',
+                      activeEvidenceSection === section
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(activeMode === 'target' || activeMode === 'website') && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="cockpit-company">Company name</Label>
@@ -1058,7 +1108,7 @@ function CockpitEditSheet({
                 <Label htmlFor="cockpit-notes">Notes</Label>
                 <Textarea id="cockpit-notes" value={notes} onChange={event => setNotes(event.target.value)} rows={3} />
               </div>
-              {mode === 'website' && (
+              {activeMode === 'website' && (
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="cockpit-source-note">Source note</Label>
                   <Input id="cockpit-source-note" value={sourceNote} onChange={event => setSourceNote(event.target.value)} placeholder="Where did the website confirmation come from?" />
@@ -1067,7 +1117,7 @@ function CockpitEditSheet({
             </div>
           )}
 
-          {mode === 'financials' && (
+          {activeMode === 'financials' && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InputGroup id="financial-revenue" label="Revenue" value={revenue} onChange={setRevenue} />
               <InputGroup id="financial-arr" label="ARR" value={arr} onChange={setArr} />
@@ -1081,7 +1131,7 @@ function CockpitEditSheet({
             </div>
           )}
 
-          {mode === 'clients' && (
+          {activeMode === 'clients' && (
             <div className="space-y-4">
               <TextAreaGroup id="client-names" label="Client names" value={clientNames} onChange={setClientNames} />
               <TextAreaGroup id="client-concentration" label="Customer concentration note" value={customerConcentration} onChange={setCustomerConcentration} />
@@ -1090,7 +1140,7 @@ function CockpitEditSheet({
             </div>
           )}
 
-          {mode === 'team' && (
+          {activeMode === 'team' && (
             <div className="space-y-4">
               <InputGroup id="team-size" label="Team size / range" value={teamSize} onChange={setTeamSize} />
               <InputGroup id="team-source-type" label="Source type" value={teamSourceType} onChange={setTeamSourceType} placeholder="LinkedIn, company website, user estimate, other" />
@@ -1098,7 +1148,7 @@ function CockpitEditSheet({
             </div>
           )}
 
-          {mode === 'product_ai' && (
+          {activeMode === 'product_ai' && (
             <div className="space-y-4">
               <TextAreaGroup id="product-summary" label="Product summary" value={productSummary} onChange={setProductSummary} />
               <TextAreaGroup id="ai-features" label="AI features / AI usage" value={aiFeatures} onChange={setAiFeatures} />
@@ -1107,7 +1157,7 @@ function CockpitEditSheet({
             </div>
           )}
 
-          {mode === 'note' && (
+          {activeMode === 'note' && (
             <div className="space-y-4">
               <TextAreaGroup id="cockpit-note" label="Note" value={notes} onChange={setNotes} />
               <InputGroup id="cockpit-note-source" label="Source note" value={sourceNote} onChange={setSourceNote} />
@@ -1133,7 +1183,7 @@ function CockpitEditSheet({
 
         <SheetFooter className="mt-6">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" onClick={save}>{mode === 'website' ? 'Save website' : 'Save changes'}</Button>
+          <Button type="button" onClick={save}>{activeMode === 'website' ? 'Save website' : 'Save changes'}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -1340,10 +1390,19 @@ function SavedRunCard({
                 Edit
               </button>
             )}
+            {!missingWebsite && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit('website')}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+              >
+                Edit website
+              </button>
+            )}
             {onAddEvidence && (
               <button
                 type="button"
-                onClick={() => onAddEvidence('note')}
+                onClick={() => onAddEvidence('evidence')}
                 className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
               >
                 Add evidence
@@ -1353,8 +1412,23 @@ function SavedRunCard({
               href={runScreenHref(run)}
               className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
             >
-              Screen again
+              {run.type === 'url' || run.type === 'document' ? 'Re-screen' : 'Screen again'}
             </Link>
+            {onToggleCompare && (
+              <button
+                type="button"
+                onClick={onToggleCompare}
+                disabled={!canSelectForCompare}
+                className={cn(
+                  'inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors',
+                  canSelectForCompare
+                    ? 'border-border bg-background text-foreground hover:bg-accent'
+                    : 'cursor-not-allowed border-border bg-muted text-muted-foreground opacity-70',
+                )}
+              >
+                {selected ? 'In Compare' : 'Send to Compare'}
+              </button>
+            )}
             {onRemove && (
               <button
                 type="button"
