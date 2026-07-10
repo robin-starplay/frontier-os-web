@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { DEMO_SCENARIOS, DEFAULT_SCENARIO, NEUTRAL_STAGES, type DemoScenario, type AnalysisStageData } from '@/data/scenarios';
 import { useAccess } from '@/contexts/AccessContext';
@@ -47,7 +48,11 @@ import {
   getCompareCandidates,
   getOriginationTargets,
   getSavedLeads,
+  getAllWorkflowTargets,
+  removeWorkflowTarget,
   saveCompareCandidates,
+  saveLead,
+  updateWorkflowTarget,
   type WorkflowTarget,
 } from '@/lib/workflowTargets';
 
