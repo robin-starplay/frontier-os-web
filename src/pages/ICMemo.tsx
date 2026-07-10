@@ -3,12 +3,26 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tool
 import { CheckCircle2, AlertTriangle, ShieldAlert, Target, ShieldCheck, Database, FileText } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { EVIDENCE_CARDS } from '@/data/mockData';
 import { EvidenceCard } from '@/components/EvidenceCard';
 import { MetricCard } from '@/components/MetricCard';
 import { RiskBadge } from '@/components/RiskBadge';
 import { StatusChip } from '@/components/StatusChip';
+import { SemanticBadge, semanticBadgeClass } from '@/components/SemanticBadge';
+
+function icMemoStatusClass(status: string) {
+  const label = status === 'CLAIM'
+    ? 'Company claim'
+    : status === 'GAP'
+      ? 'Blocker'
+      : status === 'High'
+        ? 'Verified public source'
+        : status === 'Medium'
+          ? 'Needs review'
+          : 'Unknown';
+
+  return semanticBadgeClass(undefined, 'text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0', label);
+}
 
 export default function ICMemo() {
   const radarData = [
@@ -49,7 +63,7 @@ export default function ICMemo() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <MetricCard label="Revenue" value="Unknown" source="Source required" />
               <MetricCard label="EBITDA" value="Unknown" source="Source required" />
-              <MetricCard label="Net Cash" value="Unknown" source="Source required" variant="warning" />
+              <MetricCard label="Net Cash" value="Unknown" source="Source required" tone="warning" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -90,7 +104,7 @@ export default function ICMemo() {
                   <div className="h-12 w-[1px] bg-border hidden md:block"></div>
                   <div className="text-left md:text-right">
                     <p className="text-sm text-muted-foreground mb-2">Recommendation</p>
-                    <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 text-lg px-4 py-1">Request Financials</Badge>
+                    <SemanticBadge className="text-lg px-4 py-1">Request Financials</SemanticBadge>
                   </div>
                 </div>
               </CardContent>
@@ -158,7 +172,7 @@ export default function ICMemo() {
                       <div className="col-span-3 font-mono text-sm">{row.v}</div>
                       <div className="col-span-3 text-xs text-muted-foreground">{row.s}</div>
                       <div className="col-span-2 text-xs">
-                        <span className={`px-2 py-1 rounded-full ${row.c === 'High' ? 'bg-green-500/10 text-green-500' : row.c === 'Medium' ? 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]' : 'bg-gray-500/10 text-gray-500'}`}>
+                        <span className={icMemoStatusClass(row.c)}>
                           {row.c}
                         </span>
                       </div>
@@ -225,7 +239,7 @@ export default function ICMemo() {
                     <div className="text-5xl font-mono font-bold text-blue-500">7.0</div>
                     <div>
                       <div className="text-sm text-muted-foreground">Fit Score / 10</div>
-                      <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20 mt-1">Adjacent Fit</Badge>
+                      <SemanticBadge tone="info" className="mt-1">Adjacent Fit</SemanticBadge>
                     </div>
                   </div>
                   <p className="text-sm leading-relaxed text-muted-foreground">
@@ -298,15 +312,15 @@ export default function ICMemo() {
                 <CardHeader className="pb-2"><CardTitle className="text-sm">AI Already Used?</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {[
-                    { label: 'Product AI claim',        status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-700' },
-                    { label: 'AI workflow assistant',   status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-700' },
-                    { label: 'Roadmap AI features',     status: 'CLAIM',   cls: 'bg-amber-500/10 text-amber-700' },
-                    { label: 'Live AI module revenue',  status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
-                    { label: 'Customer-facing AI',      status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
-                  ].map(({ label, status, cls }) => (
+                    { label: 'Product AI claim',        status: 'CLAIM' },
+                    { label: 'AI workflow assistant',   status: 'CLAIM' },
+                    { label: 'Roadmap AI features',     status: 'CLAIM' },
+                    { label: 'Live AI module revenue',  status: 'UNKNOWN' },
+                    { label: 'Customer-facing AI',      status: 'UNKNOWN' },
+                  ].map(({ label, status }) => (
                     <div key={label} className="flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground">{label}</span>
-                      <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>{status}</span>
+                      <span className={icMemoStatusClass(status)}>{status}</span>
                     </div>
                   ))}
                 </CardContent>
@@ -317,15 +331,15 @@ export default function ICMemo() {
                 <CardHeader className="pb-2"><CardTitle className="text-sm">AI Moat Evidence</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {[
-                    { label: 'Proprietary data',        status: 'UNKNOWN',    cls: 'bg-muted/40 text-muted-foreground' },
-                    { label: 'Feedback loops',          status: 'UNKNOWN',    cls: 'bg-muted/40 text-muted-foreground' },
-                    { label: 'Embedded workflows',      status: 'CLAIM',      cls: 'bg-amber-500/10 text-amber-700' },
-                    { label: 'Distribution advantage',  status: 'CLAIM',      cls: 'bg-amber-500/10 text-amber-700' },
-                    { label: 'Domain-specific models',  status: 'GAP',        cls: 'bg-red-500/10 text-red-700' },
-                  ].map(({ label, status, cls }) => (
+                    { label: 'Proprietary data',        status: 'UNKNOWN' },
+                    { label: 'Feedback loops',          status: 'UNKNOWN' },
+                    { label: 'Embedded workflows',      status: 'CLAIM' },
+                    { label: 'Distribution advantage',  status: 'CLAIM' },
+                    { label: 'Domain-specific models',  status: 'GAP' },
+                  ].map(({ label, status }) => (
                     <div key={label} className="flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground">{label}</span>
-                      <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>{status}</span>
+                      <span className={icMemoStatusClass(status)}>{status}</span>
                     </div>
                   ))}
                 </CardContent>
@@ -336,15 +350,15 @@ export default function ICMemo() {
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Inference Economics</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {[
-                    { label: 'AI feature COGS',          status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
-                    { label: 'Gross margin drag',        status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
-                    { label: 'Vendor dependency',        status: 'GAP',     cls: 'bg-red-500/10 text-red-700' },
-                    { label: 'Pricing power',            status: 'GAP',     cls: 'bg-red-500/10 text-red-700' },
-                    { label: 'AI module monetised',      status: 'UNKNOWN', cls: 'bg-muted/40 text-muted-foreground' },
-                  ].map(({ label, status, cls }) => (
+                    { label: 'AI feature COGS',          status: 'UNKNOWN' },
+                    { label: 'Gross margin drag',        status: 'UNKNOWN' },
+                    { label: 'Vendor dependency',        status: 'GAP' },
+                    { label: 'Pricing power',            status: 'GAP' },
+                    { label: 'AI module monetised',      status: 'UNKNOWN' },
+                  ].map(({ label, status }) => (
                     <div key={label} className="flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground">{label}</span>
-                      <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>{status}</span>
+                      <span className={icMemoStatusClass(status)}>{status}</span>
                     </div>
                   ))}
                 </CardContent>
@@ -444,9 +458,9 @@ export default function ICMemo() {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         {ws.title}
                       </CardTitle>
-                      <Badge variant={ws.priority === 'High' ? 'default' : 'secondary'} className={ws.priority === 'High' ? 'bg-amber-500 text-white' : ''}>
+                      <SemanticBadge tone={ws.priority === 'High' ? 'warning' : 'unknown'}>
                         {ws.priority} Priority
-                      </Badge>
+                      </SemanticBadge>
                     </div>
                   </CardHeader>
                   <CardContent>

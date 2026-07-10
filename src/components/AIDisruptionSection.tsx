@@ -1,22 +1,23 @@
 import React from 'react';
 import { BrainCircuit, ShieldAlert, Lock, BarChart3, TrendingUp, HelpCircle } from 'lucide-react';
 import { AI_DISRUPTION_CARDS, type AICard, type EvidenceStatus } from '@/data/aiDisruptionData';
+import { semanticBadgeClass } from '@/components/SemanticBadge';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const ACCENT_CLASSES = {
   blue:   { border: 'border-[var(--semantic-info-border)]',   icon: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)]',   badge: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border border-[var(--semantic-info-border)]',   dot: 'bg-blue-500' },
   red:    { border: 'border-[var(--semantic-blocker-border)]', icon: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)]', badge: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-[var(--semantic-blocker-border)]', dot: 'bg-red-500' },
-  green:  { border: 'border-green-500/30',  icon: 'bg-green-500/10 text-green-500', badge: 'bg-green-500/10 text-green-700', dot: 'bg-green-500' },
+  green:  { border: 'border-[var(--semantic-verified-border)]',  icon: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)]', badge: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border border-[var(--semantic-verified-border)]', dot: 'bg-[var(--semantic-verified-text)]' },
   amber:  { border: 'border-[var(--semantic-claim-border)]',  icon: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]', badge: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-[var(--semantic-claim-border)]', dot: 'bg-amber-500' },
   purple: { border: 'border-purple-500/30', icon: 'bg-purple-500/10 text-purple-500', badge: 'bg-purple-500/10 text-purple-400', dot: 'bg-purple-500' },
 };
 
-const STATUS_COLORS: Record<EvidenceStatus, string> = {
-  Fact:       'bg-green-500/10 text-green-700',
-  Claim:      'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-[var(--semantic-claim-border)]',
-  Unknown:    'bg-muted/40 text-muted-foreground',
-  Gap:        'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-[var(--semantic-blocker-border)]',
+const STATUS_LABELS: Record<EvidenceStatus, string> = {
+  Fact:    'Verified public source',
+  Claim:   'Company claim',
+  Unknown: 'Unknown',
+  Gap:     'Blocker',
 };
 
 const CARD_ICONS = [BrainCircuit, ShieldAlert, Lock, BarChart3, TrendingUp, HelpCircle];
@@ -29,7 +30,7 @@ function CardRow({ label, value, status, accent }: { label: string; value?: stri
     <div className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0 gap-2">
       <span className="text-xs text-muted-foreground truncate">{label}</span>
       {status && (
-        <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0 ${STATUS_COLORS[status]}`}>
+        <span className={semanticBadgeClass(undefined, 'text-[10px] px-1.5 py-0.5 shrink-0', STATUS_LABELS[status])}>
           {status.toUpperCase()}
         </span>
       )}

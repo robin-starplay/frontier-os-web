@@ -45,8 +45,8 @@ export function BackendStatusBadge({
 
   const cfg: Record<Status, { label: string; dot: string; text: string }> = {
     checking:     { label: 'Checking backend…',       dot: 'bg-muted-foreground/40', text: 'text-muted-foreground' },
-    connected:    { label: 'Backend connected',        dot: 'bg-green-400',           text: 'text-green-700' },
-    unavailable:  { label: 'Backend unavailable',      dot: 'bg-amber-400',           text: 'text-amber-700' },
+    connected:    { label: 'Backend connected',        dot: 'bg-[var(--semantic-verified-text)]', text: 'text-[var(--semantic-verified-text)]' },
+    unavailable:  { label: 'Backend unavailable',      dot: 'bg-[var(--semantic-claim-text)]', text: 'text-[var(--semantic-claim-text)]' },
     unconfigured: { label: 'Backend not configured',   dot: 'bg-muted-foreground/30', text: 'text-muted-foreground/60' },
   };
   const c = cfg[status];

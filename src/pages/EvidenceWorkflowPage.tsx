@@ -305,11 +305,11 @@ export default function EvidenceWorkflowPage() {
           </p>
 
           {/* Contradiction card */}
-          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-6 max-w-2xl">
+          <div className="rounded-xl border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] p-6 max-w-2xl">
             <div className="flex items-start gap-3 mb-5">
-              <AlertCircle className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-[var(--semantic-claim-text)] shrink-0 mt-0.5" />
               <div>
-                <p className="text-base font-semibold text-orange-400 mb-1">Conflict detected — Revenue</p>
+                <p className="text-base font-semibold text-[var(--semantic-claim-text)] mb-1">Conflict detected — Revenue</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Two sources report different revenue figures for the same period.
                 </p>

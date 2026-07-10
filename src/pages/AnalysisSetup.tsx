@@ -725,7 +725,7 @@ function StepIndicator({ step }: { step: Step }) {
               step === s.n
                 ? 'bg-primary text-primary-foreground border-primary'
                 : step > s.n
-                ? 'bg-green-500/10 text-green-700 border-green-500/30'
+                ? 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]'
                 : 'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
             )}>
               {step > s.n ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.n}
@@ -3153,7 +3153,9 @@ function AnalysisResultDisplay({
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Innovation &amp; operating signals</p>
                 <span className={cn(
                   'text-[10px] font-medium px-1.5 py-0.5 rounded border whitespace-nowrap',
-                  iosStatus === 'checked' ? 'border-green-500/30 bg-green-500/10 text-green-700' : 'border-border bg-muted/30 text-muted-foreground',
+                  iosStatus === 'checked'
+                    ? 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)]'
+                    : 'border-border bg-muted/30 text-muted-foreground',
                 )}>
                   {iosStatus === 'checked' ? 'Checked' : formatLabel(iosStatus)}
                 </span>

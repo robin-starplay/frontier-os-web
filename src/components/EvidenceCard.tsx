@@ -45,13 +45,13 @@ export function EvidenceCard({ field, value, source, confidence, status, classNa
   // ── End defensive rendering ─────────────────────────────────────────────────
 
   const accentByStatus = {
-    positive: "bg-green-500",
-    warning:  "bg-amber-500",
-    danger:   "bg-red-500",
-    info:     "bg-blue-500",
-    neutral:  "bg-slate-300",
-    unknown:  "bg-slate-300",
-    category: "bg-slate-300",
+    positive: "bg-[var(--semantic-verified-text)]",
+    warning:  "bg-[var(--semantic-claim-text)]",
+    danger:   "bg-[var(--semantic-blocker-text)]",
+    info:     "bg-[var(--semantic-info-text)]",
+    neutral:  "bg-[var(--semantic-unknown-border)]",
+    unknown:  "bg-[var(--semantic-unknown-border)]",
+    category: "bg-[var(--semantic-unknown-border)]",
   };
   const accent = accentByStatus[statusVariantForLabel(displayLabel, effectiveStatus === 'verified' || effectiveStatus === 'completed' ? 'positive' : effectiveStatus === 'blocking' ? 'danger' : effectiveStatus === 'caveat' || effectiveStatus === 'diligence' || effectiveStatus === 'warning' ? 'warning' : effectiveStatus === 'pending' ? 'unknown' : 'info')];
 

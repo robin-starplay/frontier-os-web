@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Clock, AlertCircle, ExternalLink } from 'lucide-react';
+import { semanticBadgeClass } from '@/components/SemanticBadge';
 
 type RegistryStatus = 'active' | 'v1' | 'manual' | 'planned';
 
@@ -112,7 +113,7 @@ function RegistryCard({ registry }: { registry: Registry }) {
           <p className="text-xs font-semibold text-foreground">{registry.name}</p>
           <p className="text-xs text-muted-foreground">{registry.country}</p>
         </div>
-        <span className={`inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-full border shrink-0 ${cfg.color} ${cfg.bg}`}>
+        <span className={semanticBadgeClass(registry.status === 'active' ? 'positive' : registry.status === 'v1' ? 'info' : registry.status === 'manual' ? 'warning' : 'unknown', 'gap-1.5 text-[10px] px-2 py-1 shrink-0')}>
           <StatusIcon className="w-3 h-3" />
           {registry.statusLabel}
         </span>

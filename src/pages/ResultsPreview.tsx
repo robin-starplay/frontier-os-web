@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { RiskBadge } from '@/components/RiskBadge';
+import { SemanticBadge } from '@/components/SemanticBadge';
 
 export default function ResultsPreview() {
   const [, setLocation] = useLocation();
@@ -33,15 +34,15 @@ export default function ResultsPreview() {
         </div>
         <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
           <div className="flex flex-wrap gap-2">
-            <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 hover:bg-amber-500/20 font-semibold px-3 py-1">
+            <SemanticBadge className="font-semibold px-3 py-1">
               Request Financials
-            </Badge>
-            <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 hover:bg-amber-500/20 px-3 py-1">
+            </SemanticBadge>
+            <SemanticBadge tone="warning" className="px-3 py-1">
               Partially Ready
-            </Badge>
-            <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20 hover:bg-blue-500/20 px-3 py-1">
+            </SemanticBadge>
+            <SemanticBadge tone="info" className="px-3 py-1">
               Adjacent Fit
-            </Badge>
+            </SemanticBadge>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <Button variant="outline" onClick={handleRunNew} className="flex-1 sm:flex-none">
@@ -81,7 +82,7 @@ export default function ResultsPreview() {
         <Card className="col-span-1 border-border lg:col-span-2 shadow-sm">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Key Evidence</CardTitle>
-            <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20">Static example · no fake figures</Badge>
+            <SemanticBadge tone="warning">Static example · no fake figures</SemanticBadge>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -117,7 +118,7 @@ export default function ResultsPreview() {
               <ShieldAlert className="h-5 w-5" />
               Blocking Gaps
             </CardTitle>
-            <Badge className="bg-red-500 text-white">6 Gaps</Badge>
+            <SemanticBadge tone="danger">6 Gaps</SemanticBadge>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
@@ -172,19 +173,19 @@ export default function ResultsPreview() {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-foreground">Confirming facts</span>
-                <Badge className="bg-green-500/10 text-green-500 border-green-500/20">1</Badge>
+                <SemanticBadge tone="positive">1</SemanticBadge>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-foreground">Candidate facts</span>
-                <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20">2</Badge>
+                <SemanticBadge tone="info">2</SemanticBadge>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-foreground">Conflicting claims</span>
-                <Badge className="bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-red-500/20">1</Badge>
+                <SemanticBadge tone="danger">1</SemanticBadge>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border">
                 <span className="text-sm text-foreground">Diligence items</span>
-                <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20">4</Badge>
+                <SemanticBadge tone="warning">4</SemanticBadge>
               </div>
             </div>
           </CardContent>
@@ -198,7 +199,7 @@ export default function ResultsPreview() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">Fit Score</span>
-                <Badge className="bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] border-blue-500/20">Adjacent</Badge>
+                <SemanticBadge tone="info">Adjacent</SemanticBadge>
               </div>
               <Progress value={70} className="h-2 mb-2" />
               <div className="flex justify-between text-xs text-muted-foreground">

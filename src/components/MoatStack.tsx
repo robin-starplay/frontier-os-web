@@ -29,8 +29,8 @@ const MODULES: Module[] = [
     title: 'Source Hierarchy',
     subtitle: 'Official filings outrank lower-confidence claims.',
     description: 'Registry data, audited accounts, uploaded documents, websites and aggregators are ranked explicitly.',
-    accent: 'border-green-500/30 hover:border-green-500/60',
-    iconBg: 'bg-green-500/10 text-green-500',
+    accent: 'border-[var(--semantic-verified-border)] hover:border-[var(--semantic-verified-text)]',
+    iconBg: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)]',
   },
   {
     icon: Target,

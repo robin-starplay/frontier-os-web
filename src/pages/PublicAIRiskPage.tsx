@@ -6,10 +6,10 @@ import { BetaCTA } from '@/components/BetaCTA';
 // ─── Section data ─────────────────────────────────────────────────────────────
 
 const RISK_LEVELS = [
-  { level: 'High',        colour: 'text-red-700',    border: 'border-red-500/30 bg-red-500/[0.03]',   desc: 'Core capability can be replicated by a capable team using foundation models within 6–18 months. Moat relies on distribution or switching costs rather than technical differentiation.' },
-  { level: 'Medium-high', colour: 'text-orange-700', border: 'border-orange-500/30 bg-orange-500/[0.03]', desc: 'Partial replication risk. Some proprietary elements (data, integrations, workflow depth) create friction but do not prevent a well-resourced competitor from shipping a viable alternative.' },
-  { level: 'Medium',      colour: 'text-amber-700',  border: 'border-amber-500/30 bg-amber-500/[0.03]',  desc: 'Meaningful differentiation exists but AI tooling continues to close the gap. Moat durability depends on rate of proprietary data accumulation and regulatory complexity.' },
-  { level: 'Low',         colour: 'text-green-700',  border: 'border-green-500/30 bg-green-500/[0.03]',  desc: 'Strong technical moat. Proprietary data, deep workflow integration, regulatory lock-in, or inference economics make replication prohibitively expensive or slow.' },
+  { level: 'High',        colour: 'text-[var(--semantic-blocker-text)]', border: 'border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)]', desc: 'Core capability can be replicated by a capable team using foundation models within 6–18 months. Moat relies on distribution or switching costs rather than technical differentiation.' },
+  { level: 'Medium-high', colour: 'text-[var(--semantic-claim-text)]', border: 'border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)]', desc: 'Partial replication risk. Some proprietary elements (data, integrations, workflow depth) create friction but do not prevent a well-resourced competitor from shipping a viable alternative.' },
+  { level: 'Medium',      colour: 'text-[var(--semantic-claim-text)]', border: 'border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)]', desc: 'Meaningful differentiation exists but AI tooling continues to close the gap. Moat durability depends on rate of proprietary data accumulation and regulatory complexity.' },
+  { level: 'Low',         colour: 'text-[var(--semantic-verified-text)]', border: 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]', desc: 'Strong technical moat. Proprietary data, deep workflow integration, regulatory lock-in, or inference economics make replication prohibitively expensive or slow.' },
 ];
 
 const MOAT_SIGNALS = [

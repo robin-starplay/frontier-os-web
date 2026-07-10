@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { semanticBadgeClass } from '@/components/SemanticBadge';
 
 type ReadinessStatus = 'ready' | 'partial' | 'planned';
 
@@ -39,16 +40,16 @@ export function SoftLaunchReadiness() {
     <div>
       {/* Summary chips */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1 rounded-full">
+        <span className={semanticBadgeClass('positive', 'gap-1.5 px-3 py-1')}>
           <CheckCircle2 className="w-3 h-3" /> {ready} ready
         </span>
         {partial > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border border-amber-500/20 px-3 py-1 rounded-full">
+          <span className={semanticBadgeClass('warning', 'gap-1.5 px-3 py-1')}>
             <AlertCircle className="w-3 h-3" /> {partial} partial
           </span>
         )}
         {planned > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-muted/20 text-muted-foreground border border-border px-3 py-1 rounded-full">
+          <span className={semanticBadgeClass('unknown', 'gap-1.5 px-3 py-1')}>
             <Clock className="w-3 h-3" /> {planned} planned
           </span>
         )}

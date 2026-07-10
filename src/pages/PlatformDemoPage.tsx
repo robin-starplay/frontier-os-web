@@ -312,10 +312,10 @@ export default function PlatformDemoPage() {
                     {/* label */}
                     <span className="flex-1 text-sm font-semibold text-foreground">{stage.label}</span>
                     {/* status chip */}
-                    <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-500/10 text-green-700 border border-green-500/20 shrink-0">
+                    <SemanticBadge tone="positive" className="hidden sm:inline-flex gap-1 px-1.5 py-0.5 text-[10px] font-mono shrink-0">
                       <CheckCircle2 className="w-3 h-3" />
                       Complete
-                    </span>
+                    </SemanticBadge>
                     <ChevronRight className={cn(
                       'w-4 h-4 text-muted-foreground shrink-0 transition-transform',
                       isOpen && 'rotate-90',

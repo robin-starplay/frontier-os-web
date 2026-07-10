@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { semanticBadgeClass } from '@/components/SemanticBadge';
 
 interface RiskBadgeProps {
   level: "low" | "moderate" | "high" | "critical";
@@ -11,13 +12,8 @@ export function RiskBadge({ level, className }: RiskBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded border px-2 py-0.5 text-xs font-semibold",
-        {
-          "border-green-500/20 bg-green-500/10 text-green-500": level === "low",
-          "border-amber-500/20 bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)]": level === "moderate",
-          "border-red-500/20 bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)]": level === "high",
-          "border-red-600 bg-red-600/20 text-red-500 font-bold": level === "critical",
-        },
+        semanticBadgeClass(level === "low" ? "positive" : level === "moderate" ? "warning" : "danger", "px-2 py-0.5"),
+        level === "critical" && "font-bold",
         className
       )}
     >

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PREVIOUS_REPORTS } from '@/data/mockData';
+import { SemanticBadge } from '@/components/SemanticBadge';
 
 export default function ReportsPage() {
   const [, setLocation] = useLocation();
@@ -59,32 +60,30 @@ export default function ReportsPage() {
                   </td>
                   <td className="px-6 py-4">
                     {report.recommendation === "Request Financials" ? (
-                      <Badge className="bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-amber-500/20 hover:bg-amber-500/10">
+                      <SemanticBadge>
                         {report.recommendation}
-                      </Badge>
+                      </SemanticBadge>
                     ) : (
-                      <Badge className="bg-muted text-muted-foreground border-border hover:bg-muted">
+                      <SemanticBadge tone="neutral">
                         {report.recommendation}
-                      </Badge>
+                      </SemanticBadge>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant="outline" className={
-                      report.evidenceQuality === "High" ? "text-green-500 border-green-500/30" : "text-amber-500 border-amber-500/30"
-                    }>
+                    <SemanticBadge tone={report.evidenceQuality === "High" ? "positive" : "warning"}>
                       {report.evidenceQuality}
-                    </Badge>
+                    </SemanticBadge>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant="outline" className="text-blue-500 border-blue-500/30">
+                    <SemanticBadge tone="info">
                       {report.strategicFit}
-                    </Badge>
+                    </SemanticBadge>
                   </td>
                   <td className="px-6 py-4">
                     {report.blockingGaps > 0 ? (
-                      <span className="inline-flex items-center justify-center bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-red-500/20 rounded px-2 py-0.5 text-xs font-bold">
+                      <SemanticBadge tone="danger" className="px-2 py-0.5 font-bold">
                         {report.blockingGaps}
-                      </span>
+                      </SemanticBadge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
