@@ -1760,7 +1760,7 @@ function OriginationWorkspacePanel({
   const researchSources = savedLeads.filter(lead => ['source_page', 'directory_or_listicle', 'news_article', 'research_article', 'forum_thread', 'market_report', 'search_result'].includes(lead.candidate_type || ''));
 
   return (
-    <div className="rounded-lg border border-border/80 bg-card/70 overflow-hidden">
+    <div className="surface-raised overflow-hidden rounded-xl">
       <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Workspace</p>
@@ -2096,14 +2096,14 @@ function OriginationForm() {
   return (
     <div className="space-y-4">
       <ScreeningWorkflowGuide active="originate" />
-      <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card p-4 space-y-4">
+      <form onSubmit={handleSubmit} className="surface-raised rounded-xl p-4 space-y-4">
         <div>
           <p className="text-sm font-semibold text-foreground">Start an origination</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Research a thesis or rank known targets. Frontier OS will not invent acquisition targets.
           </p>
         </div>
-        <div className="rounded-lg border border-primary/15 bg-primary/5 px-4 py-3">
+        <div className="surface-flat rounded-lg px-4 py-3">
           <p className="text-sm font-semibold text-foreground">
             {isRankKnownTargetsMode
               ? 'Paste company names and websites to rank a known universe.'
@@ -2113,7 +2113,7 @@ function OriginationForm() {
             Best practice: screen companies individually before comparing candidates.
           </p>
         </div>
-        <div className="rounded-lg border border-border bg-background/60 p-3">
+        <div className="surface-flat rounded-lg p-3">
           <p className="text-xs font-semibold text-foreground mb-2">Origination mode</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[

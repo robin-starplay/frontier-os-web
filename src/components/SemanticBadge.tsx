@@ -14,7 +14,7 @@ export type SemanticBadgeTone =
 export type LegacyBadgeLevel = 'green' | 'amber' | 'red' | 'blue' | 'grey' | 'muted';
 
 export const SEMANTIC_BADGE_BASE =
-  'inline-flex items-center justify-center whitespace-nowrap rounded-full border px-[9px] py-[5px] text-xs font-semibold leading-none align-middle';
+  'inline-flex items-center justify-center whitespace-nowrap rounded-full border px-[9px] py-[5px] text-xs font-semibold leading-none align-middle shadow-none';
 
 export const SEMANTIC_BADGE_TONE_CLASS: Record<SemanticBadgeTone, string> = {
   positive: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',

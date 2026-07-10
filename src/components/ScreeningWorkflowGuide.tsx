@@ -60,7 +60,7 @@ export function ScreeningWorkflowGuide({
   originationAvailable?: boolean;
 }) {
   return (
-    <div className={cn('rounded-lg border border-border/80 bg-card/80 shadow-xs', className)}>
+    <div className={cn('surface-raised overflow-hidden rounded-xl', className)}>
       <div className="border-b border-border/70 px-5 py-3">
         <p className="text-xs font-semibold text-foreground">Screening workflow</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -79,8 +79,8 @@ export function ScreeningWorkflowGuide({
             <div
               key={step.id}
               className={cn(
-                'px-5 py-4',
-                isActive ? 'bg-primary/[0.04]' : 'bg-transparent',
+                'px-5 py-4 transition-colors',
+                isActive ? 'surface-selected border-0 shadow-none' : 'bg-transparent',
               )}
             >
               <div className="flex items-center gap-2">

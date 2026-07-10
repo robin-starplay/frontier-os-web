@@ -1255,8 +1255,8 @@ function SavedRunCard({
   return (
     <div
       className={cn(
-        'w-full text-left rounded-lg border bg-card p-4 transition-colors',
-        active ? 'border-primary/50 bg-primary/5' : 'border-border',
+        'surface-raised w-full text-left rounded-lg p-4 transition-colors',
+        active ? 'surface-selected' : '',
       )}
     >
       <div className="flex flex-col gap-3">
@@ -1277,19 +1277,18 @@ function SavedRunCard({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <span className={cn(
-                  'inline-flex px-2 py-0.5 rounded bg-muted/40 text-[10px] font-medium',
-                  run.type === 'compare' ? 'text-blue-700' : run.type === 'document' ? 'text-violet-400' : run.type === 'origination' ? 'text-cyan-400' : 'text-primary',
+                  'inline-flex px-2 py-0.5 rounded bg-[var(--semantic-unknown-bg)] text-[10px] font-medium text-[var(--semantic-unknown-text)] border border-[var(--semantic-unknown-border)]',
                 )}>
                   {sourceTypeLabel(run.type)}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                   <Clock className="w-3 h-3" /> {formatTs(run.timestamp)}
                 </span>
-                <SemanticBadge tone={displayText(run.website) ? 'green' : 'amber'}>
+                <SemanticBadge tone={displayText(run.website) ? 'positive' : 'warning'}>
                   {displayText(run.website) ? 'Ready to screen' : 'Website required'}
                 </SemanticBadge>
                 {!compact && (
-                  <SemanticBadge tone={canSelectForCompare ? 'green' : 'grey'}>
+                  <SemanticBadge tone={canSelectForCompare ? 'positive' : 'neutral'}>
                     {canSelectForCompare ? 'Screened' : selectionDisabledReason || 'Not compare-ready'}
                   </SemanticBadge>
                 )}
@@ -1318,26 +1317,26 @@ function SavedRunCard({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {icReadiness && (
-            <div className="rounded-md border border-border/70 bg-background/60 p-3">
+            <div className="surface-flat rounded-md p-3">
               <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">IC readiness</p>
               <p className="text-sm text-foreground leading-snug">{icReadiness}</p>
             </div>
           )}
           {confidence && (
-            <div className="rounded-md border border-border/70 bg-background/60 p-3">
+            <div className="surface-flat rounded-md p-3">
               <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">Evidence confidence</p>
               <div>{confidenceChip(confidence)}</div>
             </div>
           )}
           {blocker && (
-            <div className="rounded-md border border-border/70 bg-background/60 p-3 sm:col-span-2 xl:col-span-1">
+            <div className="surface-flat rounded-md p-3 sm:col-span-2 xl:col-span-1">
               <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">Main blocker</p>
               <p className="text-sm text-foreground leading-snug">{blocker}</p>
             </div>
           )}
         </div>
 
-        <div className="rounded-md border border-primary/15 bg-primary/5 p-3 flex items-start justify-between gap-3">
+        <div className="surface-flat rounded-md p-3 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-medium text-primary mb-1">Next action</p>
             <p className="text-sm text-muted-foreground leading-relaxed">{nextAction}</p>

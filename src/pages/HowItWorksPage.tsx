@@ -17,7 +17,7 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { semanticBadgeClass } from '@/components/SemanticBadge';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="mb-2 text-xs font-semibold text-primary">{children}</p>;
+  return <p className="page-eyebrow mb-2">{children}</p>;
 }
 
 function Badge({
@@ -147,13 +147,13 @@ const LIMITED = [
 
 function WorkflowStrip() {
   return (
-    <div className="rounded-xl border border-border bg-card/80 p-3 shadow-sm">
+    <div className="surface-raised rounded-xl p-3">
       <div className="grid gap-2 md:grid-cols-4">
         {WORKFLOW_STEPS.map((step, index) => (
           <Link
             key={step.label}
             href={step.href}
-            className="group relative flex min-h-20 items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-accent/60"
+            className="group relative flex min-h-20 items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-accent/45"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
               {step.number}
@@ -181,7 +181,7 @@ function StepCard({
   return (
     <Link
       href={step.href}
-      className="group flex min-h-64 flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-primary/30 hover:bg-card/90"
+      className="surface-raised group flex min-h-64 flex-col rounded-xl p-6 transition-colors hover:border-primary/30"
     >
       <div className="mb-5 flex items-start justify-between gap-4">
         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
@@ -205,7 +205,7 @@ function SampleCard({
 }) {
   const Icon = sample.icon;
   return (
-    <div className="flex min-h-72 flex-col rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="surface-raised flex min-h-72 flex-col overflow-hidden rounded-xl p-5">
       <div className="mb-5 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -215,14 +215,14 @@ function SampleCard({
         </div>
         <Badge tone={sample.tone}>{sample.badge}</Badge>
       </div>
-      <div className="flex-1 rounded-lg border border-border/70 bg-background">
+      <div className="surface-flat flex-1 overflow-hidden rounded-lg">
         {sample.rows.map(([label, value], index) => (
           <div
             key={label}
-            className={`grid gap-2 px-4 py-3 text-sm sm:grid-cols-[8.5rem_1fr] ${index > 0 ? 'border-t border-border/70' : ''}`}
+            className={`flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-5 ${index > 0 ? 'border-t border-border/70' : ''}`}
           >
-            <p className="font-medium text-muted-foreground">{label}</p>
-            <p className="min-w-0 font-semibold leading-snug text-foreground">{value}</p>
+            <p className="shrink-0 font-medium text-muted-foreground sm:w-32">{label}</p>
+            <p className="min-w-0 break-words font-semibold leading-snug text-foreground sm:text-right">{value}</p>
           </div>
         ))}
       </div>
@@ -240,7 +240,7 @@ function AvailabilityCard({
   tone: 'verified' | 'claim';
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="surface-raised rounded-xl p-6">
       <Badge tone={tone}>{title}</Badge>
       <div className="mt-5 space-y-3">
         {items.map((item) => (
@@ -257,14 +257,14 @@ function AvailabilityCard({
 export default function HowItWorksPage() {
   return (
     <div className="flex-1">
-      <section className="border-b border-border bg-card/40">
+      <section className="border-b border-border bg-card/35">
         <div className="app-container grid gap-10 py-14 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center lg:py-16">
           <div>
             <SectionLabel>How it works</SectionLabel>
-            <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-normal text-foreground md:text-5xl">
+            <h1 className="page-title max-w-3xl">
               How Frontier OS works
             </h1>
-            <p className="mt-5 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
+            <p className="page-subtitle mt-5">
               Move from target discovery to evidence-backed screening, saved decisions and target comparison.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -276,7 +276,7 @@ export default function HowItWorksPage() {
               </Link>
               <Link
                 href="/app/origination"
-                className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent/70"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent/70"
               >
                 Start with Origination
               </Link>
@@ -289,7 +289,7 @@ export default function HowItWorksPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <div className="surface-raised rounded-xl p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">Workflow overview</p>
@@ -299,7 +299,7 @@ export default function HowItWorksPage() {
             </div>
             <div className="space-y-3">
               {WORKFLOW_STEPS.map((step) => (
-                <div key={step.label} className="flex items-center gap-3 rounded-lg border border-border/70 bg-background px-3 py-3">
+                <div key={step.label} className="surface-flat flex items-center gap-3 rounded-lg px-3 py-3">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                     {step.number}
                   </span>
@@ -318,7 +318,7 @@ export default function HowItWorksPage() {
       <section className="app-container pb-12">
         <div className="mb-8">
           <SectionLabel>Workflow</SectionLabel>
-          <h2 className="text-2xl font-bold text-foreground">From target universe to screened comparison.</h2>
+          <h2 className="section-title">From target universe to screened comparison.</h2>
         </div>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {WORKFLOW_STEPS.map((step) => (
@@ -331,11 +331,11 @@ export default function HowItWorksPage() {
         <div className="app-container py-12">
           <div className="mb-8">
             <SectionLabel>What users should expect</SectionLabel>
-            <h2 className="text-2xl font-bold text-foreground">Clear workflow states, not inflated certainty.</h2>
+            <h2 className="section-title">Clear workflow states, not inflated certainty.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {EXPECTATIONS.map((item) => (
-              <div key={item} className="flex min-h-24 items-start gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
+              <div key={item} className="surface-raised flex min-h-24 items-start gap-3 rounded-xl p-5">
                 <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p className="text-sm leading-relaxed text-muted-foreground">{item}</p>
               </div>
@@ -348,7 +348,7 @@ export default function HowItWorksPage() {
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <SectionLabel>Sample screens</SectionLabel>
-            <h2 className="text-2xl font-bold text-foreground">The product follows the same operating model.</h2>
+            <h2 className="section-title">The product follows the same operating model.</h2>
           </div>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Sample cards are illustrative workflow states. Real runs only show evidence returned by the backend.
@@ -363,12 +363,12 @@ export default function HowItWorksPage() {
 
       <section className="border-y border-border bg-card/40">
         <div className="app-container grid gap-6 py-12 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
+          <div className="surface-raised rounded-xl p-7">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <ShieldCheck className="h-5 w-5 text-primary" />
             </div>
             <SectionLabel>Trust rules</SectionLabel>
-            <h2 className="mb-5 text-2xl font-bold text-foreground">Built for evidence, not guesswork.</h2>
+            <h2 className="section-title mb-5">Built for evidence, not guesswork.</h2>
             <div className="space-y-3">
               {TRUST_BULLETS.map((item) => (
                 <div key={item} className="flex items-start gap-3">
@@ -387,11 +387,11 @@ export default function HowItWorksPage() {
       </section>
 
       <section className="app-container py-12">
-        <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
+        <div className="surface-raised rounded-xl p-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
               <SectionLabel>Next step</SectionLabel>
-              <h2 className="text-2xl font-bold text-foreground">Start with a known target or build a source-backed universe.</h2>
+              <h2 className="section-title">Start with a known target or build a source-backed universe.</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 Use Origination for leads and source-backed target ranking, then screen companies individually before saving and comparing.
               </p>

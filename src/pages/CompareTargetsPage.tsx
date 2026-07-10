@@ -808,7 +808,7 @@ function CompareTargetSelector({
       : 'Compare selected screened targets';
 
   return (
-    <div className="mb-6 rounded-lg border border-border bg-card overflow-hidden">
+    <div className="surface-raised mb-6 overflow-hidden rounded-xl">
       <div className="px-5 py-4 border-b border-border bg-card/80">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
           <div>
@@ -856,7 +856,7 @@ function CompareTargetSelector({
             const checked = selectedKeys.has(target.key);
             const selectionDisabled = !checked && selectedCount >= 5;
             return (
-              <div key={target.key} className="grid grid-cols-1 gap-3 px-5 py-4 lg:grid-cols-[auto_1.5fr_1fr_1fr_1fr_auto] lg:items-center">
+              <div key={target.key} className="grid grid-cols-1 gap-3 px-5 py-4 transition-colors hover:bg-accent/30 lg:grid-cols-[auto_1.5fr_1fr_1fr_1fr_auto] lg:items-center">
                 <div>
                   <input
                     type="checkbox"
@@ -869,8 +869,8 @@ function CompareTargetSelector({
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground">{target.companyName}</p>
-                  <a href={companyWebsiteUrl(target.website)} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors break-all">
-                    {target.website} <ExternalLink className="h-3 w-3" />
+                  <a href={companyWebsiteUrl(target.website)} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-flex max-w-full items-center gap-1 overflow-hidden text-xs text-muted-foreground hover:text-primary transition-colors">
+                    <span className="truncate">{target.website}</span> <ExternalLink className="h-3 w-3 shrink-0" />
                   </a>
                 </div>
                 <div>
@@ -1119,7 +1119,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 
 	      {/* Saved to Cockpit notice */}
 	      {!isFastPreview && (
-	      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
+	      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--semantic-verified-bg)] border border-[var(--semantic-verified-border)] text-xs text-[var(--semantic-verified-text)]">
 	        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
 	        <span>
           {saveSource === 'backend'
@@ -1318,7 +1318,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
             className={cn(
               'rounded-lg border p-5 transition-colors',
               t.rank === 1
-                ? 'border-green-500/25 bg-green-500/[0.03]'
+                ? 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40'
                 : t.recommendation_level === 'red'
                   ? 'border-border/60 bg-card/40 opacity-80'
                   : 'border-border bg-card/60',

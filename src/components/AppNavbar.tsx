@@ -82,7 +82,7 @@ function TrialBadge() {
       'hidden lg:inline-flex items-center text-[11px] px-2 py-0.5 rounded-md border whitespace-nowrap',
       isLow
         ? 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]'
-        : 'bg-green-500/5 text-green-700/80 border-green-500/15',
+        : 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
     )}>
       {remaining}/{limit} screens available
     </span>

@@ -1454,7 +1454,7 @@ function Step1({
               </button>
             </div>
           )}
-          <Card id="screen-company-form" className="border-border bg-card/90">
+          <Card id="screen-company-form" className="surface-raised border-0">
             <CardHeader className="pb-5">
               <CardTitle className="text-lg">Screen a company</CardTitle>
               <CardDescription>
@@ -1562,7 +1562,7 @@ function Step1({
                     onClick={() => setMode('doc-assisted')}
                     className={cn(
                       'text-left rounded-lg border px-4 py-3 transition-colors',
-                      mode === 'doc-assisted' ? 'border-primary/50 bg-primary/5' : 'border-border bg-card/30 hover:bg-card/60',
+                      mode === 'doc-assisted' ? 'surface-selected' : 'surface-flat hover:bg-accent/40',
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -1580,7 +1580,7 @@ function Step1({
                     onClick={() => { setMode('url-only'); setDocumentFile(null); setConfidentialityAcknowledged(false); }}
                     className={cn(
                       'text-left rounded-lg border px-4 py-3 transition-colors',
-                      mode === 'url-only' ? 'border-primary/50 bg-primary/5' : 'border-border bg-card/30 hover:bg-card/60',
+                      mode === 'url-only' ? 'surface-selected' : 'surface-flat hover:bg-accent/40',
                     )}
                   >
                     <p className="text-sm font-semibold text-foreground">Website only</p>
@@ -1591,7 +1591,7 @@ function Step1({
                 </div>
 
                 {documentMode && (
-                  <div className="rounded-lg border border-border bg-card/30 p-4 space-y-4">
+                  <div className="surface-flat rounded-lg p-4 space-y-4">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">Upload one non-confidential PDF</p>
                       <span className="ml-auto text-[10px] font-medium text-primary border border-primary/30 bg-primary/10 rounded px-1.5 py-0.5 whitespace-nowrap">
@@ -1655,8 +1655,8 @@ function Step1({
                 <div className={cn(
                   'flex items-start gap-2 px-3 py-2.5 rounded border text-xs',
                   documentMode
-                    ? 'bg-amber-500/5 border-amber-500/20 text-amber-200'
-                    : 'bg-green-500/5 border-green-500/20 text-green-700',
+                    ? 'bg-[var(--semantic-claim-bg)] border-[var(--semantic-claim-border)] text-[var(--semantic-claim-text)]'
+                    : 'bg-[var(--semantic-verified-bg)] border-[var(--semantic-verified-border)] text-[var(--semantic-verified-text)]',
                 )}>
                   <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   {documentMode
@@ -1666,7 +1666,7 @@ function Step1({
 
                 {/* Investment lens */}
                 {(
-                  <div className="rounded-lg border border-border bg-card/30 px-4 py-3.5 space-y-3">
+                  <div className="surface-flat rounded-lg px-4 py-3.5 space-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-1">
                       <p className="text-xs font-semibold text-primary">Investment lens</p>
                       <span className="text-[10px] text-muted-foreground/60 leading-none">
@@ -2232,7 +2232,7 @@ function DocumentAssistedResultDisplay({
 
   return (
     <div className="w-full space-y-4">
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--semantic-verified-bg)] border border-[var(--semantic-verified-border)] text-xs text-[var(--semantic-verified-text)]">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>{saveSource === 'backend' ? 'Saved to Cockpit' : 'Saved locally · document-assisted run'}</span>
         <Link href="/app/cockpit" className="ml-auto text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
@@ -2356,7 +2356,7 @@ function DocumentAssistedResultDisplay({
               {verifiedFacts.map((fact, i) => {
                 const rec = asRecord(fact);
                 return (
-                  <div key={i} className="rounded-md border border-green-500/20 bg-green-500/[0.03] px-3 py-2.5">
+                  <div key={i} className="rounded-md border border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40 px-3 py-2.5">
                     <p className="text-xs text-foreground">{displayValue(rec.field ?? rec.title ?? rec.claim_type)} {rec.value ? `· ${displayValue(rec.value)}` : ''}</p>
                     <p className="text-[10px] text-muted-foreground/60 mt-1">Public-source verified · {sourceLine(rec)}</p>
                   </div>
@@ -2378,7 +2378,7 @@ function DocumentAssistedResultDisplay({
           {blockers.map((item, i) => {
             const rec = asRecord(item);
             return (
-              <div key={i} className="rounded-md border border-red-500/20 bg-red-500/[0.03] px-3 py-2.5">
+              <div key={i} className="rounded-md border border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)]/40 px-3 py-2.5">
                 <p className="text-xs font-semibold text-foreground">{displayValue(rec.title ?? `Blocker ${i + 1}`)}</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-snug">{displayValue(rec.why_it_matters)}</p>
                 <p className="text-[10px] text-muted-foreground/60 mt-1">Need: {displayValue(rec.next_document_or_request_needed)}</p>
@@ -2524,7 +2524,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
       )}
 
       {/* Saved to Cockpit notice */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-700">
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--semantic-verified-bg)] border border-[var(--semantic-verified-border)] text-xs text-[var(--semantic-verified-text)]">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>
           {saveSource === 'backend'
@@ -2777,10 +2777,10 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
 
       {/* ─── 1. What is verified ──────────────────────────────────────── */}
       {verifiedCards.length > 0 && (
-        <div className="rounded-lg border border-green-500/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-green-500/20 bg-green-500/[0.03] flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-green-700 shrink-0" />
-            <p className="text-[10px] font-semibold tracking-normal text-green-700">
+        <div className="rounded-lg border border-[var(--semantic-verified-border)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40 flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[var(--semantic-verified-text)] shrink-0" />
+            <p className="text-[10px] font-semibold tracking-normal text-[var(--semantic-verified-text)]">
               Verified facts ({verifiedCards.length})
             </p>
           </div>
@@ -2863,17 +2863,17 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
       {/* ─── 4. Why this matters for IC ───────────────────────────────── */}
       <div className={cn(
         'rounded-lg border overflow-hidden',
-        icNotReady ? 'border-amber-500/20' : 'border-green-500/20',
+        icNotReady ? 'border-[var(--semantic-claim-border)]' : 'border-[var(--semantic-verified-border)]',
       )}>
         <div className={cn(
           'px-4 py-3 border-b flex items-center gap-2',
-          icNotReady ? 'border-amber-500/20 bg-amber-500/[0.03]' : 'border-green-500/20 bg-green-500/[0.03]',
+          icNotReady ? 'border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)]/40' : 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40',
         )}>
           {icNotReady
             ? <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            : <CheckCircle2 className="w-3.5 h-3.5 text-green-700 shrink-0" />
+            : <CheckCircle2 className="w-3.5 h-3.5 text-[var(--semantic-verified-text)] shrink-0" />
           }
-          <p className={cn('text-[10px] font-semibold tracking-normal', icNotReady ? 'text-amber-700' : 'text-green-700')}>
+          <p className={cn('text-[10px] font-semibold tracking-normal', icNotReady ? 'text-[var(--semantic-claim-text)]' : 'text-[var(--semantic-verified-text)]')}>
             {icNotReady ? 'Diligence blockers to resolve' : 'IC readiness'}
           </p>
         </div>

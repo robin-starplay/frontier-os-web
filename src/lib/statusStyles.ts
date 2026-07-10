@@ -42,7 +42,6 @@ const POSITIVE_LABELS = new Set([
   'screen-ready',
   'available now',
   'passed',
-  'extracted',
   'enabled',
 ]);
 
@@ -103,6 +102,8 @@ const INFO_LABELS = new Set([
   'known target universe',
   'private-beta reference universe',
   'extracted from source page',
+  'source reviewed',
+  'company mentions found',
   'info',
   'running',
   'in progress',
@@ -121,6 +122,7 @@ const UNKNOWN_LABELS = new Set([
   'not checked',
   'not source-backed',
   'no verified revenue/arr/ebitda/customer concentration',
+  'no confirmed target',
 ]);
 
 function normaliseLabel(label: unknown): string {
