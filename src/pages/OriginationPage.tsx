@@ -371,9 +371,29 @@ function isConfirmedCompanyCandidate(candidate: Record<string, unknown>): boolea
 function productSignalLevel(candidate: Record<string, unknown>): string {
   const productSignal = candidate.product_signal;
   if (productSignal && typeof productSignal === 'object' && !Array.isArray(productSignal)) {
-    return safeStr((productSignal as Record<string, unknown>).workflow_depth, 'unknown');
+    const signal = productSignal as Record<string, unknown>;
+    return safeStr(signal.summary ?? signal.level ?? signal.workflow_depth, 'unknown');
   }
   return safeStr(candidate.product_signal_level ?? candidate.product_signal, 'unknown');
+}
+
+function signalDetail(candidate: Record<string, unknown>, keys: string[], fallback = 'Not found in source snippet.'): string {
+  for (const key of keys) {
+    const value = candidate[key];
+    if (!value) continue;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      const record = value as Record<string, unknown>;
+      const detail = safeStr(record.detail ?? record.summary ?? record.value ?? record.status);
+      if (detail) return detail;
+    }
+    const text = safeStr(value);
+    if (text) return text;
+  }
+  return fallback;
+}
+
+function sourceConfidence(candidate: Record<string, unknown>): string {
+  return safeStr(candidate.source_confidence ?? candidate.extraction_confidence ?? candidate.official_website_confidence, 'unknown');
 }
 
 function candidateQuality(candidate: Record<string, unknown>): string {
@@ -630,7 +650,17 @@ function OriginationResultView({
     ...((data.targets as unknown[] | undefined) ?? []),
     ...((data.candidates as unknown[] | undefined) ?? []),
   ].filter(item => item && typeof item === 'object') as Record<string, unknown>[];
-  const candidates = rawCandidates.filter(candidate => !isSyntheticReferenceCandidate(candidate));
+  const candidates = rawCandidates
+    .filter(candidate => !isSyntheticReferenceCandidate(candidate))
+    .filter((candidate, index, all) => {
+      const stored = storedCandidateFromOrigination(candidate);
+      const key = candidateStorageKey(stored) || safeStr(candidate.source_url ?? candidate.source_page_url ?? candidate.company_name ?? index).toLowerCase();
+      return all.findIndex(item => {
+        const itemStored = storedCandidateFromOrigination(item);
+        const itemKey = candidateStorageKey(itemStored) || safeStr(item.source_url ?? item.source_page_url ?? item.company_name).toLowerCase();
+        return itemKey === key;
+      }) === index;
+    });
   const groupedCandidates = candidateGroups(candidates);
   const backendNeedsWebsite = (
     [
@@ -669,7 +699,8 @@ function OriginationResultView({
   const companiesExtracted = extractedCandidateSummary.companies_extracted ?? candidateSummary.companies_extracted ?? '0';
   const candidatesNeedingWebsite = candidateSummary.possible_leads_needing_website_confirmation ?? candidateSummary.needs_website_confirmation_count ?? extractedCandidateSummary.needs_website_confirmation ?? needsWebsiteCandidates.length;
   const rejectedExtractions = candidateSummary.rejected_extractions_count ?? candidateSummary.rejected_extractions ?? extractedCandidateSummary.rejected_extractions ?? rejectedExtractionItems.length;
-  const hasConfirmedCandidates = groupedCandidates.confirmed.length > 0;
+  const confirmedCandidates = groupedCandidates.confirmed;
+  const hasConfirmedCandidates = confirmedCandidates.length > 0;
   const hasPossibleLeads = needsWebsiteCandidates.length > 0;
   const openPossibleLeadsByDefault = !hasConfirmedCandidates && hasPossibleLeads;
 
@@ -887,7 +918,7 @@ function OriginationResultView({
               disabled={compareReady === 0}
               onClick={handleCompareSelected}
               className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent h-8 px-3 rounded-md transition-colors"
-              title={compareReady === 0 ? 'Screen companys first to unlock a stronger comparison.' : undefined}
+              title={compareReady === 0 ? 'Screen companies first to unlock a stronger comparison.' : undefined}
             >
               Compare screened only
             </button>
@@ -901,7 +932,7 @@ function OriginationResultView({
           </div>
         </div>
         {compareReady === 0 && (
-          <p className="text-[11px] text-muted-foreground mt-2">Screen companys first to unlock a stronger comparison.</p>
+          <p className="text-[11px] text-muted-foreground mt-2">Screen companies first to unlock a stronger comparison.</p>
         )}
       </div>
     );
@@ -952,9 +983,14 @@ function OriginationResultView({
 
   function renderFullCandidateCard(c: Record<string, unknown>, i: number) {
     const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
-    const website = safeStr(c.website ?? '');
+    const website = safeStr(c.official_website ?? c.website ?? '');
     const type = candidateType(c);
     const productSignal = productSignalLevel(c);
+    const hqSignal = signalDetail(c, ['hq_location_signal', 'location_signal', 'jurisdiction_signal'], safeStr(c.jurisdiction, 'Unknown'));
+    const aiSignal = signalDetail(c, ['ai_signal', 'ai_adoption_signal'], 'Not found in source snippet.');
+    const fundingSignal = signalDetail(c, ['funding_signal', 'financial_signal', 'funding_financial_signal'], 'Not found in source snippet.');
+    const employeeSignal = signalDetail(c, ['employee_count_signal', 'team_size_signal', 'team_signal'], 'Not found in source snippet.');
+    const confidence = sourceConfidence(c);
     const sourceLabel = safeStr(c.source_label) || 'Public-source candidate signal';
     const evidenceStatus = safeStr(c.evidence_status ?? c.verification_status ?? 'not_independently_verified');
     const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
@@ -999,7 +1035,41 @@ function OriginationResultView({
             {[description, website].filter(Boolean).join(' · ')}
           </p>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Official website</p>
+            {website ? (
+              <a href={website} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline break-all">
+                {website}
+              </a>
+            ) : (
+              <p className="font-medium text-muted-foreground">Unknown</p>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">HQ/location signal</p>
+            <p className="font-medium text-muted-foreground">{hqSignal}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Product signal</p>
+            <p className="font-medium text-muted-foreground">{humanLabel(productSignal)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">AI signal</p>
+            <p className="font-medium text-muted-foreground">{aiSignal}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Funding/financial signal</p>
+            <p className="font-medium text-muted-foreground">{fundingSignal}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Employee/team signal</p>
+            <p className="font-medium text-muted-foreground">{employeeSignal}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Source confidence</p>
+            <p className="font-medium text-muted-foreground">{humanLabel(confidence)}</p>
+          </div>
           {fit && (
             <div>
               <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit score 100</p>
@@ -1031,7 +1101,7 @@ function OriginationResultView({
             disabled={stored.run_ready === false || !website}
             className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {stored.run_ready === false || !website ? 'Add website' : 'Screen company →'}
+            {stored.run_ready === false || !website ? 'Add website' : 'Screen company'}
           </button>
           {canSaveCandidate && (
             <button
@@ -1075,16 +1145,17 @@ function OriginationResultView({
     const type = candidateType(c);
     const stored = storedCandidateFromOrigination(c);
     const sourceUrl = sourceUrls(c)[0] || '';
-    const whyFound = safeStr(c.why_this_candidate_matters ?? c.why_it_fits ?? c.source_snippet ?? c.description, 'Source-backed company mention; website not confirmed.');
+    const whyFound = safeStr(c.reason_found ?? c.why_this_candidate_matters ?? c.why_it_fits, 'Company-like name found in source-backed research.');
+    const extractedContext = safeStr(c.source_context ?? c.extracted_context ?? c.source_snippet ?? c.description, 'Official website not confirmed.');
     const nextAction = safeStr(c.next_best_action ?? c.next_action, 'Find official company website');
     return (
-      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1.6fr_1.2fr_.8fr] gap-2 px-4 py-3 text-xs items-start">
+      <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr_1.3fr_1.5fr_1fr] gap-2 px-4 py-3 text-xs items-start">
         <div>
           <p className="font-semibold text-foreground">{name}</p>
           {type === 'extracted_company_candidate' && (
             <SemanticBadge tone="info" className="mt-1 text-[10px] px-2 py-1">Company mention found</SemanticBadge>
           )}
-          <p className="mt-1 text-[11px] text-[var(--semantic-claim-text)]">Official website required before screening</p>
+          <p className="mt-1 text-[11px] text-[var(--semantic-claim-text)]">Website status: needs confirmation</p>
         </div>
         {sourceUrl ? (
           <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
@@ -1094,7 +1165,7 @@ function OriginationResultView({
           <p className="text-muted-foreground">{displayValue(c.source_label, 'Source-backed mention')}</p>
         )}
         <p className="text-muted-foreground leading-relaxed">{whyFound}</p>
-        <p className="text-muted-foreground leading-relaxed">{nextAction}</p>
+        <p className="text-muted-foreground leading-relaxed">{extractedContext}</p>
         <div>
           <button
             type="button"
@@ -1128,6 +1199,17 @@ function OriginationResultView({
           >
             Edit
           </button>
+          {sourceUrl && (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
+            >
+              Review source
+            </a>
+          )}
+          <p className="mt-2 text-[10px] text-muted-foreground leading-relaxed">{nextAction}</p>
         </div>
       </div>
     );
@@ -1147,7 +1229,7 @@ function OriginationResultView({
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <p className="text-sm font-semibold text-foreground">{title}</p>
               <SemanticBadge tone="unknown">{humanLabel(sourceType)}</SemanticBadge>
-              <SemanticBadge tone="unknown">Not a company target</SemanticBadge>
+              <SemanticBadge tone="unknown">Source page — not a company target</SemanticBadge>
               <SemanticBadge tone={extractionStatus === 'extracted' ? 'info' : 'partial'}>
                 {extractionStatus === 'extracted' ? 'Company mentions found' : 'No confirmed target'}
               </SemanticBadge>
@@ -1173,7 +1255,7 @@ function OriginationResultView({
                 Review source
               </a>
             )}
-            <span className="inline-flex items-center text-[11px] text-muted-foreground px-1">Not a company target</span>
+              <span className="inline-flex items-center text-[11px] text-muted-foreground px-1">Source page — not a company target</span>
           </div>
         </div>
       </div>
@@ -1209,12 +1291,12 @@ function OriginationResultView({
           </div>
         )}
         {mode === 'compact' && (
-          <div className="hidden md:grid grid-cols-[1.2fr_1fr_1.6fr_1.2fr_.8fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
+          <div className="hidden md:grid grid-cols-[1.1fr_1fr_1.3fr_1.5fr_1fr] gap-2 px-4 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border bg-muted/20">
             <span>Company</span>
-            <span>Source</span>
-            <span>Why found</span>
-            <span>Next action</span>
-            <span>Save lead</span>
+            <span>Source page</span>
+            <span>Reason found</span>
+            <span>Extracted context</span>
+            <span>Actions</span>
           </div>
         )}
         <div className={mode === 'full' ? 'divide-y divide-border' : ''}>
@@ -1341,7 +1423,7 @@ function OriginationResultView({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             {[
               ['Confirmed companies', groupedCandidates.confirmed.length],
-              ['Leads needing website', needsWebsiteCandidates.length],
+              ['Possible company leads', needsWebsiteCandidates.length],
               ['Research sources', researchSources.length],
               ['Rejected/low quality extractions', rejectedExtractions],
             ].map(([label, value]) => (
@@ -1375,10 +1457,41 @@ function OriginationResultView({
         </div>
       )}
 
-      {!hasConfirmedCandidates && (
+      {!hasConfirmedCandidates && hasPossibleLeads && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Company candidates</p>
+          <p className="text-sm font-semibold text-foreground">Company mentions found. Confirm websites to screen them.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Frontier OS found company-like leads in research sources, but no official company websites were confirmed.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              href="#origination-possible-leads"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+            >
+              Review possible leads
+            </a>
+            <button
+              type="button"
+              onClick={onPasteKnownTargets}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Paste known targets
+            </button>
+            <Link
+              href="/app/run"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Screen company URL
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!hasConfirmedCandidates && !hasPossibleLeads && (
         <div className="rounded-lg border border-border bg-card/30 px-4 py-3">
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Company candidates</p>
-          <p className="text-sm font-semibold text-foreground">No confirmed company candidates found yet.</p>
+          <p className="text-sm font-semibold text-foreground">No company candidates found.</p>
           <p className="text-xs text-muted-foreground mt-1">
             Frontier OS found research sources, but no official company websites were confirmed.
           </p>
@@ -1406,46 +1519,16 @@ function OriginationResultView({
         </div>
       )}
 
-      {openPossibleLeadsByDefault && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-          <p className="text-sm font-semibold text-foreground">Possible leads found</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Review these leads, confirm official websites, then screen companies individually.
-          </p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            <a
-              href="#origination-possible-leads"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
-            >
-              Review possible leads
-            </a>
-            <button
-              type="button"
-              onClick={onPasteKnownTargets}
-              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-            >
-              Paste known targets
-            </button>
-            <Link
-              href="/app/run"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
-            >
-              Screen company URL
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {renderCandidateGroup('Company candidates', groupedCandidates.confirmed, 'full')}
+      {renderCandidateGroup('Company candidates', confirmedCandidates, 'full')}
       {renderCandidateGroup(
-        'Possible leads needing website confirmation',
+        'Possible company leads',
         needsWebsiteCandidates,
         'compact',
         {
           collapsed: needsWebsiteCandidates.length > 3 || openPossibleLeadsByDefault,
           defaultOpen: openPossibleLeadsByDefault,
           id: 'origination-possible-leads',
-          description: 'Company mentions that need an official website before Screen or Compare.',
+          description: 'Company mentions that need an official website before screening or comparison.',
           intro: 'Frontier OS found company mentions, but official websites must be confirmed before screening.',
           note: openPossibleLeadsByDefault ? 'Opened because no confirmed candidates were found.' : undefined,
         },
