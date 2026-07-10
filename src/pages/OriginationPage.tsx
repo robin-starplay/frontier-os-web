@@ -66,6 +66,21 @@ interface OriginationFormValues {
   targetUniverse: string;
 }
 
+function isQuotaExceededResponse(body: OriginationResult | null | undefined): boolean {
+  if (!body || typeof body !== 'object') return false;
+  return body.error === 'quota_exceeded' || body.status === 'quota_exceeded';
+}
+
+function originationErrorMessage(body: OriginationResult | null | undefined, status: number): string {
+  if (isQuotaExceededResponse(body)) {
+    return safeStr(body?.message || body?.error, 'Origination quota has been reached.');
+  }
+  if (typeof body?.message === 'string' && body.message.trim() && body.status === 'error') {
+    return body.message;
+  }
+  return `Backend returned status ${status}.`;
+}
+
 interface StoredOriginationRun {
   id: string;
   created_at: string;
@@ -131,10 +146,7 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
     }
     const body = await res.json().catch(() => null) as OriginationResult | null;
     if (!res.ok) {
-      const message = typeof body?.message === 'string'
-        ? body.message
-        : `Backend returned status ${res.status}.`;
-      throw new Error(message);
+      throw new Error(originationErrorMessage(body, res.status));
     }
     return body ?? {};
   })();
@@ -2045,6 +2057,10 @@ function OriginationForm() {
     ? 'Ranking supplied/source-backed targets...'
     : 'Researching source-backed thesis evidence...';
 
+  function clearErrorState() {
+    setState(current => current.kind === 'error' ? { kind: 'idle' } : current);
+  }
+
   function refreshWorkspace() {
     setRuns(readOriginationRuns());
     setSavedLeads(readSavedLeads());
@@ -2126,6 +2142,13 @@ function OriginationForm() {
         strategic_rationale: rationale,
         ...(mode === 'rank_known_targets' && targets.length > 0 ? { targets } : {}),
       });
+      if (isQuotaExceededResponse(data)) {
+        setState({ kind: 'error', message: originationErrorMessage(data, 429) });
+        return;
+      }
+      if (safeStr(data.status).toLowerCase() === 'ok') {
+        setState({ kind: 'idle' });
+      }
       storeOriginationRun(formValues, data);
       const storedRun = saveOriginationRunToHistory(formValues, data);
       refreshWorkspace();
@@ -2222,7 +2245,10 @@ function OriginationForm() {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setMode(option.value)}
+                  onClick={() => {
+                    setMode(option.value);
+                    clearErrorState();
+                  }}
                   className={`rounded-md border px-3 py-2 text-left transition-colors ${
                     active
                       ? 'border-primary/40 bg-primary/10 text-foreground'
@@ -2244,7 +2270,10 @@ function OriginationForm() {
               </label>
               <textarea
                 value={buyerThesis}
-                onChange={e => setBuyerThesis(e.target.value)}
+                onChange={e => {
+                  setBuyerThesis(e.target.value);
+                  clearErrorState();
+                }}
                 rows={3}
                 placeholder="e.g. Founder-owned UK vertical software with recurring revenue, low implementation complexity and low AI replica risk."
                 className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
@@ -2258,7 +2287,10 @@ function OriginationForm() {
                 <input
                   type="text"
                   value={sector}
-                  onChange={e => setSector(e.target.value)}
+                  onChange={e => {
+                    setSector(e.target.value);
+                    clearErrorState();
+                  }}
                   placeholder="e.g. UK vertical SaaS, telecoms BSS"
                   className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
                 />
@@ -2270,7 +2302,10 @@ function OriginationForm() {
                 <input
                   type="text"
                   value={geo}
-                  onChange={e => setGeo(e.target.value)}
+                  onChange={e => {
+                    setGeo(e.target.value);
+                    clearErrorState();
+                  }}
                   placeholder="e.g. UK, DACH, Nordic"
                   className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
                 />
@@ -2283,7 +2318,10 @@ function OriginationForm() {
               <input
                 type="text"
                 value={sizeCriteria}
-                onChange={e => setSizeCriteria(e.target.value)}
+                onChange={e => {
+                  setSizeCriteria(e.target.value);
+                  clearErrorState();
+                }}
                 placeholder="e.g. UK lower mid-market, profitable bootstrapped software"
                 className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
               />
@@ -2294,7 +2332,10 @@ function OriginationForm() {
               </label>
               <textarea
                 value={rationale}
-                onChange={e => setRationale(e.target.value)}
+                onChange={e => {
+                  setRationale(e.target.value);
+                  clearErrorState();
+                }}
                 rows={3}
                 placeholder="What makes this a compelling thesis? e.g. mission-critical vertical software with low churn, cross-sell to existing portfolio..."
                 className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
@@ -2309,7 +2350,10 @@ function OriginationForm() {
             </label>
             <textarea
               value={targetUniverse}
-              onChange={e => setTargetUniverse(e.target.value)}
+              onChange={e => {
+                setTargetUniverse(e.target.value);
+                clearErrorState();
+              }}
               rows={7}
               placeholder={`Company name, website, jurisdiction, brief description
 
@@ -2332,7 +2376,10 @@ Example format:
             <div className="border-t border-border p-3">
               <textarea
                 value={targetUniverse}
-                onChange={e => setTargetUniverse(e.target.value)}
+                onChange={e => {
+                  setTargetUniverse(e.target.value);
+                  clearErrorState();
+                }}
                 rows={4}
                 placeholder={`Paste known targets, one per line:
 [Company name], [website URL], [jurisdiction], [brief description]`}
