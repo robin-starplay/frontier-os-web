@@ -791,12 +791,314 @@ function completeStages(stages: RunningStage[]): RunningStage[] {
 
 // ─── Step 1: Input form ───────────────────────────────────────────────────────
 
+function looksLikeSourcePageUrl(value: string): boolean {
+  if (!value) return false;
+  try {
+    const parsed = new URL(normalizeWebsiteUrl(value));
+    const text = `${parsed.hostname}${parsed.pathname}`.toLowerCase();
+    return [
+      '/blog/', '/news/', '/press/', '/article/', '/articles/', '/insights/', '/resources/',
+      '/top-', '/best-', '/list', '/lists', '/companies', '/startups', '/directory',
+    ].some(pattern => text.includes(pattern))
+      || /(medium|substack|techcrunch|forbes|businesswire|prnewswire|crunchbase|g2|capterra|linkedin|companieshouse|opencorporates)\./.test(parsed.hostname.toLowerCase())
+      || parsed.hostname.toLowerCase().endsWith('.gov.uk');
+  } catch {
+    return false;
+  }
+}
+
+function targetMatcher(target: RunTarget) {
+  return {
+    id: target.id,
+    cockpit_target_id: target.cockpit_target_id,
+    run_id: target.run_id,
+    company_name: target.company_name,
+    jurisdiction: target.jurisdiction,
+    website: target.website,
+  };
+}
+
+function targetContextValue(target: RunTarget, keys: string[], fallback = ''): string {
+  for (const key of keys) {
+    const value = target[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number') return String(value);
+  }
+  const raw = target.raw ?? {};
+  for (const key of keys) {
+    const value = raw[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number') return String(value);
+  }
+  return fallback;
+}
+
+function likelyWebsiteSuggestions(target: RunTarget): string[] {
+  const sameCompany = getAllWorkflowTargets().filter(item => (
+    item.company_name.trim().toLowerCase() === target.company_name.trim().toLowerCase()
+  ));
+  const candidates = [
+    target.website,
+    ...sameCompany.map(item => item.website),
+    target.source_url,
+    ...sameCompany.map(item => item.source_url),
+  ].filter(Boolean);
+
+  const unique = new Map<string, string>();
+  candidates.forEach(candidate => {
+    const normalized = normalizeWebsiteUrl(candidate || '');
+    if (!isValidWebsiteUrl(normalized) || looksLikeSourcePageUrl(normalized)) return;
+    try {
+      const parsed = new URL(normalized);
+      unique.set(parsed.hostname.replace(/^www\./, '').toLowerCase(), normalized);
+    } catch {
+      /* ignore invalid suggestion */
+    }
+  });
+  return Array.from(unique.values()).slice(0, 4);
+}
+
+type LeadEditMode = 'details' | 'website';
+
+function LeadEditSheet({
+  target,
+  mode,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  target: RunTarget | null;
+  mode: LeadEditMode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (target: RunTarget) => void;
+}) {
+  const websiteRef = React.useRef<HTMLInputElement | null>(null);
+  const [companyName, setCompanyName] = React.useState('');
+  const [website, setWebsite] = React.useState('');
+  const [jurisdiction, setJurisdiction] = React.useState('');
+  const [sector, setSector] = React.useState('');
+  const [sourceUrl, setSourceUrl] = React.useState('');
+  const [sourceLabel, setSourceLabel] = React.useState('');
+  const [notes, setNotes] = React.useState('');
+  const [sourceNote, setSourceNote] = React.useState('');
+  const [allowSourcePageOverride, setAllowSourcePageOverride] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    if (!target) return;
+    setCompanyName(target.company_name);
+    setWebsite(target.website);
+    setJurisdiction(target.jurisdiction);
+    setSector(target.sector);
+    setSourceUrl(target.source_url);
+    setSourceLabel(target.source_label);
+    setNotes(targetContextValue(target, ['notes', 'note']));
+    setSourceNote('');
+    setAllowSourcePageOverride(false);
+    setError('');
+  }, [target]);
+
+  React.useEffect(() => {
+    if (open && mode === 'website') {
+      window.setTimeout(() => websiteRef.current?.focus(), 80);
+    }
+  }, [open, mode]);
+
+  if (!target) return null;
+
+  const normalizedWebsite = normalizeWebsiteUrl(website);
+  const sourcePageWarning = Boolean(normalizedWebsite && isValidWebsiteUrl(normalizedWebsite) && looksLikeSourcePageUrl(normalizedWebsite));
+  const suggestions = likelyWebsiteSuggestions(target);
+  const title = mode === 'website' || !target.website ? 'Confirm official website' : 'Edit lead details';
+  const isScreened = target.screening_status === 'screened';
+
+  function saveChanges() {
+    const trimmedWebsite = website.trim();
+    const normalized = trimmedWebsite ? normalizeWebsiteUrl(trimmedWebsite) : '';
+    if (trimmedWebsite && !isValidWebsiteUrl(normalized)) {
+      setError('Enter a valid website URL or domain, such as https://www.example.com.');
+      return;
+    }
+    if (sourcePageWarning && !allowSourcePageOverride) {
+      setError('This URL looks like a source page, article or directory. Confirm it is the official company website or tick override.');
+      return;
+    }
+
+    const patch = {
+      company_name: companyName.trim() || target.company_name,
+      website: normalized,
+      jurisdiction: jurisdiction.trim() || 'unknown',
+      sector: sector.trim(),
+      source_url: sourceUrl.trim(),
+      source_label: sourceLabel.trim(),
+      notes: notes.trim(),
+      source_note: sourceNote.trim(),
+      website_status: normalized ? 'user_confirmed' : target.website_status,
+      run_ready: Boolean(normalized),
+      candidate_quality: normalized ? 'ready_to_screen' : target.candidate_quality,
+      next_action: normalized ? 'Screen company' : targetContextValue(target, ['next_action', 'next_best_action'], 'Find official company website'),
+      workflow_state: {
+        ...(target.raw?.workflow_state && typeof target.raw.workflow_state === 'object' ? target.raw.workflow_state as Record<string, unknown> : {}),
+        recommended_next_step: normalized ? 'run_screen' : 'request_evidence',
+      },
+    };
+    const updated = updateWorkflowTarget(targetMatcher(target), patch);
+    const saved = updated[0] ?? { ...target, ...patch } as RunTarget;
+    onSaved(saved as RunTarget);
+    onOpenChange(false);
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>
+            Local private-beta enrichment. Updates matching leads across Origination, saved leads, Cockpit and Compare.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-5">
+          <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <SemanticBadge tone={target.website ? (target.website_status === 'user_confirmed' ? 'info' : 'verified') : 'warning'}>
+                {target.website ? target.website_status === 'user_confirmed' ? 'User confirmed website' : 'Ready to screen' : 'Website required'}
+              </SemanticBadge>
+              {isScreened && <SemanticBadge tone="info">Already screened</SemanticBadge>}
+              {target.candidate_type && <SemanticBadge tone="category">{target.candidate_type}</SemanticBadge>}
+            </div>
+            <dl className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground">Why found</dt>
+                <dd className="mt-0.5 text-foreground">{targetContextValue(target, ['why_found', 'why_this_candidate_matters', 'why_it_fits', 'description'], 'Source-backed lead or saved target.')}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Current next action</dt>
+                <dd className="mt-0.5 text-foreground">{targetContextValue(target, ['next_action', 'next_best_action'], target.website ? 'Screen company' : 'Find official company website')}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Evidence status</dt>
+                <dd className="mt-0.5 text-foreground">{targetContextValue(target, ['evidence_status', 'verification_status', 'evidence_confidence'], 'Unknown')}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Source type</dt>
+                <dd className="mt-0.5 text-foreground">{targetContextValue(target, ['source_type', 'candidate_type'], target.source || 'Saved target')}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="lead-company">Company name</Label>
+              <Input id="lead-company" value={companyName} onChange={event => setCompanyName(event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead-website">Website URL</Label>
+              <Input
+                id="lead-website"
+                ref={websiteRef}
+                value={website}
+                onChange={event => { setWebsite(event.target.value); setError(''); }}
+                onBlur={() => website.trim() && setWebsite(normalizeWebsiteUrl(website))}
+                placeholder="https://company.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead-jurisdiction">Jurisdiction</Label>
+              <Input id="lead-jurisdiction" value={jurisdiction} onChange={event => setJurisdiction(event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead-sector">Sector / vertical</Label>
+              <Input id="lead-sector" value={sector} onChange={event => setSector(event.target.value)} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="lead-source-url">Source URL</Label>
+              <Input id="lead-source-url" value={sourceUrl} onChange={event => setSourceUrl(event.target.value)} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="lead-source-label">Source label</Label>
+              <Input id="lead-source-label" value={sourceLabel} onChange={event => setSourceLabel(event.target.value)} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="lead-notes">Notes</Label>
+              <textarea
+                id="lead-notes"
+                rows={3}
+                value={notes}
+                onChange={event => setNotes(event.target.value)}
+                className="flex w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                placeholder="Add website source, product notes or follow-up context."
+              />
+            </div>
+          </div>
+
+          {suggestions.length > 0 && (
+            <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
+              <p className="text-xs font-semibold text-foreground">Likely websites</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {suggestions.map(suggestion => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setWebsite(suggestion)}
+                    className="rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sourcePageWarning && (
+            <div className="rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-4 py-3">
+              <p className="text-xs font-semibold text-[var(--semantic-claim-text)]">This URL may be a source page, article or directory.</p>
+              <label className="mt-2 flex items-start gap-2 text-xs text-[var(--semantic-claim-text)]">
+                <input
+                  type="checkbox"
+                  checked={allowSourcePageOverride}
+                  onChange={event => setAllowSourcePageOverride(event.currentTarget.checked)}
+                  className="mt-0.5"
+                />
+                <span>I confirm this is the official company website or an acceptable company product page.</span>
+              </label>
+            </div>
+          )}
+
+          {mode === 'website' && (
+            <div className="space-y-2">
+              <Label htmlFor="lead-source-note">Source / note for website confirmation</Label>
+              <Input id="lead-source-note" value={sourceNote} onChange={event => setSourceNote(event.target.value)} placeholder="Where did the official website confirmation come from?" />
+            </div>
+          )}
+
+          {error && (
+            <p className="rounded-md border border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)] px-3 py-2 text-xs font-medium text-[var(--semantic-blocker-text)]">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <SheetFooter className="mt-6">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="button" onClick={saveChanges}>{mode === 'website' || !target.website ? 'Save website' : 'Save changes'}</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function TargetPickerSection({
   title,
   targets,
   empty,
   onUse,
   onCompare,
+  onEdit,
+  onAddWebsite,
+  onSaveLead,
+  onRemove,
   limit = 5,
   deEmphasizeMissing = false,
 }: {
@@ -805,6 +1107,10 @@ function TargetPickerSection({
   empty: string;
   onUse: (target: RunTarget) => void;
   onCompare?: (target: RunTarget) => void;
+  onEdit: (target: RunTarget) => void;
+  onAddWebsite: (target: RunTarget) => void;
+  onSaveLead: (target: RunTarget) => void;
+  onRemove: (target: RunTarget) => void;
   limit?: number;
   deEmphasizeMissing?: boolean;
 }) {
@@ -826,15 +1132,26 @@ function TargetPickerSection({
           {visibleTargets.map(target => {
             const ready = Boolean(target.website);
             return (
-              <div key={target.id} className={cn(
-                'px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between',
+              <div
+                key={target.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onEdit(target)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onEdit(target);
+                  }
+                }}
+                className={cn(
+                'group cursor-pointer px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                 deEmphasizeMissing && !ready ? 'bg-muted/25 opacity-80' : '',
               )}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-foreground">{target.company_name}</p>
-                    <SemanticBadge tone={ready ? 'verified' : 'partial'}>
-                      {ready ? 'Ready to screen' : 'Website required'}
+                    <SemanticBadge tone={ready ? target.website_status === 'user_confirmed' ? 'info' : 'verified' : 'partial'}>
+                      {ready ? target.website_status === 'user_confirmed' ? 'User confirmed website' : 'Ready to screen' : 'Website required'}
                     </SemanticBadge>
                     {target.screening_status === 'screened' && (
                       <SemanticBadge tone="info">Already screened</SemanticBadge>
@@ -846,31 +1163,62 @@ function TargetPickerSection({
                   <p className="mt-1 text-[11px] text-muted-foreground/70">{target.source_label}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={event => { event.stopPropagation(); onEdit(target); }}
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                  >
+                    {target.screening_status === 'screened' ? 'Edit metadata' : 'Edit'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={event => { event.stopPropagation(); onAddWebsite(target); }}
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                  >
+                    {ready ? 'Edit website' : 'Add website'}
+                  </button>
                   {ready ? (
                     <button
                       type="button"
-                      onClick={() => onUse(target)}
+                      onClick={event => { event.stopPropagation(); onUse(target); }}
                       className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                     >
                       {target.screening_status === 'screened' ? 'Re-screen' : 'Use for screen'}
                     </button>
                   ) : (
-                    <Link
-                      href="/app/origination"
-                      className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                    <button
+                      type="button"
+                      onClick={event => { event.stopPropagation(); onAddWebsite(target); }}
+                      className="inline-flex h-8 items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-accent transition-colors"
                     >
-                      Find website
-                    </Link>
+                      Add website
+                    </button>
                   )}
                   {target.screening_status === 'screened' && onCompare && (
                     <button
                       type="button"
-                      onClick={() => onCompare(target)}
+                      onClick={event => { event.stopPropagation(); onCompare(target); }}
                       className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
                     >
                       Send to Compare
                     </button>
                   )}
+                  {target.source !== 'lead' && target.screening_status !== 'screened' && (
+                    <button
+                      type="button"
+                      onClick={event => { event.stopPropagation(); onSaveLead(target); }}
+                      className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                    >
+                      Save lead
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={event => { event.stopPropagation(); onRemove(target); }}
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
             );
@@ -903,70 +1251,98 @@ function TargetPicker({
   onManual: () => void;
   hasPrefilledCompany: boolean;
 }) {
-  const targets = runTargetsFromStorage();
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  const [editTarget, setEditTarget] = React.useState<RunTarget | null>(null);
+  const [editMode, setEditMode] = React.useState<LeadEditMode>('details');
+  const targets = React.useMemo(() => runTargetsFromStorage(), [refreshKey]);
   const hasTargets = targets.origination.length > 0 || targets.savedLeads.length > 0 || targets.cockpit.length > 0;
   const readySavedLeads = targets.savedLeads.filter(target => Boolean(target.website));
   const originationLeadsNeedingWebsite = targets.origination.filter(target => !target.website);
+  const openEdit = (target: RunTarget, mode: LeadEditMode = 'details') => {
+    setEditTarget(target);
+    setEditMode(mode);
+  };
   const handleCompareTarget = (target: RunTarget) => {
     addRunTargetToCompare(target);
     window.location.assign('/app/compare');
   };
+  const handleSaveLead = (target: RunTarget) => {
+    saveLead(target);
+    setRefreshKey(key => key + 1);
+  };
+  const handleRemove = (target: RunTarget) => {
+    removeWorkflowTarget(targetMatcher(target));
+    setRefreshKey(key => key + 1);
+  };
+  const handleSaved = (target: RunTarget) => {
+    setRefreshKey(key => key + 1);
+    if (target.website) onUseTarget(target);
+  };
   return (
-    <details id="screen-target-picker" className="mt-6 rounded-lg border border-border bg-card/80 overflow-hidden">
-      <summary className="cursor-pointer list-none px-5 py-4 border-b border-border bg-card/90">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Choose from Origination or saved leads</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Use a saved lead, Cockpit target or Origination result.
+    <>
+      <details id="screen-target-picker" className="mt-6 rounded-lg border border-border bg-card/80 overflow-hidden">
+        <summary className="cursor-pointer list-none px-5 py-4 border-b border-border bg-card/90">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Choose from Origination or saved leads</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Use a saved lead, Cockpit target or Origination result.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {hasLastOriginationResult() && (
+                <Link href="/app/origination" className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors">
+                  Choose from Origination
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={onManual}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+              >
+                Enter manually
+              </button>
+            </div>
+          </div>
+          {activeSource !== 'manual' && (
+            <p className="mt-3 text-xs font-medium text-primary">
+              Screening target from {activeSource === 'origination' ? 'Origination' : activeSource === 'cockpit' ? 'Cockpit' : 'saved leads'}.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {hasLastOriginationResult() && (
-              <Link href="/app/origination" className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors">
-                Choose from Origination
+          )}
+        </summary>
+        {!hasTargets ? (
+          <div className="px-5 py-6">
+            <p className="text-sm font-semibold text-foreground">No saved leads yet.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Enter a company manually or start with Origination.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/app/origination" className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+                Start Origination
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={onManual}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              Enter manually
-            </button>
+              <button
+                type="button"
+                onClick={onManual}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+              >
+                Enter manually
+              </button>
+            </div>
           </div>
-        </div>
-        {activeSource !== 'manual' && (
-          <p className="mt-3 text-xs font-medium text-primary">
-            Screening target from {activeSource === 'origination' ? 'Origination' : activeSource === 'cockpit' ? 'Cockpit' : 'saved leads'}.
-          </p>
+        ) : (
+          <div className="grid gap-4 p-5">
+            <TargetPickerSection title="Ready-to-screen saved leads" targets={readySavedLeads} empty="No ready-to-screen saved leads yet." onUse={onUseTarget} onEdit={target => openEdit(target)} onAddWebsite={target => openEdit(target, 'website')} onSaveLead={handleSaveLead} onRemove={handleRemove} />
+            <TargetPickerSection title="Cockpit targets" targets={targets.cockpit} empty="No screened Cockpit targets yet." onUse={onUseTarget} onCompare={handleCompareTarget} onEdit={target => openEdit(target)} onAddWebsite={target => openEdit(target, 'website')} onSaveLead={handleSaveLead} onRemove={handleRemove} />
+            <TargetPickerSection title="Origination leads needing website confirmation" targets={originationLeadsNeedingWebsite} empty="No Origination leads need website confirmation." onUse={onUseTarget} onEdit={target => openEdit(target)} onAddWebsite={target => openEdit(target, 'website')} onSaveLead={handleSaveLead} onRemove={handleRemove} limit={5} deEmphasizeMissing />
+          </div>
         )}
-      </summary>
-      {!hasTargets ? (
-        <div className="px-5 py-6">
-          <p className="text-sm font-semibold text-foreground">No saved leads yet.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Enter a company manually or start with Origination.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/app/origination" className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
-              Start Origination
-            </Link>
-            <button
-              type="button"
-              onClick={onManual}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              Enter manually
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 p-5">
-          <TargetPickerSection title="Ready-to-screen saved leads" targets={readySavedLeads} empty="No ready-to-screen saved leads yet." onUse={onUseTarget} />
-          <TargetPickerSection title="Cockpit targets" targets={targets.cockpit} empty="No screened Cockpit targets yet." onUse={onUseTarget} onCompare={handleCompareTarget} />
-          <TargetPickerSection title="Origination leads needing website confirmation" targets={originationLeadsNeedingWebsite} empty="No Origination leads need website confirmation." onUse={onUseTarget} limit={5} deEmphasizeMissing />
-        </div>
-      )}
-    </details>
+      </details>
+      <LeadEditSheet
+        target={editTarget}
+        mode={editMode}
+        open={Boolean(editTarget)}
+        onOpenChange={open => { if (!open) setEditTarget(null); }}
+        onSaved={handleSaved}
+      />
+    </>
   );
 }
 
@@ -1061,7 +1437,7 @@ function Step1({
               </a>
             </div>
           )}
-          <Card className="border-border bg-card/90">
+          <Card id="screen-company-form" className="border-border bg-card/90">
             <CardHeader className="pb-5">
               <CardTitle className="text-lg">Screen a company</CardTitle>
               <CardDescription>
@@ -3569,6 +3945,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   const [documentAssistedResult, setDocumentAssistedResult] = useState<DocumentAssistedResult | null>(null);
   const [fromOrigination, setFromOrigination] = useState(false);
   const [targetSource, setTargetSource] = useState<RunTargetSource>('manual');
+  const [selectedLeadBanner, setSelectedLeadBanner] = useState('');
 
   // ── Railway backend state (optional async backend — primary path uses POST /api/analyse/url) ──
   const backendConfigured = isBackendConfigured();
@@ -3583,6 +3960,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     if (params.get('source') !== 'origination') return;
     setFromOrigination(true);
     setTargetSource('origination');
+    setSelectedLeadBanner('Screening target from Origination');
     const candidateCompany = params.get('company_name') || params.get('company');
     const candidateWebsite = params.get('company_url') || params.get('website');
     const candidateJurisdiction = params.get('jurisdiction');
@@ -4119,6 +4497,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setSaveSource(null);
     setFromOrigination(false);
     setTargetSource('manual');
+    setSelectedLeadBanner('');
   }
 
   function clearScreenForm() {
@@ -4132,6 +4511,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setConfidentialityAcknowledged(false);
     setFromOrigination(false);
     setTargetSource('manual');
+    setSelectedLeadBanner('');
     setAnalysisError(null);
     setDocumentAssistedResult(null);
     setDocumentUnavailable(null);
@@ -4144,16 +4524,19 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setJurisdiction(normaliseJurisdictionCode(target.jurisdiction));
     setFromOrigination(target.source === 'origination');
     setTargetSource((['origination', 'saved_lead', 'cockpit'].includes(target.source) ? target.source : 'manual') as RunTargetSource);
+    setSelectedLeadBanner(target.source === 'origination' ? 'Screening target from Origination' : 'Screening selected lead');
     setStep(1);
     setResult(null);
     setDocumentAssistedResult(null);
     setDocumentUnavailable(null);
     setAnalysisError(null);
+    window.setTimeout(() => document.getElementById('screen-company-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 
   function handleManualTarget() {
     setTargetSource('manual');
     setFromOrigination(false);
+    setSelectedLeadBanner('');
   }
 
   // ── Render ────────────────────────────────────────────────────
@@ -4478,10 +4861,10 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
             {!sampleMode && step === 1 && (
               <>
-                {fromOrigination && (
+                {(fromOrigination || selectedLeadBanner) && (
                   <div className="mb-4 rounded-lg border border-border bg-card/70 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <p className="text-xs text-muted-foreground">
-                      Screening target from Origination.
+                      {selectedLeadBanner || 'Screening target from Origination'}.
                     </p>
                     <Link
                       href="/app/origination"
