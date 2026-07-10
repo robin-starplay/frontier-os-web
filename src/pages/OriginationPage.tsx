@@ -323,10 +323,19 @@ function candidateType(candidate: Record<string, unknown>): string {
   );
 }
 
+function looksLikeResearchSourceTitle(value: unknown): boolean {
+  const text = safeStr(value).trim().toLowerCase();
+  if (!text) return false;
+  return /^(top|best|how\b|r\/)/i.test(text)
+    || /\b(guide|list|market|article|reddit|medium|cio|directory|report|startup|startups|companies)\b/i.test(text);
+}
+
 function isResearchSourceCandidate(candidate: Record<string, unknown>): boolean {
-  return ['source_page', 'directory_or_listicle', 'news_article'].includes(candidateType(candidate))
+  const type = candidateType(candidate);
+  return ['source_page', 'directory_or_listicle', 'news_article', 'research_article', 'forum_thread', 'market_report', 'search_result'].includes(type)
     || safeStr(candidate.display_mode) === 'source_page_row'
-    || safeStr(candidate.candidate_quality) === 'research_source';
+    || safeStr(candidate.candidate_quality) === 'research_source'
+    || looksLikeResearchSourceTitle(candidate.title ?? candidate.source_page_title ?? candidate.source_title ?? candidate.company_name);
 }
 
 function isUserSuppliedCandidate(candidate: Record<string, unknown>): boolean {
@@ -337,21 +346,26 @@ function isUserSuppliedCandidate(candidate: Record<string, unknown>): boolean {
 
 function isCompanyCandidate(candidate: Record<string, unknown>): boolean {
   const type = candidateType(candidate);
-  return type === 'company_candidate' || type === 'extracted_company_candidate' || isUserSuppliedCandidate(candidate);
+  return type === 'company' || type === 'company_candidate' || type === 'extracted_company_candidate' || isUserSuppliedCandidate(candidate);
 }
 
 function officialWebsiteConfidence(candidate: Record<string, unknown>): string {
-  return safeStr(candidate.official_website_confidence, safeStr(candidate.website ? 'medium' : 'unknown'));
+  return safeStr(candidate.official_website_confidence, 'unknown');
 }
 
 function isConfirmedCompanyCandidate(candidate: Record<string, unknown>): boolean {
-  const website = safeStr(candidate.website);
+  const website = safeStr(candidate.official_website ?? candidate.website);
   const confidence = officialWebsiteConfidence(candidate);
+  const websiteStatus = safeStr(candidate.website_status);
   return isCompanyCandidate(candidate)
     && !isResearchSourceCandidate(candidate)
     && Boolean(website)
-    && candidate.run_ready === true
-    && ['high', 'medium'].includes(confidence);
+    && (
+      websiteStatus === 'confirmed_official'
+      || websiteStatus === 'likely_official'
+      || ['high', 'medium'].includes(confidence)
+      || isUserSuppliedCandidate(candidate)
+    );
 }
 
 function productSignalLevel(candidate: Record<string, unknown>): string {
@@ -564,10 +578,10 @@ function numericOrNull(value: unknown): number | null {
 
 function storedCandidateFromOrigination(candidate: Record<string, unknown>): StoredCompareCandidate {
   const name = safeStr(candidate.company_name ?? candidate.company ?? candidate.name) || 'Unnamed candidate';
-  const website = safeStr(candidate.website);
+  const website = safeStr(candidate.official_website ?? candidate.website);
   const type = candidateType(candidate);
   const sourceUrl = sourceUrls(candidate)[0] || '';
-  const canUseAsCompany = type === 'company_candidate' || type === 'extracted_company_candidate' || isUserSuppliedCandidate(candidate);
+  const canUseAsCompany = isConfirmedCompanyCandidate({ ...candidate, website });
   const compareReady = candidate.compare_ready === true || (canUseAsCompany && Boolean(website.trim()) && candidate.compare_ready !== false);
   const runReady = candidate.run_ready === true || (canUseAsCompany && Boolean(website.trim()) && candidate.run_ready !== false);
   return {
@@ -584,7 +598,7 @@ function storedCandidateFromOrigination(candidate: Record<string, unknown>): Sto
     fit_score_100: numericOrNull(candidate.fit_score_100 ?? candidate.fit_score ?? candidate.score),
     recommendation: safeStr(candidate.recommendation ?? candidate.verdict),
     candidate_quality: safeStr(candidate.candidate_quality),
-    website_status: website.trim() ? safeStr(candidate.website_status, 'known') : 'missing',
+    website_status: website.trim() ? safeStr(candidate.website_status, 'likely_official') : 'missing',
     compare_ready: compareReady,
     run_ready: runReady,
     ...(compareReady ? {} : { compare_note: 'Website/company target required before comparison.' }),
@@ -610,18 +624,20 @@ function OriginationResultView({
   const [selectedCandidates, setSelectedCandidates] = useState<StoredCompareCandidate[]>(() => readSelectedCandidates());
 
   // Normalise candidate list — backend may call this field anything
-  const rawCandidates = (
-    (data.targets as unknown[] | undefined) ??
-    (data.ranked_targets as unknown[] | undefined) ??
-    (data.candidates as unknown[] | undefined) ??
-    []
-  ) as Record<string, unknown>[];
+  const rawCandidates = [
+    ...((data.confirmed_company_candidates as unknown[] | undefined) ?? []),
+    ...((data.ranked_targets as unknown[] | undefined) ?? []),
+    ...((data.targets as unknown[] | undefined) ?? []),
+    ...((data.candidates as unknown[] | undefined) ?? []),
+  ].filter(item => item && typeof item === 'object') as Record<string, unknown>[];
   const candidates = rawCandidates.filter(candidate => !isSyntheticReferenceCandidate(candidate));
   const groupedCandidates = candidateGroups(candidates);
   const backendNeedsWebsite = (
-    Array.isArray(data.needs_website_confirmation)
-      ? data.needs_website_confirmation.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
-      : []
+    [
+      ...((data.needs_website_confirmation as unknown[] | undefined) ?? []),
+      ...((data.possible_leads_needing_website_confirmation as unknown[] | undefined) ?? []),
+      ...((data.possible_leads_needing_website as unknown[] | undefined) ?? []),
+    ].filter(item => item && typeof item === 'object') as Record<string, unknown>[]
   );
   const backendRejectedExtractions = (
     Array.isArray(data.rejected_extractions)
@@ -639,7 +655,9 @@ function OriginationResultView({
     const key = safeStr(source.url ?? source.source_page_url ?? source.source_url ?? source.title ?? source.source_page_title).toLowerCase();
     return !key || all.findIndex(item => safeStr(item.url ?? item.source_page_url ?? item.source_url ?? item.title ?? item.source_page_title).toLowerCase() === key) === index;
   });
-  const needsWebsiteCandidates = [...backendNeedsWebsite, ...groupedCandidates.needsWebsite].filter((candidate, index, all) => {
+  const needsWebsiteCandidates = [...backendNeedsWebsite, ...groupedCandidates.needsWebsite]
+    .filter(candidate => isCompanyCandidate(candidate) && !isResearchSourceCandidate(candidate))
+    .filter((candidate, index, all) => {
     const key = candidateStorageKey(storedCandidateFromOrigination(candidate));
     return all.findIndex(item => candidateStorageKey(storedCandidateFromOrigination(item)) === key) === index;
   });
@@ -649,7 +667,7 @@ function OriginationResultView({
   });
   const sourcePagesFound = extractedCandidateSummary.source_pages_found ?? candidateSummary.source_pages_found ?? researchSources.length;
   const companiesExtracted = extractedCandidateSummary.companies_extracted ?? candidateSummary.companies_extracted ?? '0';
-  const candidatesNeedingWebsite = candidateSummary.needs_website_confirmation_count ?? extractedCandidateSummary.needs_website_confirmation ?? needsWebsiteCandidates.length;
+  const candidatesNeedingWebsite = candidateSummary.possible_leads_needing_website_confirmation ?? candidateSummary.needs_website_confirmation_count ?? extractedCandidateSummary.needs_website_confirmation ?? needsWebsiteCandidates.length;
   const rejectedExtractions = candidateSummary.rejected_extractions_count ?? candidateSummary.rejected_extractions ?? extractedCandidateSummary.rejected_extractions ?? rejectedExtractionItems.length;
   const hasConfirmedCandidates = groupedCandidates.confirmed.length > 0;
   const hasPossibleLeads = needsWebsiteCandidates.length > 0;
@@ -767,6 +785,21 @@ function OriginationResultView({
       jurisdiction: stored.jurisdiction,
       source: 'origination',
     });
+    window.location.href = `/app/run?${params.toString()}`;
+  }
+
+  function handleEditLeadCandidate(candidate: Record<string, unknown>) {
+    const stored = storedCandidateFromOrigination(candidate);
+    addSavedLead(stored);
+    setSavedCandidates(prev => new Set(prev).add(candidateStorageKey(stored)));
+    onWorkspaceChange();
+    const params = new URLSearchParams({
+      company_name: stored.company_name,
+      company: stored.company_name,
+      jurisdiction: stored.jurisdiction,
+      source: 'origination',
+    });
+    if (stored.website) params.set('website', stored.website);
     window.location.href = `/app/run?${params.toString()}`;
   }
 
@@ -954,7 +987,7 @@ function OriginationResultView({
           <span className="text-[11px] font-medium text-muted-foreground/50">#{rank}</span>
           <p className="text-sm font-semibold text-foreground">{name}</p>
           {type === 'extracted_company_candidate' && (
-            <SemanticBadge tone="info">Extracted from source page</SemanticBadge>
+            <SemanticBadge tone="info">Company mention found</SemanticBadge>
           )}
           {verdict && <SemanticBadge tone="info">{verdict}</SemanticBadge>}
           <SemanticBadge tone={productSignal === 'strong' ? 'verified' : productSignal === 'plausible' ? 'info' : productSignal === 'weak' ? 'partial' : 'unknown'}>
@@ -998,7 +1031,7 @@ function OriginationResultView({
             disabled={stored.run_ready === false || !website}
             className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {stored.run_ready === false || !website ? 'Find website' : 'Screen company →'}
+            {stored.run_ready === false || !website ? 'Add website' : 'Screen company →'}
           </button>
           {canSaveCandidate && (
             <button
@@ -1018,7 +1051,7 @@ function OriginationResultView({
               {inCompare ? 'In Compare' : compareMessages[compareKey] || 'Add to Compare later'}
             </button>
           )}
-          {!website && <span className="text-[11px] text-[var(--semantic-claim-text)]">Website required before screening</span>}
+          {!website && <span className="text-[11px] text-[var(--semantic-claim-text)]">Official website required before screening</span>}
           {action && <span className="text-[11px] text-muted-foreground/60">{action}</span>}
         </div>
         <p className="text-[10px] font-medium text-muted-foreground/40 mt-2">
@@ -1049,9 +1082,9 @@ function OriginationResultView({
         <div>
           <p className="font-semibold text-foreground">{name}</p>
           {type === 'extracted_company_candidate' && (
-            <SemanticBadge tone="info" className="mt-1 text-[10px] px-2 py-1">Extracted from source page</SemanticBadge>
+            <SemanticBadge tone="info" className="mt-1 text-[10px] px-2 py-1">Company mention found</SemanticBadge>
           )}
-          <p className="mt-1 text-[11px] text-[var(--semantic-claim-text)]">Website required before screening</p>
+          <p className="mt-1 text-[11px] text-[var(--semantic-claim-text)]">Official website required before screening</p>
         </div>
         {sourceUrl ? (
           <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
@@ -1065,10 +1098,35 @@ function OriginationResultView({
         <div>
           <button
             type="button"
-            onClick={() => handleSaveCandidate(c)}
+            onClick={() => handleEditLeadCandidate(c)}
             className="inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
           >
             {savedCandidates.has(candidateStorageKey(stored)) ? 'Saved lead' : 'Save lead'}
+          </button>
+          {stored.website && (
+            <button
+              type="button"
+              onClick={() => handleRunCandidate(c)}
+              className="mt-2 inline-flex w-fit items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap"
+            >
+              Use for screen
+            </button>
+          )}
+          {!stored.website && (
+            <button
+              type="button"
+              onClick={() => handleEditLeadCandidate(c)}
+              className="mt-2 inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] hover:bg-accent transition-colors whitespace-nowrap"
+            >
+              Add website
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleSaveCandidate(c)}
+            className="mt-2 inline-flex w-fit items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded border border-border bg-background text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+          >
+            Edit
           </button>
         </div>
       </div>
@@ -1089,11 +1147,14 @@ function OriginationResultView({
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <p className="text-sm font-semibold text-foreground">{title}</p>
               <SemanticBadge tone="unknown">{humanLabel(sourceType)}</SemanticBadge>
-              <SemanticBadge tone={extractionStatus === 'extracted' ? 'verified' : 'partial'}>{humanLabel(extractionStatus)}</SemanticBadge>
+              <SemanticBadge tone="unknown">Not a company target</SemanticBadge>
+              <SemanticBadge tone={extractionStatus === 'extracted' ? 'info' : 'partial'}>
+                {extractionStatus === 'extracted' ? 'Company mentions found' : 'No confirmed target'}
+              </SemanticBadge>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{summary}</p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Extracted candidates: <span className="font-semibold text-foreground">{extractedCount}</span>
+              Company mentions found: <span className="font-semibold text-foreground">{extractedCount}</span>
             </p>
             {sourceUrl && (
               <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex text-xs text-primary hover:underline">
@@ -1112,7 +1173,7 @@ function OriginationResultView({
                 Review source
               </a>
             )}
-            <span className="inline-flex items-center text-[11px] text-muted-foreground px-1">No Screen company or Compare action</span>
+            <span className="inline-flex items-center text-[11px] text-muted-foreground px-1">Not a company target</span>
           </div>
         </div>
       </div>
@@ -1277,13 +1338,12 @@ function OriginationResultView({
               </SemanticBadge>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             {[
-              ['Confirmed company candidates', groupedCandidates.confirmed.length],
-              ['Possible leads needing website confirmation', needsWebsiteCandidates.length],
+              ['Confirmed companies', groupedCandidates.confirmed.length],
+              ['Leads needing website', needsWebsiteCandidates.length],
               ['Research sources', researchSources.length],
               ['Rejected/low quality extractions', rejectedExtractions],
-              ['Discovery quality', humanLabel(safeStr(candidateSummary.discovery_quality, 'Unknown'))],
             ].map(([label, value]) => (
               <div key={String(label)} className="rounded-md border border-border/60 bg-background/60 px-3 py-2">
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">{String(label)}</p>
@@ -1293,7 +1353,7 @@ function OriginationResultView({
           </div>
           {safeStr(companiesExtracted) && (
             <p className="text-xs text-muted-foreground leading-relaxed mt-3">
-              Companies extracted from research sources: <span className="font-semibold text-foreground">{safeStr(companiesExtracted, '0')}</span>
+              Company mentions found in research sources: <span className="font-semibold text-foreground">{safeStr(companiesExtracted, '0')}</span>
             </p>
           )}
           {safeStr(candidateSummary.top_next_action) && (
@@ -1317,13 +1377,32 @@ function OriginationResultView({
 
       {!hasConfirmedCandidates && (
         <div className="rounded-lg border border-border bg-card/30 px-4 py-3">
-          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Confirmed company candidates</p>
-          <p className="text-sm font-semibold text-foreground">No screenable company candidates yet.</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Company candidates</p>
+          <p className="text-sm font-semibold text-foreground">No confirmed company candidates found yet.</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {hasPossibleLeads
-              ? 'Possible leads are listed below for website confirmation.'
-              : 'Frontier OS found research sources, but official company websites must be confirmed before screening.'}
+            Frontier OS found research sources, but no official company websites were confirmed.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onPasteKnownTargets}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Paste known targets
+            </button>
+            <a
+              href="#origination-research-sources"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Review research sources
+            </a>
+            <Link
+              href="/app/run"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+            >
+              Screen company URL
+            </Link>
+          </div>
         </div>
       )}
 
@@ -1357,7 +1436,7 @@ function OriginationResultView({
         </div>
       )}
 
-      {renderCandidateGroup('Confirmed company candidates', groupedCandidates.confirmed, 'full')}
+      {renderCandidateGroup('Company candidates', groupedCandidates.confirmed, 'full')}
       {renderCandidateGroup(
         'Possible leads needing website confirmation',
         needsWebsiteCandidates,
@@ -1376,9 +1455,10 @@ function OriginationResultView({
         researchSources,
         'source',
         {
-          collapsed: hasPossibleLeads,
+          collapsed: true,
+          defaultOpen: false,
           id: 'origination-research-sources',
-          description: 'Source pages, listicles or articles used as supporting evidence.',
+          description: 'Articles, directories and search results used to find potential company mentions.',
         },
       )}
       {renderCandidateGroup(
@@ -1677,7 +1757,7 @@ function OriginationWorkspacePanel({
 }) {
   const compareReady = compareCandidates.filter(candidate => candidate.compare_ready !== false && candidate.website);
   const comparePending = compareCandidates.filter(candidate => candidate.compare_ready === false || !candidate.website);
-  const researchSources = savedLeads.filter(lead => ['source_page', 'directory_or_listicle', 'news_article'].includes(lead.candidate_type || ''));
+  const researchSources = savedLeads.filter(lead => ['source_page', 'directory_or_listicle', 'news_article', 'research_article', 'forum_thread', 'market_report', 'search_result'].includes(lead.candidate_type || ''));
 
   return (
     <div className="rounded-lg border border-border/80 bg-card/70 overflow-hidden">
@@ -1748,7 +1828,7 @@ function OriginationWorkspacePanel({
                   <p className="text-xs font-semibold text-foreground">{lead.company_name || lead.source_page_title || 'Saved lead'}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 break-all">{lead.website || lead.source_url || 'Website not confirmed'}</p>
                   <div className="flex flex-wrap gap-1 mt-2">
-                    <SemanticBadge tone={lead.candidate_type === 'company_candidate' ? 'info' : 'unknown'} className="text-[10px] px-2 py-1">
+                    <SemanticBadge tone={['company', 'company_candidate'].includes(lead.candidate_type || '') ? 'info' : 'unknown'} className="text-[10px] px-2 py-1">
                       {humanLabel(lead.candidate_type || 'company_candidate')}
                     </SemanticBadge>
                     <SemanticBadge tone={lead.compare_ready === false ? 'unknown' : 'verified'} className="text-[10px] px-2 py-1">
