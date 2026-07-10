@@ -29,8 +29,25 @@ export interface WorkflowTarget {
   source_page_title?: string;
   compare_note?: string;
   fit_score_100?: number | null;
+  user_supplied_evidence?: Record<string, unknown>;
+  cockpit_target_id?: string;
+  storage_source?: string;
   raw?: Record<string, unknown>;
 }
+
+export type WorkflowTargetMatcher =
+  | string
+  | {
+      id?: string;
+      cockpit_target_id?: string;
+      run_id?: string;
+      company_name?: string;
+      website?: string;
+      jurisdiction?: string;
+    }
+  | ((target: WorkflowTarget) => boolean);
+
+export type WorkflowTargetPatch = Partial<Omit<WorkflowTarget, 'raw'>> & Record<string, unknown>;
 
 function storageAvailable(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -63,6 +80,11 @@ function readRecord(key: string): Record<string, unknown> {
   }
 }
 
+function writeRecord(key: string, item: Record<string, unknown>): void {
+  if (!storageAvailable()) return;
+  window.localStorage.setItem(key, JSON.stringify(item));
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -89,6 +111,14 @@ function numericOrNull(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   const parsed = Number(textValue(value));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normaliseTextKey(value: unknown): string {
+  return textValue(value).trim().toLowerCase();
+}
+
+function mergeRecords(base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  return { ...base, ...patch };
 }
 
 export function workflowTargetKey(target: Pick<WorkflowTarget, 'company_name' | 'website' | 'jurisdiction'>): string {
@@ -143,6 +173,8 @@ export function normalizeWorkflowTarget(raw: unknown): WorkflowTarget | null {
     run_id: textValue(item.run_id ?? item.id, ''),
     recommendation: textValue(item.recommendation ?? result.recommendation, ''),
     evidence_confidence: textValue(item.evidence_confidence ?? item.evidence_status ?? result.evidence_confidence, ''),
+    user_supplied_evidence: asRecord(item.user_supplied_evidence),
+    cockpit_target_id: textValue(item.cockpit_target_id, '') || undefined,
     candidate_type: candidateType || undefined,
     source_page_title: textValue(item.source_page_title ?? item.source_title, '') || undefined,
     compare_note: textValue(item.compare_note, '') || undefined,
@@ -164,6 +196,106 @@ export function dedupeTargets(targets: Array<WorkflowTarget | null | undefined>)
     }
   });
   return Array.from(byKey.values());
+}
+
+function targetMatches(target: WorkflowTarget, matcher: WorkflowTargetMatcher): boolean {
+  if (typeof matcher === 'function') return matcher(target);
+
+  if (typeof matcher === 'string') {
+    const value = normaliseTextKey(matcher);
+    return [
+      target.id,
+      target.cockpit_target_id,
+      target.run_id,
+      workflowTargetKey(target),
+    ].some(candidate => normaliseTextKey(candidate) === value);
+  }
+
+  const matcherWebsite = normalizeWebsiteUrl(textValue(matcher.website, '')).trim().toLowerCase();
+  const targetWebsite = normalizeWebsiteUrl(target.website || '').trim().toLowerCase();
+  if (matcherWebsite && targetWebsite && matcherWebsite === targetWebsite) return true;
+
+  if (matcher.id && normaliseTextKey(target.id) === normaliseTextKey(matcher.id)) return true;
+  if (matcher.cockpit_target_id && normaliseTextKey(target.cockpit_target_id) === normaliseTextKey(matcher.cockpit_target_id)) return true;
+  if (matcher.run_id && normaliseTextKey(target.run_id) === normaliseTextKey(matcher.run_id)) return true;
+
+  const matcherName = normaliseTextKey(matcher.company_name);
+  const matcherJurisdiction = normaliseTextKey(matcher.jurisdiction || 'unknown');
+  const targetName = normaliseTextKey(target.company_name);
+  const targetJurisdiction = normaliseTextKey(target.jurisdiction || 'unknown');
+  return Boolean(matcherName && targetName && matcherName === targetName && matcherJurisdiction === targetJurisdiction);
+}
+
+function patchTarget(raw: unknown, patch: WorkflowTargetPatch): Record<string, unknown> | null {
+  const base = asRecord(raw);
+  const normalized = normalizeWorkflowTarget(base);
+  if (!normalized) return null;
+  const merged = mergeRecords(base, patch);
+  if (patch.website || patch.company_url) {
+    merged.website = normalizeWebsiteUrl(textValue(patch.website ?? patch.company_url, ''));
+    merged.website_status = merged.website ? 'known' : textValue(merged.website_status, 'missing');
+    merged.run_ready = Boolean(merged.website);
+  }
+  return merged;
+}
+
+function updateArrayByMatcher(items: Record<string, unknown>[], matcher: WorkflowTargetMatcher, patch: WorkflowTargetPatch): {
+  items: WorkflowTarget[];
+  changed: boolean;
+  updated: WorkflowTarget[];
+} {
+  const updated: WorkflowTarget[] = [];
+  let changed = false;
+  const next = items.map(item => {
+    const normalized = normalizeWorkflowTarget(item);
+    if (!normalized || !targetMatches(normalized, matcher)) return normalizeWorkflowTarget(item);
+    const patchedRaw = patchTarget(item, patch);
+    const patched = normalizeWorkflowTarget(patchedRaw);
+    if (patched) {
+      changed = true;
+      updated.push(patched);
+      return patched;
+    }
+    return normalized;
+  }).filter((item): item is WorkflowTarget => item !== null);
+
+  return { items: dedupeTargets(next), changed, updated };
+}
+
+const ORIGINATION_TARGET_LIST_KEYS = [
+  'confirmed_company_candidates',
+  'targets',
+  'ranked_targets',
+  'candidates',
+  'needs_website_confirmation',
+  'possible_leads_needing_website',
+];
+
+function updateOriginationResultByMatcher(matcher: WorkflowTargetMatcher, patch: WorkflowTargetPatch): WorkflowTarget[] {
+  const result = readRecord(LAST_ORIGINATION_RESULT_KEY);
+  if (Object.keys(result).length === 0) return [];
+
+  const updated: WorkflowTarget[] = [];
+  let changed = false;
+  const next = { ...result };
+
+  ORIGINATION_TARGET_LIST_KEYS.forEach(key => {
+    const list = asArray(result[key]).filter(item => item && typeof item === 'object') as Record<string, unknown>[];
+    if (list.length === 0) return;
+    const patched = updateArrayByMatcher(
+      list.map(item => ({ ...item, source: textValue(item.source, 'origination') })),
+      matcher,
+      patch,
+    );
+    if (patched.changed) {
+      changed = true;
+      updated.push(...patched.updated);
+      next[key] = patched.items;
+    }
+  });
+
+  if (changed) writeRecord(LAST_ORIGINATION_RESULT_KEY, next);
+  return dedupeTargets(updated);
 }
 
 function originationResultTargets(): WorkflowTarget[] {
@@ -202,6 +334,61 @@ export function getCockpitTargets(): WorkflowTarget[] {
 
 export function getCompareCandidates(): WorkflowTarget[] {
   return dedupeTargets(readArray(COMPARE_CANDIDATES_KEY).map(item => normalizeWorkflowTarget(item)));
+}
+
+export function getAllWorkflowTargets(): WorkflowTarget[] {
+  return dedupeTargets([
+    ...getOriginationTargets().map(target => ({ ...target, storage_source: LAST_ORIGINATION_RESULT_KEY })),
+    ...getSavedLeads().map(target => ({ ...target, storage_source: SAVED_LEADS_KEY })),
+    ...getCockpitTargets().map(target => ({ ...target, storage_source: COCKPIT_TARGETS_KEY })),
+    ...getCompareCandidates().map(target => ({ ...target, storage_source: COMPARE_CANDIDATES_KEY })),
+  ]);
+}
+
+export function saveWorkflowTargetsBySource(targets: unknown[]): WorkflowTarget[] {
+  const normalized = dedupeTargets(targets.map(normalizeWorkflowTarget));
+  const savedLeads = normalized.filter(target => ['lead', 'saved', 'saved_lead'].includes(target.source));
+  const cockpitTargets = normalized.filter(target => target.source === 'cockpit' || target.source === 'run' || target.screening_status === 'screened');
+  const compareTargets = normalized.filter(target => target.source === 'compare' || target.compare_ready);
+
+  if (savedLeads.length > 0) writeArray(SAVED_LEADS_KEY, dedupeTargets([...savedLeads, ...getSavedLeads()]));
+  if (cockpitTargets.length > 0) writeArray(COCKPIT_TARGETS_KEY, dedupeTargets([...cockpitTargets, ...getCockpitTargets()]));
+  if (compareTargets.length > 0) writeArray(COMPARE_CANDIDATES_KEY, dedupeTargets([...compareTargets, ...getCompareCandidates()]).slice(0, 10));
+
+  return getAllWorkflowTargets();
+}
+
+export function updateWorkflowTarget(targetIdOrMatcher: WorkflowTargetMatcher, patch: WorkflowTargetPatch): WorkflowTarget[] {
+  const updated: WorkflowTarget[] = [];
+
+  ([
+    SAVED_LEADS_KEY,
+    COCKPIT_TARGETS_KEY,
+    COMPARE_CANDIDATES_KEY,
+    COCKPIT_COMPARE_SELECTION_KEY,
+  ] as const).forEach(key => {
+    const result = updateArrayByMatcher(readArray(key), targetIdOrMatcher, patch);
+    if (result.changed) {
+      writeArray(key, result.items);
+      updated.push(...result.updated);
+    }
+  });
+
+  updated.push(...updateOriginationResultByMatcher(targetIdOrMatcher, patch));
+  return dedupeTargets(updated);
+}
+
+export function addUserSuppliedEvidence(targetIdOrMatcher: WorkflowTargetMatcher, evidencePatch: Record<string, unknown>): WorkflowTarget[] {
+  const current = getAllWorkflowTargets().find(target => targetMatches(target, targetIdOrMatcher));
+  const existingEvidence = current?.user_supplied_evidence ?? asRecord(current?.raw?.user_supplied_evidence);
+  return updateWorkflowTarget(targetIdOrMatcher, {
+    user_supplied_evidence: {
+      ...existingEvidence,
+      ...evidencePatch,
+      updated_at: new Date().toISOString(),
+    },
+    evidence_confidence: textValue(evidencePatch.evidence_confidence, current?.evidence_confidence || ''),
+  });
 }
 
 export function saveLead(target: unknown): WorkflowTarget | null {
