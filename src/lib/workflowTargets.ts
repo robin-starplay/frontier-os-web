@@ -8,6 +8,7 @@ export const COCKPIT_TARGETS_KEY = 'frontier_cockpit_targets';
 export const COCKPIT_COMPARE_SELECTION_KEY = 'frontier_cockpit_compare_selection';
 
 export interface WorkflowTarget {
+  [key: string]: unknown;
   id: string;
   company_name: string;
   website: string;
@@ -121,6 +122,12 @@ function mergeRecords(base: Record<string, unknown>, patch: Record<string, unkno
   return { ...base, ...patch };
 }
 
+function normalizeWithRaw(raw: unknown): WorkflowTarget | null {
+  const record = asRecord(raw);
+  const normalized = normalizeWorkflowTarget(record);
+  return normalized ? { ...record, ...normalized, raw: record } : null;
+}
+
 export function workflowTargetKey(target: Pick<WorkflowTarget, 'company_name' | 'website' | 'jurisdiction'>): string {
   const website = normalizeWebsiteUrl(target.website || '').trim().toLowerCase();
   if (website) return `website:${website}`;
@@ -203,12 +210,15 @@ function targetMatches(target: WorkflowTarget, matcher: WorkflowTargetMatcher): 
 
   if (typeof matcher === 'string') {
     const value = normaliseTextKey(matcher);
+    const normalizedWebsite = normalizeWebsiteUrl(matcher).trim().toLowerCase();
     return [
       target.id,
       target.cockpit_target_id,
       target.run_id,
       workflowTargetKey(target),
-    ].some(candidate => normaliseTextKey(candidate) === value);
+      target.website,
+    ].some(candidate => normaliseTextKey(candidate) === value)
+      || Boolean(normalizedWebsite && normalizeWebsiteUrl(target.website).trim().toLowerCase() === normalizedWebsite);
   }
 
   const matcherWebsite = normalizeWebsiteUrl(textValue(matcher.website, '')).trim().toLowerCase();
@@ -250,7 +260,7 @@ function updateArrayByMatcher(items: Record<string, unknown>[], matcher: Workflo
     const normalized = normalizeWorkflowTarget(item);
     if (!normalized || !targetMatches(normalized, matcher)) return normalizeWorkflowTarget(item);
     const patchedRaw = patchTarget(item, patch);
-    const patched = normalizeWorkflowTarget(patchedRaw);
+    const patched = normalizeWithRaw(patchedRaw);
     if (patched) {
       changed = true;
       updated.push(patched);
@@ -346,14 +356,18 @@ export function getAllWorkflowTargets(): WorkflowTarget[] {
 }
 
 export function saveWorkflowTargetsBySource(targets: unknown[]): WorkflowTarget[] {
-  const normalized = dedupeTargets(targets.map(normalizeWorkflowTarget));
+  const normalized = dedupeTargets(targets.map(normalizeWithRaw));
   const savedLeads = normalized.filter(target => ['lead', 'saved', 'saved_lead'].includes(target.source));
   const cockpitTargets = normalized.filter(target => target.source === 'cockpit' || target.source === 'run' || target.screening_status === 'screened');
   const compareTargets = normalized.filter(target => target.source === 'compare' || target.compare_ready);
+  const cockpitCompareTargets = normalized.filter(target => target.storage_source === COCKPIT_COMPARE_SELECTION_KEY);
 
   if (savedLeads.length > 0) writeArray(SAVED_LEADS_KEY, dedupeTargets([...savedLeads, ...getSavedLeads()]));
   if (cockpitTargets.length > 0) writeArray(COCKPIT_TARGETS_KEY, dedupeTargets([...cockpitTargets, ...getCockpitTargets()]));
   if (compareTargets.length > 0) writeArray(COMPARE_CANDIDATES_KEY, dedupeTargets([...compareTargets, ...getCompareCandidates()]).slice(0, 10));
+  if (cockpitCompareTargets.length > 0 || (storageAvailable() && window.localStorage.getItem(COCKPIT_COMPARE_SELECTION_KEY))) {
+    writeArray(COCKPIT_COMPARE_SELECTION_KEY, dedupeTargets([...cockpitCompareTargets, ...readArray(COCKPIT_COMPARE_SELECTION_KEY).map(normalizeWorkflowTarget)]));
+  }
 
   return getAllWorkflowTargets();
 }
