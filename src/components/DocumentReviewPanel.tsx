@@ -578,7 +578,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
             href="/app/run"
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
           >
-            Run URL screen
+            Screen company URL
           </Link>
           <a
             href={BOOK_INTRO_URL}
@@ -666,7 +666,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
             href="/run"
             className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-sm font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
           >
-            Run URL screen
+            Screen company URL
           </Link>
           <a
             href={BOOK_INTRO_URL}

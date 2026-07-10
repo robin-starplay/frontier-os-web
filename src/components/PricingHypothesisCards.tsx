@@ -69,7 +69,7 @@ export function PricingHypothesisCards() {
                 href="/run"
                 className="inline-flex items-center justify-center gap-2 text-sm font-medium border border-border bg-card hover:bg-muted/20 h-10 px-6 rounded-md transition-colors text-foreground"
               >
-                Run screen
+                Screen company
               </Link>
             </div>
           </div>

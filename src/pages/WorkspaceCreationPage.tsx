@@ -142,7 +142,7 @@ export default function WorkspaceCreationPage() {
 
           <div className="bg-card border border-border rounded-xl p-6 space-y-4 mb-6">
             {[
-              { n: '1', label: 'Run a URL screen', desc: 'Enter a company website and review the public-source evidence screen.' },
+              { n: '1', label: 'Screen a company URL', desc: 'Enter a company website and review the public-source evidence screen.' },
               { n: '2', label: 'Compare real targets', desc: 'Add two or more known targets and rank them side-by-side in the Compare view.' },
               { n: '3', label: 'Open Deal Cockpit', desc: 'See saved targets and track IC readiness, blockers and next actions.' },
               { n: '4', label: 'Send feedback', desc: 'Use the Feedback button to tell us what you think.' },
@@ -172,7 +172,7 @@ export default function WorkspaceCreationPage() {
                 href="/app/run"
                 className="flex-1 inline-flex items-center justify-center text-sm font-medium border border-input bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-foreground"
               >
-                Run screen
+                Screen company
               </Link>
               <a
                 href={BOOK_INTRO_URL}
@@ -284,7 +284,7 @@ export default function WorkspaceCreationPage() {
             href="/run?mode=sample"
             className="text-primary/80 hover:text-primary hover:underline transition-colors"
           >
-            Run the example screen without an account
+            Screen the example company without an account
           </Link>
         </p>
 

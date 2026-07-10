@@ -292,7 +292,7 @@ function discoveryStatusCopy(
       return 'Registry discovery returned Companies House leads. Product websites still need verification before screening.';
     }
     if (responseSourceMode.includes('web_search')) {
-      return 'Web discovery returned source-backed candidates. Run URL screens before outreach.';
+      return 'Web discovery returned source-backed candidates. Screen company URLs before outreach.';
     }
     if (response.source_backed_target_universe_available === false) {
       return 'No source-backed target universe was available. Frontier OS did not invent targets.';
@@ -712,7 +712,7 @@ function OriginationResultView({
       aiRisk: safeStr(candidate.ai_risk ?? candidate.ai_risk_view, 'Unknown'),
       whyItFits: safeStr(candidate.why_it_fits ?? candidate.why_fits ?? candidate.rationale),
       missingEvidence: asList(candidate.missing_evidence ?? candidate.evidence_gaps),
-      nextAction: safeStr(candidate.next_action, stored.run_ready ? 'Run URL screen before outreach or IC use.' : 'Find and verify operating website.'),
+      nextAction: safeStr(candidate.next_action, stored.run_ready ? 'Screen company URL before outreach or IC use.' : 'Find and verify operating website.'),
     });
     addSavedLead(stored);
     setSavedCandidates(prev => new Set(prev).add(candidateStorageKey(stored)));
@@ -802,7 +802,7 @@ function OriginationResultView({
         aiRisk: 'Unknown',
         whyItFits: candidate.recommendation,
         missingEvidence: candidate.website ? [] : ['Website required before screening.'],
-        nextAction: candidate.website ? 'Run URL screen before outreach or IC use.' : 'Find and verify operating website.',
+        nextAction: candidate.website ? 'Screen company URL before outreach or IC use.' : 'Find and verify operating website.',
       });
       addSavedLead(candidate);
     });
@@ -840,7 +840,7 @@ function OriginationResultView({
               className="inline-flex items-center gap-1 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed h-8 px-3 rounded-md transition-colors"
               title={runReady === 0 ? 'Website required before URL screen.' : undefined}
             >
-              Run first selected
+              Screen first selected
             </button>
             <button
               type="button"
@@ -854,7 +854,7 @@ function OriginationResultView({
               disabled={compareReady === 0}
               onClick={handleCompareSelected}
               className="inline-flex items-center gap-1 text-xs font-medium border border-border bg-background text-foreground hover:bg-accent h-8 px-3 rounded-md transition-colors"
-              title={compareReady === 0 ? 'Run screens first to unlock a stronger comparison.' : undefined}
+              title={compareReady === 0 ? 'Screen companys first to unlock a stronger comparison.' : undefined}
             >
               Compare screened only
             </button>
@@ -868,7 +868,7 @@ function OriginationResultView({
           </div>
         </div>
         {compareReady === 0 && (
-          <p className="text-[11px] text-muted-foreground mt-2">Run screens first to unlock a stronger comparison.</p>
+          <p className="text-[11px] text-muted-foreground mt-2">Screen companys first to unlock a stronger comparison.</p>
         )}
       </div>
     );
@@ -998,7 +998,7 @@ function OriginationResultView({
             disabled={stored.run_ready === false || !website}
             className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {stored.run_ready === false || !website ? 'Find website' : 'Run screen →'}
+            {stored.run_ready === false || !website ? 'Find website' : 'Screen company →'}
           </button>
           {canSaveCandidate && (
             <button
@@ -1112,7 +1112,7 @@ function OriginationResultView({
                 Review source
               </a>
             )}
-            <span className="inline-flex items-center text-[11px] text-muted-foreground px-1">No Run screen or Compare action</span>
+            <span className="inline-flex items-center text-[11px] text-muted-foreground px-1">No Screen company or Compare action</span>
           </div>
         </div>
       </div>
@@ -1224,7 +1224,7 @@ function OriginationResultView({
       {warnings.length > 0 && (
         <details className="group rounded-lg border border-border bg-card/30 overflow-hidden">
           <summary className="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-3">
-            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Run notes</p>
+            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Screen notes</p>
             <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 transition-transform group-open:rotate-90" />
           </summary>
           <div className="border-t border-border px-4 py-3">
@@ -1331,7 +1331,7 @@ function OriginationResultView({
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
           <p className="text-sm font-semibold text-foreground">Possible leads found</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Review these leads, confirm official websites, then run individual screens.
+            Review these leads, confirm official websites, then screen companies individually.
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
             <a
@@ -1351,7 +1351,7 @@ function OriginationResultView({
               href="/app/run"
               className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
             >
-              Run URL screen
+              Screen company URL
             </Link>
           </div>
         </div>
@@ -1366,7 +1366,7 @@ function OriginationResultView({
           collapsed: needsWebsiteCandidates.length > 3 || openPossibleLeadsByDefault,
           defaultOpen: openPossibleLeadsByDefault,
           id: 'origination-possible-leads',
-          description: 'Company mentions that need an official website before Run or Compare.',
+          description: 'Company mentions that need an official website before Screen or Compare.',
           intro: 'Frontier OS found company mentions, but official websites must be confirmed before screening.',
           note: openPossibleLeadsByDefault ? 'Opened because no confirmed candidates were found.' : undefined,
         },
@@ -1488,13 +1488,13 @@ function OriginationResultView({
           onClick={onReset}
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          Run another origination screen
+          Screen another origination screen
         </button>
         <Link
           href="/app/run"
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
         >
-          Run URL screen
+          Screen company URL
         </Link>
         <Link
           href="/app/cockpit"
@@ -1536,7 +1536,7 @@ function OriginationLimitedPreview({
                 href="/app/run"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
               >
-                Run known URL screen <ArrowRight className="w-3 h-3" />
+                Screen known company URL <ArrowRight className="w-3 h-3" />
               </Link>
               <Link
                 href="/request-pilot"
@@ -1611,7 +1611,7 @@ function OriginationUnavailable({
               href="/app/run"
               className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
             >
-              Run URL screen <ArrowRight className="w-3 h-3" />
+              Screen company URL <ArrowRight className="w-3 h-3" />
             </Link>
             <Link
               href="/request-pilot"
@@ -1755,7 +1755,7 @@ function OriginationWorkspacePanel({
                       {lead.compare_ready === false ? 'Not compare-ready' : 'Compare-ready'}
                     </SemanticBadge>
                     <SemanticBadge tone={lead.run_ready === false ? 'unknown' : 'verified'} className="text-[10px] px-2 py-1">
-                      {lead.run_ready === false ? 'Run not ready' : 'Run-ready'}
+                      {lead.run_ready === false ? 'Screen not ready' : 'Screen-ready'}
                     </SemanticBadge>
                   </div>
                   <p className="text-[10px] text-muted-foreground/60 mt-1">
@@ -1763,7 +1763,7 @@ function OriginationWorkspacePanel({
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {lead.run_ready !== false && lead.website ? (
-                      <button type="button" onClick={() => onRunLead(lead)} className="text-[11px] font-medium text-primary hover:underline">Run screen</button>
+                      <button type="button" onClick={() => onRunLead(lead)} className="text-[11px] font-medium text-primary hover:underline">Screen company</button>
                     ) : (
                       <span className="text-[11px] text-muted-foreground">Find website</span>
                     )}
@@ -2086,7 +2086,7 @@ function OriginationForm() {
             href="/app/run"
             className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
           >
-            Run URL screen <ArrowRight className="w-3 h-3" />
+            Screen company URL <ArrowRight className="w-3 h-3" />
           </Link>
           <a
             href={BOOK_INTRO_URL}
@@ -2110,7 +2110,7 @@ function OriginationForm() {
           Start with known targets or research sources. Frontier OS will not invent acquisition targets.
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Best practice: run individual screens before comparing candidates.
+          Best practice: screen companies individually before comparing candidates.
         </p>
       </div>
       <div className="rounded-lg border border-border bg-card p-3">
@@ -2289,7 +2289,7 @@ Example format:
 const AVAILABLE_NOW = [
   {
     href:  '/app/run',
-    title: 'Run screen',
+    title: 'Screen company',
     desc:  'Screen a specific company from its website URL. 8-stage public-source check.',
   },
   {
@@ -2403,8 +2403,8 @@ export default function OriginationPage() {
 
       <BetaCTA
         title="Ready to screen specific targets now?"
-        body="Run a URL-only screen on any company website and get a recommendation in under 2 minutes."
-        primaryLabel="Run screen"
+        body="Screen a URL-only target on any company website and get a recommendation in under 2 minutes."
+        primaryLabel="Screen company"
         primaryHref="/app/run"
         secondaryLabel="Compare targets"
         secondaryHref="/compare"

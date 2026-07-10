@@ -48,7 +48,7 @@ const WORKFLOW_STEPS = [
   },
   {
     number: '2',
-    label: 'Run screen',
+    label: 'Screen',
     icon: FileSearch,
     href: '/app/run',
     body: 'Screen one company website at a time. Frontier OS separates verified facts, company claims, unknowns and diligence blockers.',
@@ -71,7 +71,7 @@ const WORKFLOW_STEPS = [
 
 const EXPECTATIONS = [
   'Origination returns leads and research sources unless confirmed company websites are available.',
-  'Run creates the evidence-first acquisition screen for one company website at a time.',
+  'Screen creates the evidence-first acquisition screen for one company website at a time.',
   'Cockpit stores screened targets, recommendations, blockers and next actions.',
   'Compare works best with screened Cockpit targets; manual quick compare is a public-source preview.',
 ];
@@ -272,7 +272,7 @@ export default function HowItWorksPage() {
                 href="/app/run"
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                Run a screen <ArrowRight className="h-4 w-4" />
+                Screen a company <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/app/origination"
@@ -393,7 +393,7 @@ export default function HowItWorksPage() {
               <SectionLabel>Next step</SectionLabel>
               <h2 className="text-2xl font-bold text-foreground">Start with a known target or build a source-backed universe.</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Use Origination for leads and source-backed target ranking, then run individual screens before saving and comparing.
+                Use Origination for leads and source-backed target ranking, then screen companies individually before saving and comparing.
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
@@ -401,7 +401,7 @@ export default function HowItWorksPage() {
                 href="/app/run"
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                Run a screen <ArrowRight className="h-4 w-4" />
+                Screen a company <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/app/origination"

@@ -24,10 +24,10 @@ const STEPS: StepConfig[] = [
   },
   {
     id: 'run',
-    label: 'Run screen',
+    label: 'Screen',
     description: 'Screen each company URL individually to collect evidence.',
     href: '/app/run',
-    cta: 'Run screen',
+    cta: 'Screen company',
     icon: ShieldCheck,
   },
   {
@@ -64,7 +64,7 @@ export function ScreeningWorkflowGuide({
       <div className="border-b border-border/70 px-5 py-3">
         <p className="text-xs font-semibold text-foreground">Screening workflow</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Originate leads, screen one company at a time, save evidence, then compare screened targets.
+          Origination → Screen → Cockpit → Compare.
         </p>
       </div>
       <div className={cn(

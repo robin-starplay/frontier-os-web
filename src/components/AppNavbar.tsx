@@ -14,7 +14,7 @@ import { OptionalUserButton } from '@/lib/optionalClerk';
 const APP_NAV = [
   { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
-  { label: 'Run',         href: '/app/run' },
+  { label: 'Screen',      href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
   { label: 'Pricing',     href: '/pricing' },
@@ -37,7 +37,7 @@ const APP_MORE = [
 const APP_MOBILE_PRIMARY = [
   { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
-  { label: 'Run',         href: '/app/run' },
+  { label: 'Screen',      href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
 ];
 

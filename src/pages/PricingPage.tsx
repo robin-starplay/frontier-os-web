@@ -33,7 +33,7 @@ const STATIC_TIERS: Tier[] = [
     plan_id: 'free_preview',
     name: 'Free Preview',
     price_label: 'Free',
-    audience: 'Run public-source acquisition screens before a pilot conversation.',
+    audience: 'Screen public-source acquisition targets before a pilot conversation.',
     cta_label: 'Start free',
     cta_url: '/app/run',
     payment_mode: 'none',
@@ -481,7 +481,7 @@ export default function PricingPage() {
               href="/run"
               className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors"
             >
-              Run screen <ArrowRight className="w-3.5 h-3.5" />
+              Screen company <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <a
               href={BOOK_INTRO_URL}

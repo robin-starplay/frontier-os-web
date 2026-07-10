@@ -262,7 +262,7 @@ function targetFromRecord(item: Record<string, unknown>): SavedCompareTarget | n
     : !website
       ? 'Website required before comparison'
       : !isScreened
-        ? 'Run screen first'
+        ? 'Screen first'
         : NON_COMPANY_CANDIDATE_TYPES.has(candidateType)
           ? 'Research source, not a screened company'
           : undefined;
@@ -386,7 +386,7 @@ function saveLeadFromTarget(target: SavedCompareTarget): void {
     source_label: target.sourceLabel || 'Saved lead',
     compare_ready: false,
     run_ready: Boolean(target.website),
-    compare_note: 'Run screen first before comparison.',
+    compare_note: 'Screen first before comparison.',
     screening_status: 'not_screened',
     saved_at: new Date().toISOString(),
   });
@@ -537,8 +537,8 @@ function fastPreviewRows(result: CompareResult): FastPreviewRow[] {
       evidenceConfidence: company.evidence_confidence || 'Unavailable',
       strategicFit: textValue(company.strategic_fit),
       aiRisk: company.ai_replica_risk || 'Unknown',
-      recommendation: company.recommendation || 'Run individual screen',
-      nextAction: company.next_action || 'Run screen',
+      recommendation: company.recommendation || 'Screen one company',
+      nextAction: company.next_action || 'Screen company',
       warnings: Array.isArray(company.warnings) ? company.warnings : [],
     }))
     : [];
@@ -553,8 +553,8 @@ function fastPreviewRows(result: CompareResult): FastPreviewRow[] {
     evidenceConfidence: textValue(item.evidence_confidence),
     strategicFit: textValue(item.strategic_fit),
     aiRisk: textValue(item.ai_replica_risk, 'Unknown'),
-    recommendation: textValue(item.recommendation, 'Run individual screen'),
-    nextAction: textValue(item.next_action, 'Run screen'),
+    recommendation: textValue(item.recommendation, 'Screen one company'),
+    nextAction: textValue(item.next_action, 'Screen company'),
     warnings: Array.isArray(item.warnings) ? item.warnings.map(warning => String(warning)) : [],
   }));
 }
@@ -831,7 +831,7 @@ function CompareTargetSelector({
               href="/app/run"
               className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
             >
-              Run another screen
+              Screen another company
             </Link>
             <button
               type="button"
@@ -909,11 +909,11 @@ function CompareTargetSelector({
         <div className="px-5 py-6">
           <p className="text-sm font-semibold text-foreground">No screened targets saved yet.</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Run a URL screen and save it to Cockpit before comparing.
+            Screen a company URL and save it to Cockpit before comparing.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/app/run" className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
-              Run screen
+              Screen company
             </Link>
             <Link href="/app/cockpit" className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors">
               Open Cockpit
@@ -956,7 +956,7 @@ function CompareTargetSelector({
                       if (!target.website) event.preventDefault();
                     }}
                   >
-                    Run screen
+                    Screen company
                   </Link>
                   <button
                     type="button"
@@ -1069,7 +1069,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 	          <div className="px-5 py-4 space-y-3">
 	            <div className="flex items-start gap-2 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
 	              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-	              Manual quick compare completed. Run individual screens for evidence-backed ranking.
+	              Manual quick compare completed. Screen one companys for evidence-backed ranking.
 	            </div>
 	            {lacksDifferentiation && (
 	              <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -1176,7 +1176,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
         ))}
       <div className="rounded-lg border border-border bg-card p-3 col-span-2 lg:col-span-1">
         <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Best next action</p>
-        <p className="text-xs text-foreground leading-snug">{result.best_next_action || 'Run individual screens before IC use.'}</p>
+        <p className="text-xs text-foreground leading-snug">{result.best_next_action || 'Screen one companys before IC use.'}</p>
       </div>
 	    </div>
 	      )}
@@ -1212,7 +1212,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 	                      href={runScreenHref(company.companyName, company.website)}
 	                      className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
 	                    >
-	                      Run screen
+	                      Screen company
 	                    </Link>
 	                  </div>
 	                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
@@ -1290,7 +1290,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
                     </div>
                     <div>
                       <p className="font-semibold text-muted-foreground mb-1">Next action</p>
-                      <p className="text-foreground">{company.next_action || 'Run URL screen for this company.'}</p>
+                      <p className="text-foreground">{company.next_action || 'Screen company URL for this company.'}</p>
                     </div>
                   </div>
                   {company.warnings?.length > 0 && (
@@ -1407,7 +1407,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
                   href="/app/run"
                   className="text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
                 >
-                  Run full screen →
+                  Screen full target →
                 </Link>
               )}
             </div>
@@ -1421,7 +1421,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
         <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-3">Available in private beta</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[
-            { title: 'Drill-down screens', desc: 'Run a full URL-only or document-assisted screen on any ranked target directly from the comparison.' },
+            { title: 'Drill-down screens', desc: 'Screen a full URL-only or document-assisted screen on any ranked target directly from the comparison.' },
             { title: 'Full IC memo (PDF)', desc: 'Export a structured acquisition memo for any target: financials, evidence register and AI assessment.' },
             { title: 'Evidence comparison matrix', desc: 'Side-by-side evidence quality scores, conflict flags and source rankings across all targets.' },
             { title: 'PowerPoint IC pack', desc: 'Ready-to-present slide deck for the IC: ranked targets, fit scores, risk flags and recommended next action.' },
@@ -1450,7 +1450,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 
       {/* Upgrade CTA */}
       <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-5">
-        <p className="text-sm font-semibold text-foreground mb-1">Run a full screen on your top target.</p>
+        <p className="text-sm font-semibold text-foreground mb-1">Screen a full screen on your top target.</p>
         <p className="text-xs text-muted-foreground mb-4">
           A URL-only screen provides evidence cards, AI replica risk, strategic fit and IC readiness. Document-assisted analysis is available in private beta.
         </p>
@@ -1460,7 +1460,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
             className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors"
             onClick={() => console.log('[analytics] clicked_run_from_compare_result')}
           >
-            Run screen <ArrowRight className="w-3.5 h-3.5" />
+            Screen company <ArrowRight className="w-3.5 h-3.5" />
           </Link>
           <Link
             href="/request-pilot"
@@ -1481,13 +1481,13 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
         </div>
       </div>
 
-      {/* Run another */}
+      {/* Screen another */}
       <div className="flex items-center gap-3">
         <button
           onClick={onReset}
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          ← Run another comparison
+          ← Screen another comparison
         </button>
         <Link
           href="/app/cockpit"
@@ -1631,7 +1631,7 @@ export default function CompareTargetsPage() {
     if (unscreenedSubmittedCompanies.length > 0 && !forceManualQuickCompare) {
       setManualQuickCompare(false);
       setInvalidCompareRows([]);
-      setError('These targets have not been individually screened yet. Run screens first for stronger comparison.');
+      setError('These targets have not been individually screened yet. Screen companys first for stronger comparison.');
       setPhase('form');
       return;
     }
@@ -1756,7 +1756,7 @@ export default function CompareTargetsPage() {
           Compare software acquisition targets.
         </h1>
         <p className="text-base text-muted-foreground">
-          Compare works best with screened targets saved from Run or Cockpit.
+          Compare works best with screened targets saved from Screen or Cockpit.
         </p>
       </div>
     </div>
@@ -1787,7 +1787,7 @@ export default function CompareTargetsPage() {
                 </Link>
               )}
               <Link href="/app/run" className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors">
-                Run another screen
+                Screen another company
               </Link>
             </div>
 
@@ -1811,7 +1811,7 @@ export default function CompareTargetsPage() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Manual quick compare</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Use this for a quick public-source preview. For stronger evidence, run individual screens first.
+                    Use this for a quick public-source preview. For stronger evidence, screen companies individually first.
                   </p>
                   {hasScreenedCandidates && (
                     <p className="mt-2 text-xs font-medium text-[var(--semantic-verified-text)]">
@@ -1840,7 +1840,7 @@ export default function CompareTargetsPage() {
                       These targets have not been individually screened yet.
                     </p>
                     <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
-                      Run screens first for stronger comparison.
+                      Screen companys first for stronger comparison.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Link
@@ -1848,7 +1848,7 @@ export default function CompareTargetsPage() {
                         className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                       >
                         <PlayCircle className="h-3.5 w-3.5" />
-                        Run first screen{firstUnscreenedCompany?.name ? `: ${firstUnscreenedCompany.name}` : ''}
+                        Screen first company{firstUnscreenedCompany?.name ? `: ${firstUnscreenedCompany.name}` : ''}
                       </Link>
                       <button
                         type="button"
@@ -1933,7 +1933,7 @@ export default function CompareTargetsPage() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Compare result unavailable.</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The checklist completed without a usable result. Edit targets or run individual screens first.
+                    The checklist completed without a usable result. Edit targets or screen companies individually first.
                   </p>
                 </div>
               </div>
@@ -2012,8 +2012,8 @@ export default function CompareTargetsPage() {
 
       <BetaCTA
         title="Want to test this on your own pipeline?"
-        body="Run a sample screen, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
-        primaryLabel="Run screen"
+        body="Screen a sample company, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
+        primaryLabel="Screen company"
         primaryHref="/run"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"

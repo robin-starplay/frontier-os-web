@@ -23,7 +23,7 @@ const QUESTIONS = [
     id: 'q2',
     kind: 'radio' as const,
     label: 'Which page or feature was most useful to you?',
-    options: ['Run screen (URL analysis)', 'Deal Cockpit', 'Compare targets', 'AI Disruption', 'Evidence workflow', 'Other'],
+    options: ['Screen company (URL analysis)', 'Deal Cockpit', 'Compare targets', 'AI Disruption', 'Evidence workflow', 'Other'],
   },
   {
     id: 'q3',

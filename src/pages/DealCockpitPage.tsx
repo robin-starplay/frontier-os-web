@@ -161,7 +161,7 @@ function isScreenedForCompare(run: RunEntry): boolean {
 
 function compareDisabledReason(run: RunEntry): string {
   if (!displayText(run.website)) return 'Website required';
-  if (!isScreenedForCompare(run)) return 'Run screen first';
+  if (!isScreenedForCompare(run)) return 'Screen first';
   return '';
 }
 
@@ -217,7 +217,7 @@ function writeCockpitCompareSelection(candidates: StoredCompareCandidate[]): voi
   }
 }
 
-// ─── Run Detail Panel (real run entries) ──────────────────────────────────────
+// ─── Screen Detail Panel (real run entries) ──────────────────────────────────────
 
 type CockpitTab = 'summary' | 'evidence' | 'ai-risk' | 'diligence' | 'decisions' | 'exports';
 
@@ -499,7 +499,7 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Next action</p>
                 <div className="space-y-2">
                   <Link href="/app/run" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-border bg-background hover:bg-accent rounded-md transition-colors text-foreground">
-                    Run screen <ArrowRight className="w-3.5 h-3.5" />
+                    Screen company <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-md transition-colors text-primary">
                     Request diligence support
@@ -788,7 +788,7 @@ function SavedRunCard({
               href={runScreenHref(run)}
               className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
             >
-              Run again
+              Screen again
             </Link>
             {onRemove && (
               <button
@@ -813,7 +813,7 @@ export default function DealCockpitPage() {
   const { isLoaded, isSignedIn } = useOptionalUser();
   const [, navigate] = useLocation();
 
-  // ── Run history ──
+  // ── Screen history ──
   // Lazy initializer: reads localStorage synchronously on first render so
   // hasRealRuns is correct before the first paint — avoids a flash of the
   // empty state when the user already has saved runs.
@@ -937,7 +937,7 @@ export default function DealCockpitPage() {
             href="/app/run"
             className="inline-flex items-center gap-2 text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 rounded-md transition-colors text-foreground shrink-0"
           >
-            Run another screen
+            Screen another company
           </Link>
         </div>
       </div>
@@ -961,7 +961,7 @@ export default function DealCockpitPage() {
             href="/app/run"
             className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors"
           >
-            Back to Run
+            Back to Screen
           </Link>
           <button
             type="button"
@@ -1144,7 +1144,7 @@ export default function DealCockpitPage() {
               {/* Bottom CTAs */}
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link href="/app/run" className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
-                  Run another screen <ArrowRight className="w-3.5 h-3.5" />
+                  Screen another company <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
                 <a href={BOOK_INTRO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground">
                   Book 30-min intro
@@ -1185,12 +1185,12 @@ export default function DealCockpitPage() {
             <div>
               <p className="text-base font-semibold text-foreground mb-1">No screened targets saved yet.</p>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Run a URL screen and save it to Cockpit before comparing.
+                Screen a company URL and save it to Cockpit before comparing.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               <Link href="/app/run" className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-md transition-colors">
-                Back to Run <ArrowRight className="w-3.5 h-3.5" />
+                Back to Screen <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-medium border border-border bg-background hover:bg-accent h-9 px-4 rounded-md transition-colors text-foreground">
                 View pricing

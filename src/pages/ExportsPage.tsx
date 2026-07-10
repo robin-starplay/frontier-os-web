@@ -92,9 +92,9 @@ export default function ExportsPage() {
           </div>
         </div>
 
-        {/* Document-assisted review belongs in Run, not Exports */}
+        {/* Document-assisted review belongs in Screen, not Exports */}
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
-          <p className="text-sm font-semibold text-foreground mb-1">Run a document-assisted screen first.</p>
+          <p className="text-sm font-semibold text-foreground mb-1">Screen a document-assisted target first.</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Website + document review is part of the acquisition screen workflow. Exports are generated later from saved Cockpit runs.
           </p>
@@ -102,7 +102,7 @@ export default function ExportsPage() {
             href="/app/run?mode=document"
             className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
           >
-            Run a document-assisted screen first <ArrowRight className="w-3 h-3" />
+            Screen a document-assisted target first <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
 

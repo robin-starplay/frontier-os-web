@@ -63,7 +63,7 @@ export default function PublicAIRiskPage() {
               href="/run?mode=sample"
               className="inline-flex items-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors"
             >
-              Run screen <ArrowRight className="w-4 h-4" />
+              Screen company <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/ai-disruption"
@@ -167,8 +167,8 @@ export default function PublicAIRiskPage() {
       {/* ── CTA ── */}
       <BetaCTA
         title="Screen a target's AI replica risk."
-        body="Run a public-source screen to see how Frontier OS assesses AI defensibility, replica risk and inference economics for a real software company."
-        primaryLabel="Run screen"
+        body="Start a public-source screen to see how Frontier OS assesses AI defensibility, replica risk and inference economics for a real software company."
+        primaryLabel="Screen company"
         primaryHref="/run?mode=sample"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"

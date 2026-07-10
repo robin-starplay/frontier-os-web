@@ -25,7 +25,7 @@ const SCREEN_ROWS: { label: string; value?: string; chip?: { label: string; vari
   { label: 'Next action',         value: 'Request ARR definition, SaaS/services split, customer concentration and AI feature usage data.', bold: true },
 ];
 
-/** "Run your own →" link in the hero card — auth-aware. */
+/** "Screen your own →" link in the hero card — auth-aware. */
 function RunYourOwnLink() {
   const { isLoaded, isSignedIn } = useOptionalUser();
   const hasWorkspace = (isLoaded && isSignedIn) || hasLocalWorkspaceSession();
@@ -35,12 +35,12 @@ function RunYourOwnLink() {
       href={href}
       className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
     >
-      Run your own <ArrowRight className="w-3 h-3" />
+      Screen your own <ArrowRight className="w-3 h-3" />
     </Link>
   );
 }
 
-/** "Run sample screen" — sends to workspace creation or /app/run if already set up. */
+/** "Screen sample company" — sends to workspace creation or /app/run if already set up. */
 function ReviewerStartButton() {
   const { isLoaded, isSignedIn } = useOptionalUser();
   const hasWorkspace = (isLoaded && isSignedIn) || hasLocalWorkspaceSession();
@@ -50,7 +50,7 @@ function ReviewerStartButton() {
       href={href}
       className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-5 rounded-md transition-colors"
     >
-      Run sample screen <ArrowRight className="w-4 h-4" />
+      Screen sample company <ArrowRight className="w-4 h-4" />
     </Link>
   );
 }
@@ -114,13 +114,13 @@ const PERSONAS: Persona[] = [
   {
     title: 'PE deal teams',
     desc: 'Screen targets faster. See IC readiness, valuation blockers and diligence questions before spending analyst time.',
-    action: 'Run screen',
+    action: 'Screen company',
     href: '/run?mode=sample',
   },
   {
     title: 'Software roll-ups',
     desc: 'Compare targets against a buyer thesis. Identify fit, integration risk and AI replica exposure.',
-    action: 'Run screen',
+    action: 'Screen company',
     href: '/run?mode=sample',
   },
   {
@@ -144,7 +144,7 @@ const PERSONAS: Persona[] = [
   {
     title: 'Corp dev teams',
     desc: 'Assess strategic fit, adjacency logic and what must be verified before internal approval.',
-    action: 'Run screen',
+    action: 'Screen company',
     href: '/run?mode=sample',
   },
 ];
@@ -193,7 +193,7 @@ export default function Landing() {
                 href="/run?mode=sample"
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-7 rounded-md group transition-colors"
               >
-                Run screen
+                Screen company
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -239,7 +239,7 @@ export default function Landing() {
               <p className="text-xs font-semibold text-primary mb-2">3-minute review</p>
               <h2 className="text-xl font-bold text-foreground mb-2">Try Frontier OS in 3 minutes</h2>
               <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                Run a sample acquisition screen to see the workflow before using your own target.
+                Screen a sample company to see the workflow before using your own target.
               </p>
               <ReviewerStartButton />
             </div>
@@ -249,7 +249,7 @@ export default function Landing() {
               {[
                 {
                   n: 1,
-                  label: 'Run sample screen',
+                  label: 'Screen sample company',
                   detail: 'Public-source preview',
                 },
                 {
@@ -323,16 +323,16 @@ export default function Landing() {
         <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Core features</p>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 leading-tight">Screen one target. Compare many.</h2>
         <p className="text-base text-muted-foreground mb-10 max-w-2xl">
-          Frontier OS is not just a report generator. Run URL-only acquisition screens, compare targets against a buyer thesis, and build a pipeline of evidence-backed next actions.
+          Frontier OS is not just a report generator. Screen URL-only acquisition targets, compare targets against a buyer thesis, and build a pipeline of evidence-backed next actions.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
           {[
             {
               icon: <Search className="w-5 h-5 text-primary" />,
-              title: 'Run acquisition screen',
+              title: 'Screen a company',
               desc: 'Input a company URL and get an IC-readiness view: recommendation, strategic fit, AI risk, evidence confidence and diligence blockers.',
               href: '/run',
-              action: 'Run screen',
+              action: 'Screen company',
             },
             {
               icon: <GitCompare className="w-5 h-5 text-primary" />,
@@ -458,7 +458,7 @@ export default function Landing() {
                 href="/run?mode=sample"
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-7 rounded-md transition-colors"
               >
-                Run screen <ArrowRight className="w-4 h-4" />
+                Screen company <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
@@ -482,7 +482,7 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-0 mb-10 rounded-lg border border-border bg-card overflow-hidden">
             {[
               { step: '1', label: 'Origination', desc: 'Find targets from a buyer thesis' },
-              { step: '2', label: 'Run',         desc: 'Screen a specific company URL' },
+              { step: '2', label: 'Screen',         desc: 'Screen a specific company URL' },
               { step: '3', label: 'Compare',     desc: 'Rank 2–5 targets side-by-side' },
               { step: '4', label: 'Cockpit',     desc: 'Track IC readiness and gaps' },
               { step: '5', label: 'Evidence',    desc: 'Review facts, claims, unknowns' },
@@ -533,8 +533,8 @@ export default function Landing() {
 
       <BetaCTA
         title="Want to test Frontier OS on your workflow?"
-        body="Run a sample screen, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
-        primaryLabel="Run screen"
+        body="Screen a sample company, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
+        primaryLabel="Screen company"
         primaryHref="/run?mode=sample"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"

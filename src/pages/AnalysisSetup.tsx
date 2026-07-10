@@ -799,13 +799,22 @@ function TargetPickerSection({
   empty,
   onUse,
   onCompare,
+  limit = 5,
+  deEmphasizeMissing = false,
 }: {
   title: string;
   targets: RunTarget[];
   empty: string;
   onUse: (target: RunTarget) => void;
   onCompare?: (target: RunTarget) => void;
+  limit?: number;
+  deEmphasizeMissing?: boolean;
 }) {
+  const [showAll, setShowAll] = React.useState(false);
+  const sortedTargets = [...targets].sort((a, b) => Number(Boolean(b.website)) - Number(Boolean(a.website)));
+  const visibleTargets = showAll ? sortedTargets : sortedTargets.slice(0, limit);
+  const hiddenCount = Math.max(0, sortedTargets.length - visibleTargets.length);
+
   return (
     <div className="rounded-lg border border-border bg-card/50 overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-card/70 flex items-center justify-between gap-3">
@@ -816,10 +825,13 @@ function TargetPickerSection({
         <p className="px-4 py-4 text-xs text-muted-foreground">{empty}</p>
       ) : (
         <div className="divide-y divide-border">
-          {targets.slice(0, 8).map(target => {
+          {visibleTargets.map(target => {
             const ready = Boolean(target.website);
             return (
-              <div key={target.id} className="px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div key={target.id} className={cn(
+                'px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between',
+                deEmphasizeMissing && !ready ? 'bg-muted/25 opacity-80' : '',
+              )}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-foreground">{target.company_name}</p>
@@ -847,7 +859,7 @@ function TargetPickerSection({
                         : 'cursor-not-allowed border border-border bg-muted text-muted-foreground',
                     )}
                   >
-                    {ready ? target.screening_status === 'screened' ? 'Re-run screen' : 'Use for screen' : 'Find website'}
+                    {ready ? target.screening_status === 'screened' ? 'Re-screen' : 'Use for screen' : 'Website required'}
                   </button>
                   {target.screening_status === 'screened' && onCompare && (
                     <button
@@ -862,6 +874,17 @@ function TargetPickerSection({
               </div>
             );
           })}
+          {hiddenCount > 0 && (
+            <div className="px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setShowAll(true)}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Show all leads ({targets.length})
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -872,25 +895,30 @@ function TargetPicker({
   activeSource,
   onUseTarget,
   onManual,
+  hasPrefilledCompany,
 }: {
   activeSource: RunTargetSource;
   onUseTarget: (target: RunTarget) => void;
   onManual: () => void;
+  hasPrefilledCompany: boolean;
 }) {
   const targets = runTargetsFromStorage();
   const hasTargets = targets.origination.length > 0 || targets.savedLeads.length > 0 || targets.cockpit.length > 0;
+  const readySavedCount = [...targets.savedLeads, ...targets.cockpit, ...targets.origination].filter(target => Boolean(target.website)).length;
   const handleCompareTarget = (target: RunTarget) => {
     addRunTargetToCompare(target);
     window.location.assign('/app/compare');
   };
   return (
-    <div className="mb-8 rounded-lg border border-border bg-card/80 overflow-hidden">
-      <div className="px-5 py-4 border-b border-border bg-card/90">
+    <details className="mt-6 rounded-lg border border-border bg-card/80 overflow-hidden" open={activeSource !== 'manual' && hasPrefilledCompany}>
+      <summary className="cursor-pointer list-none px-5 py-4 border-b border-border bg-card/90">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-foreground">Choose target to screen</p>
+            <p className="text-sm font-semibold text-foreground">Choose from Origination or saved leads</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Select a lead from Origination, saved leads or Cockpit, then run an individual URL screen.
+              {hasTargets
+                ? `${readySavedCount} target${readySavedCount === 1 ? '' : 's'} ready to screen. Saved leads and Cockpit targets appear before weaker Origination leads.`
+                : 'No saved targets yet. Enter a company manually or start with Origination.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -904,7 +932,7 @@ function TargetPicker({
               onClick={onManual}
               className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
             >
-              Manual screen
+              Enter manually
             </button>
           </div>
         </div>
@@ -913,7 +941,7 @@ function TargetPicker({
             Screening target from {activeSource === 'origination' ? 'Origination' : activeSource === 'cockpit' ? 'Cockpit' : 'saved leads'}.
           </p>
         )}
-      </div>
+      </summary>
       {!hasTargets ? (
         <div className="px-5 py-6">
           <p className="text-sm font-semibold text-foreground">No saved leads yet.</p>
@@ -927,18 +955,18 @@ function TargetPicker({
               onClick={onManual}
               className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
             >
-              Manual screen
+              Enter manually
             </button>
           </div>
         </div>
       ) : (
         <div className="grid gap-4 p-5">
-          <TargetPickerSection title="From Origination" targets={targets.origination} empty="No targets restored from Origination." onUse={onUseTarget} />
           <TargetPickerSection title="Saved leads" targets={targets.savedLeads} empty="No saved leads yet." onUse={onUseTarget} />
           <TargetPickerSection title="Cockpit targets" targets={targets.cockpit} empty="No screened Cockpit targets yet." onUse={onUseTarget} onCompare={handleCompareTarget} />
+          <TargetPickerSection title="From Origination" targets={targets.origination} empty="No targets restored from Origination." onUse={onUseTarget} limit={5} deEmphasizeMissing />
         </div>
       )}
-    </div>
+    </details>
   );
 }
 
@@ -956,6 +984,7 @@ interface Step1Props {
   confidentialityAcknowledged: boolean; setConfidentialityAcknowledged: (v: boolean) => void;
   onScenarioSelect: (s: DemoScenario) => void;
   onRun: () => void;
+  onClearForm: () => void;
   analysisInFlight: boolean;
   backendConfigured: boolean;
   investmentStyle: InvestmentStyle; setInvestmentStyle: (v: InvestmentStyle) => void;
@@ -968,7 +997,7 @@ function Step1({
   jurisdiction, setJurisdiction, mode, setMode,
   documentFile, setDocumentFile, documentType, setDocumentType,
   confidentialityAcknowledged, setConfidentialityAcknowledged,
-  onScenarioSelect, onRun, analysisInFlight, backendConfigured,
+  onScenarioSelect, onRun, onClearForm, analysisInFlight, backendConfigured,
   investmentStyle, setInvestmentStyle, riskPosture, setRiskPosture,
 }: Step1Props) {
   const [urlError, setUrlError] = React.useState('');
@@ -1018,7 +1047,7 @@ function Step1({
         <div className="lg:col-span-3">
           <Card className="border-border bg-card/90">
             <CardHeader className="pb-5">
-              <CardTitle className="text-lg">Or enter a company manually.</CardTitle>
+              <CardTitle className="text-lg">Screen a company</CardTitle>
               <CardDescription>
                 Start with a company website and, where available, one non-confidential deck or teaser. Frontier OS separates verified facts, company claims, unknowns and diligence blockers for IC readiness.
               </CardDescription>
@@ -1147,7 +1176,7 @@ function Step1({
                   >
                     <p className="text-sm font-semibold text-foreground">Website only</p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      Run a public-source screen when no document is available.
+                      Start a public-source screen when no document is available.
                     </p>
                   </button>
                 </div>
@@ -1276,16 +1305,34 @@ function Step1({
                   {analysisInFlight ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Running analysis
+                      Screening company
                     </>
                   ) : quotaReached ? (
                     'Free preview limit reached'
                   ) : (
                     <>
-                      {documentMode ? 'Run document-assisted review' : 'Run public-source screen'} <ArrowRight className="w-4 h-4 ml-2" />
+                      {documentMode ? 'Start document-assisted screen' : 'Start screen'} <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
+
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {hasLastOriginationResult() && (
+                    <Link
+                      href="/app/origination"
+                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                    >
+                      Choose from Origination
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onClearForm}
+                    className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                  >
+                    Clear form
+                  </button>
+                </div>
 
                 {quotaReached && (
                   <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-3 space-y-3">
@@ -1976,7 +2023,7 @@ function DocumentAssistedResultDisplay({
           onClick={onRunAnother}
           className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
         >
-          <RotateCcw className="w-3 h-3" /> Run another
+          <RotateCcw className="w-3 h-3" /> Screen another
         </button>
         <Link
           href="/app/cockpit"
@@ -2063,7 +2110,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
       {isSampleFallback && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
-          Example screen only. Run a target from the form for a live acquisition screen.
+          Example screen only. Screen a target from the form for a live acquisition screen.
         </div>
       )}
 
@@ -2179,7 +2226,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
       <PackSection
         title="Public Signals"
         empty={publicSignals.length === 0}
-        emptyMessage="Limited public operating signals found. Run document-assisted review or request job-posting/product/news checks during pilot setup."
+        emptyMessage="Limited public operating signals found. Start document-assisted review or request job-posting/product/news checks during pilot setup."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {publicSignals.map((item, i) => {
@@ -2763,7 +2810,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
           onClick={onRunAnother}
           className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="w-3 h-3" /> Run another screen
+          <RotateCcw className="w-3 h-3" /> Screen another company
         </button>
         <Link
           href="/app/compare"
@@ -3251,7 +3298,7 @@ function AnalysisResultDisplay({
           onClick={onRunAnother}
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="w-3 h-3" /> Run another screen
+          <RotateCcw className="w-3 h-3" /> Screen another company
         </button>
         <Link
           href="/app/compare"
@@ -4056,6 +4103,23 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setTargetSource('manual');
   }
 
+  function clearScreenForm() {
+    setCompany('');
+    setWebsite('');
+    setBuyer('');
+    setBuyerThesis('');
+    setJurisdiction('unknown');
+    setMode('url-only');
+    setDocumentFile(null);
+    setConfidentialityAcknowledged(false);
+    setFromOrigination(false);
+    setTargetSource('manual');
+    setAnalysisError(null);
+    setDocumentAssistedResult(null);
+    setDocumentUnavailable(null);
+    setResult(null);
+  }
+
   function handleUseTarget(target: RunTarget) {
     setCompany(target.company_name);
     setWebsite(normaliseUrl(target.website));
@@ -4091,7 +4155,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
             {sampleMode ? 'Example screen' : 'Evidence-first acquisition screen'}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            {sampleMode ? 'Example acquisition screen.' : 'Run an evidence-first acquisition screen.'}
+            {sampleMode ? 'Example acquisition screen.' : 'Screen a company with evidence-first diligence.'}
           </h1>
           <p className="text-base text-muted-foreground">
             {sampleMode
@@ -4289,7 +4353,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                       </div>
                     </div>
 
-                    {/* RIGHT — Run context / expectations */}
+                    {/* RIGHT — Screen context / expectations */}
                     <div className="space-y-3">
                       <div className="rounded-lg border border-border bg-card/40 px-4 py-3">
                         <p className="text-xs font-semibold text-muted-foreground mb-2">Elapsed</p>
@@ -4357,7 +4421,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                     onClick={resetRailway}
                     className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <RotateCcw className="w-3 h-3" /> Run another
+                    <RotateCcw className="w-3 h-3" /> Screen another
                   </button>
                   <a
                     href={BOOK_INTRO_URL}
@@ -4396,11 +4460,6 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
             {!sampleMode && step === 1 && (
               <>
-                <TargetPicker
-                  activeSource={targetSource}
-                  onUseTarget={handleUseTarget}
-                  onManual={handleManualTarget}
-                />
                 {fromOrigination && (
                   <div className="mb-4 rounded-lg border border-border bg-card/70 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <p className="text-xs text-muted-foreground">
@@ -4432,6 +4491,13 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                   backendConfigured={backendConfigured}
                   investmentStyle={investmentStyle} setInvestmentStyle={setInvestmentStyle}
                   riskPosture={riskPosture}         setRiskPosture={setRiskPosture}
+                  onClearForm={clearScreenForm}
+                />
+                <TargetPicker
+                  activeSource={targetSource}
+                  onUseTarget={handleUseTarget}
+                  onManual={handleManualTarget}
+                  hasPrefilledCompany={Boolean(company.trim() || website.trim())}
                 />
               </>
             )}
@@ -4471,7 +4537,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                 {sampleMode && (
                   <div className="mt-10 border-t border-border">
                     <div className="py-10 text-center">
-                      <p className="text-lg font-semibold text-foreground mb-2">Run your own acquisition screen.</p>
+                      <p className="text-lg font-semibold text-foreground mb-2">Screen your own company.</p>
                       <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                         Create a free workspace to run public-source analysis on your own targets.
                       </p>

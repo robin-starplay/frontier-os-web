@@ -15,7 +15,7 @@ import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
 const PUBLIC_NAV = [
   { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
-  { label: 'Run',         href: '/app/run' },
+  { label: 'Screen',      href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
   { label: 'Pricing',     href: '/pricing' },
@@ -42,7 +42,7 @@ const PUBLIC_MORE = [
 const PUBLIC_MOBILE_PRIMARY = [
   { label: 'How it works', href: '/how-it-works' },
   { label: 'Origination', href: '/app/origination' },
-  { label: 'Run',         href: '/app/run' },
+  { label: 'Screen',      href: '/app/run' },
   { label: 'Cockpit',     href: '/app/cockpit' },
 ];
 
@@ -295,7 +295,7 @@ export function Navbar() {
                   href={clerkEnabled ? '/run?mode=sample' : '/create-workspace'}
                   className="hidden sm:inline-flex items-center justify-center text-[var(--font-size-nav)] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
                 >
-                  {clerkEnabled ? 'Run screen' : 'Start free'}
+                  {clerkEnabled ? 'Screen company' : 'Start free'}
                 </Link>
               </>
             )}
@@ -429,7 +429,7 @@ export function Navbar() {
                       className="inline-flex items-center justify-center text-[var(--font-size-nav)] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
-                      {clerkEnabled ? 'Run screen' : 'Start free'}
+                      {clerkEnabled ? 'Screen company' : 'Start free'}
                     </Link>
                   </div>
                 </>

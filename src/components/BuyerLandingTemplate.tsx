@@ -63,7 +63,7 @@ function SampleCard({ data }: { data: BuyerPageData }) {
           href="/run?mode=sample"
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
         >
-          Run your own <ArrowRight className="w-3 h-3" />
+          Screen your own <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
     </div>
@@ -91,7 +91,7 @@ function CtaBand() {
               href="/run?mode=sample"
               className="inline-flex items-center gap-2 h-10 px-6 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Run screen <ArrowRight className="w-3.5 h-3.5" />
+              Screen company <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <Link
               href="/request-pilot"
