@@ -1763,8 +1763,8 @@ function OriginationWorkspacePanel({
     <div className="rounded-lg border border-border/80 bg-card/70 overflow-hidden">
       <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">Origination workspace</p>
-          <p className="text-xs text-muted-foreground">Runs, saved leads, compare selection and research sources.</p>
+          <p className="text-sm font-semibold text-foreground">Workspace</p>
+          <p className="text-xs text-muted-foreground">Previous runs, saved leads and compare selections.</p>
         </div>
         <Link
           href="/app/compare"
@@ -2093,14 +2093,205 @@ function OriginationForm() {
     />
   );
 
-  if (state.kind === 'result') {
-    return (
-      <div className="space-y-4">
-        <ScreeningWorkflowGuide active="originate" />
-        {workspacePanel}
-        {state.restored && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
-            <span>Restored last origination run</span>
+  return (
+    <div className="space-y-4">
+      <ScreeningWorkflowGuide active="originate" />
+      <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Start an origination</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Research a thesis or rank known targets. Frontier OS will not invent acquisition targets.
+          </p>
+        </div>
+        <div className="rounded-lg border border-primary/15 bg-primary/5 px-4 py-3">
+          <p className="text-sm font-semibold text-foreground">
+            {isRankKnownTargetsMode
+              ? 'Paste company names and websites to rank a known universe.'
+              : 'Research a thesis and keep source pages separate from company candidates.'}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Best practice: screen companies individually before comparing candidates.
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-background/60 p-3">
+          <p className="text-xs font-semibold text-foreground mb-2">Origination mode</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              {
+                value: 'rank_known_targets' as OriginationMode,
+                label: 'Rank known targets',
+                description: 'Rank and enrich a supplied/source-backed target universe.',
+              },
+              {
+                value: 'research_thesis' as OriginationMode,
+                label: 'Research thesis',
+                description: 'Find source pages and possible leads without inventing targets.',
+              },
+            ].map(option => {
+              const active = mode === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setMode(option.value)}
+                  className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                    active
+                      ? 'border-primary/40 bg-primary/10 text-foreground'
+                      : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
+                >
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  <span className="block text-xs mt-0.5">{option.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {!isRankKnownTargetsMode && (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">
+                Buyer thesis
+              </label>
+              <textarea
+                value={buyerThesis}
+                onChange={e => setBuyerThesis(e.target.value)}
+                rows={3}
+                placeholder="e.g. Founder-owned UK vertical software with recurring revenue, low implementation complexity and low AI replica risk."
+                className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1.5">
+                  Target sector / vertical
+                </label>
+                <input
+                  type="text"
+                  value={sector}
+                  onChange={e => setSector(e.target.value)}
+                  placeholder="e.g. UK vertical SaaS, telecoms BSS"
+                  className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1.5">
+                  Geography
+                </label>
+                <input
+                  type="text"
+                  value={geo}
+                  onChange={e => setGeo(e.target.value)}
+                  placeholder="e.g. UK, DACH, Nordic"
+                  className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">
+                Size criteria
+              </label>
+              <input
+                type="text"
+                value={sizeCriteria}
+                onChange={e => setSizeCriteria(e.target.value)}
+                placeholder="e.g. UK lower mid-market, profitable bootstrapped software"
+                className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">
+                Strategic rationale <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={rationale}
+                onChange={e => setRationale(e.target.value)}
+                rows={3}
+                placeholder="What makes this a compelling thesis? e.g. mission-critical vertical software with low churn, cross-sell to existing portfolio..."
+                className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+              />
+            </div>
+          </>
+        )}
+        {isRankKnownTargetsMode ? (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              Paste known target companies
+            </label>
+            <textarea
+              value={targetUniverse}
+              onChange={e => setTargetUniverse(e.target.value)}
+              rows={7}
+              placeholder={`Company name, website, jurisdiction, brief description
+
+Example format:
+[Company name], [website URL], [jurisdiction], [brief description]`}
+              className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+            />
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed mt-1.5">
+              Company name, website, jurisdiction, brief description.
+            </p>
+            <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1">
+              Only paste targets you are permitted to screen. Frontier OS will not invent or enrich targets without evidence.
+            </p>
+          </div>
+        ) : (
+          <details className="rounded-lg border border-border bg-background/60 overflow-hidden">
+            <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+              Optional: provide known targets instead
+            </summary>
+            <div className="border-t border-border p-3">
+              <textarea
+                value={targetUniverse}
+                onChange={e => setTargetUniverse(e.target.value)}
+                rows={4}
+                placeholder={`Paste known targets, one per line:
+[Company name], [website URL], [jurisdiction], [brief description]`}
+                className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+              />
+              <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
+                Research thesis mode focuses on source pages. Switch to Rank known targets to rank supplied companies.
+              </p>
+            </div>
+          </details>
+        )}
+
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+          {statusCopy}
+        </p>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? (
+            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {loadingLabel}</>
+          ) : (
+            <>{submitLabel} <ArrowRight className="w-3.5 h-3.5" /></>
+          )}
+        </button>
+
+        {isSubmitting && state.kind !== 'result' && (
+          <div className="rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 shadow-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">{loadingLabel}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Frontier OS will not invent acquisition targets.
+              </p>
+            </div>
+          </div>
+        )}
+      </form>
+
+      {state.kind === 'result' && state.restored && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+          <span>Previous origination result available</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <a href="#origination-result" className="font-medium text-primary hover:text-primary/80">
+              View result
+            </a>
             <button
               type="button"
               onClick={handleClearRestored}
@@ -2109,258 +2300,76 @@ function OriginationForm() {
               Clear
             </button>
           </div>
-        )}
-        <OriginationResultView
-          data={state.data}
-          onReset={handleReset}
-          onPasteKnownTargets={() => {
-            setMode('rank_known_targets');
-            handleReset();
-          }}
-          onWorkspaceChange={refreshWorkspace}
-        />
-      </div>
-    );
-  }
-
-  if (state.kind === 'error') {
-    return (
-      <div className="space-y-4">
-        <ScreeningWorkflowGuide active="originate" />
-        {workspacePanel}
-        <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          <span>{state.message}</span>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {statusCopy}
-        </p>
-        {state.diagnostics && (
-          <details className="rounded-lg border border-border bg-card/40 overflow-hidden">
-            <summary className="px-4 py-3 cursor-pointer list-none text-[10px] font-semibold tracking-normal text-muted-foreground">
-              Developer diagnostics
-            </summary>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-border px-4 py-3">
-              {[
-                ['endpoint', state.diagnostics.endpoint],
-                ['timeout_ms', state.diagnostics.timeout_ms],
-                ['elapsed_ms', state.diagnostics.elapsed_ms],
-              ].map(([label, value]) => (
-                <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
-                  <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-0.5">{String(label)}</p>
-                  <p className="text-xs text-foreground break-words">{safeStr(value)}</p>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-          >
-            Try again
-          </button>
-          <Link
-            href="/app/run"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
-          >
-            Screen company URL <ArrowRight className="w-3 h-3" />
-          </Link>
-          <a
-            href={BOOK_INTRO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
-          >
-            Book intro
-          </a>
-        </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <ScreeningWorkflowGuide active="originate" />
+      {state.kind === 'error' && (
+        <div className="space-y-4">
+          <div className="flex items-start gap-2 px-4 py-3 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>{state.message}</span>
+          </div>
+          {state.diagnostics && (
+            <details className="rounded-lg border border-border bg-card/40 overflow-hidden">
+              <summary className="px-4 py-3 cursor-pointer list-none text-[10px] font-semibold tracking-normal text-muted-foreground">
+                Developer diagnostics
+              </summary>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-border px-4 py-3">
+                {[
+                  ['endpoint', state.diagnostics.endpoint],
+                  ['timeout_ms', state.diagnostics.timeout_ms],
+                  ['elapsed_ms', state.diagnostics.elapsed_ms],
+                ].map(([label, value]) => (
+                  <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-0.5">{String(label)}</p>
+                    <p className="text-xs text-foreground break-words">{safeStr(value)}</p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Try again
+            </button>
+            <Link
+              href="/app/run"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
+            >
+              Screen company URL <ArrowRight className="w-3 h-3" />
+            </Link>
+            <a
+              href={BOOK_INTRO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Book intro
+            </a>
+          </div>
+        </div>
+      )}
+
+      {state.kind === 'result' && (
+        <div id="origination-result">
+          <OriginationResultView
+            data={state.data}
+            onReset={handleReset}
+            onPasteKnownTargets={() => {
+              setMode('rank_known_targets');
+              handleReset();
+            }}
+            onWorkspaceChange={refreshWorkspace}
+          />
+        </div>
+      )}
+
       {workspacePanel}
-      <div className="rounded-lg border border-border bg-card px-4 py-3">
-        <p className="text-sm font-semibold text-foreground">
-          Start with known targets or research sources. Frontier OS will not invent acquisition targets.
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Best practice: screen companies individually before comparing candidates.
-        </p>
-      </div>
-      <div className="rounded-lg border border-border bg-card p-3">
-        <p className="text-xs font-semibold text-foreground mb-2">Origination mode</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[
-            {
-              value: 'rank_known_targets' as OriginationMode,
-              label: 'Rank known targets',
-              description: 'Rank and enrich a supplied/source-backed target universe.',
-            },
-            {
-              value: 'research_thesis' as OriginationMode,
-              label: 'Research thesis',
-              description: 'Find source pages and possible leads without inventing targets.',
-            },
-          ].map(option => {
-            const active = mode === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setMode(option.value)}
-                className={`rounded-md border px-3 py-2 text-left transition-colors ${
-                  active
-                    ? 'border-primary/40 bg-primary/10 text-foreground'
-                    : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground'
-                }`}
-              >
-                <span className="block text-sm font-semibold">{option.label}</span>
-                <span className="block text-xs mt-0.5">{option.description}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-foreground mb-1.5">
-          Buyer thesis
-        </label>
-        <textarea
-          value={buyerThesis}
-          onChange={e => setBuyerThesis(e.target.value)}
-          rows={3}
-          placeholder="e.g. Founder-owned UK vertical software with recurring revenue, low implementation complexity and low AI replica risk."
-          className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
-        />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-foreground mb-1.5">
-            Target sector / vertical
-          </label>
-          <input
-            type="text"
-            value={sector}
-            onChange={e => setSector(e.target.value)}
-            placeholder="e.g. UK vertical SaaS, telecoms BSS"
-            className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-foreground mb-1.5">
-            Geography
-          </label>
-          <input
-            type="text"
-            value={geo}
-            onChange={e => setGeo(e.target.value)}
-            placeholder="e.g. UK, DACH, Nordic"
-            className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
-          />
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-foreground mb-1.5">
-          Size criteria
-        </label>
-        <input
-          type="text"
-          value={sizeCriteria}
-          onChange={e => setSizeCriteria(e.target.value)}
-          placeholder="e.g. UK lower mid-market, profitable bootstrapped software"
-          className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-foreground mb-1.5">
-          Strategic rationale <span className="text-muted-foreground font-normal">(optional)</span>
-        </label>
-        <textarea
-          value={rationale}
-          onChange={e => setRationale(e.target.value)}
-          rows={3}
-          placeholder="What makes this a compelling thesis? e.g. mission-critical vertical software with low churn, cross-sell to existing portfolio..."
-          className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
-        />
-      </div>
-      {isRankKnownTargetsMode ? (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <label className="block text-xs font-semibold text-foreground mb-1.5">
-            Known target universe
-          </label>
-          <textarea
-            value={targetUniverse}
-            onChange={e => setTargetUniverse(e.target.value)}
-            rows={6}
-            placeholder={`Paste known targets, one per line:
-Company name, website, country, brief description
-
-Example format:
-[Company name], [website URL], [country], [brief description]`}
-            className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
-          />
-          <p className="text-[11px] text-muted-foreground/70 leading-relaxed mt-1.5">
-            Paste company names and websites. Frontier OS will rank and enrich only supplied/source-backed targets.
-          </p>
-          <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1">
-            Only paste targets you are permitted to screen. Frontier OS will not invent or enrich targets without evidence.
-          </p>
-        </div>
-      ) : (
-        <details className="rounded-lg border border-border bg-card/30 overflow-hidden">
-          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-            Optional: provide known targets instead
-          </summary>
-          <div className="border-t border-border p-3">
-            <textarea
-              value={targetUniverse}
-              onChange={e => setTargetUniverse(e.target.value)}
-              rows={4}
-              placeholder={`Paste known targets, one per line:
-[Company name], [website URL], [country], [brief description]`}
-              className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
-            />
-            <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
-              Research thesis mode focuses on source pages. Switch to Rank known targets to rank supplied companies.
-            </p>
-          </div>
-        </details>
-      )}
-
-      <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-        {statusCopy}
-      </p>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-      >
-        {isSubmitting ? (
-          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {loadingLabel}</>
-        ) : (
-          <>{submitLabel} <ArrowRight className="w-3.5 h-3.5" /></>
-        )}
-      </button>
-
-      {isSubmitting && state.kind !== 'result' && (
-        <div className="rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 shadow-xs">
-          <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-semibold text-foreground">{loadingLabel}</p>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Frontier OS will not invent acquisition targets.
-            </p>
-          </div>
-        </div>
-      )}
-    </form>
+    </div>
   );
 }
 
