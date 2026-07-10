@@ -25,14 +25,14 @@ const STEPS: StepConfig[] = [
   {
     id: 'run',
     label: 'Screen',
-    description: 'Screen each company URL individually to collect evidence.',
+    description: 'Screen one company URL to collect evidence.',
     href: '/app/run',
     cta: 'Screen company',
     icon: ShieldCheck,
   },
   {
     id: 'cockpit',
-    label: 'Save to Cockpit',
+    label: 'Cockpit',
     description: 'Keep screened targets, decisions and next actions.',
     href: '/app/cockpit',
     cta: 'Open Cockpit',

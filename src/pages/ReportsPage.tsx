@@ -28,7 +28,7 @@ export default function ReportsPage() {
             />
           </div>
           <Button onClick={() => setLocation('/run')}>
-            Run New Analysis
+            Screen new target
           </Button>
         </div>
       </div>

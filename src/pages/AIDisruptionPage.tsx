@@ -384,14 +384,14 @@ export default function AIDisruptionPage() {
             href="/run"
             className="inline-flex items-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md shrink-0 transition-colors"
           >
-            Run screen <ArrowRight className="w-3.5 h-3.5" />
+            Screen company <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
 
       <BetaCTA
         title="Want to test AI defensibility across your targets?"
-        body="Run a sample screen, request private beta access, or book a 30-minute intro to discuss AI replica risk and moat evidence in your workflow."
+        body="Screen a sample company, request private beta access, or book a 30-minute intro to discuss AI replica risk and moat evidence in your workflow."
         primaryLabel="Request private beta access"
         primaryHref="/request-pilot"
         eventName="ai_disruption_bottom"

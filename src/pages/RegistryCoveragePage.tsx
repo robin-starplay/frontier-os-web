@@ -215,8 +215,8 @@ export default function RegistryCoveragePage() {
 
       <BetaCTA
         title="Want to test Frontier OS on your workflow?"
-        body="Run a sample screen, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
-        primaryLabel="Run screen"
+        body="Screen a sample company, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
+        primaryLabel="Screen company"
         primaryHref="/run"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"

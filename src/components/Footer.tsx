@@ -4,7 +4,7 @@ import { BookIntroButton } from '@/components/BookIntroButton';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
 
 const PRODUCT_LINKS = [
-  { label: 'Run Analysis',      href: '/run' },
+  { label: 'Screen company',    href: '/run' },
   { label: 'Deal Cockpit',      href: '/cockpit' },
   { label: 'AI Disruption',     href: '/ai-disruption' },
   { label: 'Evidence Workflow', href: '/evidence-workflow' },

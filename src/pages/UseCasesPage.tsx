@@ -27,7 +27,7 @@ const USE_CASES: UseCase[] = [
     workflow: 'Company URL and any available deck → entity resolved → source hierarchy ranked → evidence classified → IC readiness assessed → diligence request list generated.',
     output: 'Caveated acquisition screen with classified evidence, IC readiness status, valuation caveats and a structured request list.',
     whyPay: 'Cuts teaser-to-IC-screen time. Reduces the risk of avoidable surprises surfacing in confirmatory diligence. Consistent evidence quality across the deal team.',
-    firstAction: 'Run screen',
+    firstAction: 'Screen company',
   },
   {
     id: 'rollup',
@@ -37,7 +37,7 @@ const USE_CASES: UseCase[] = [
     workflow: 'Target URL and buyer thesis → strategic fit assessed → AI defensibility check → diligence gaps surfaced → conditional fit view produced.',
     output: 'Conditional fit view showing what is verified, what is claimed, what is unknown and what must be confirmed before price discussion.',
     whyPay: 'Consistent fit assessment across all targets in the pipeline. Buyer-thesis-specific scoring, not generic deal metrics.',
-    firstAction: 'Run screen',
+    firstAction: 'Screen company',
   },
   {
     id: 'vc',
@@ -67,7 +67,7 @@ const USE_CASES: UseCase[] = [
     workflow: 'Target URL → source ranking → evidence classification → strategic fit → IC readiness → acquisition screen draft.',
     output: 'Consistent acquisition screen format with evidence classification, confidence levels and a diligence request list.',
     whyPay: 'Repeatable process. Consistent output across the team regardless of individual analyst experience.',
-    firstAction: 'Run screen',
+    firstAction: 'Screen company',
   },
   {
     id: 'oppartner',
@@ -82,7 +82,7 @@ const USE_CASES: UseCase[] = [
 ];
 
 const CTA_MAP: Record<string, string> = {
-  'Run screen': '/run',
+  'Screen company': '/run',
   'View evidence workflow': '/evidence-workflow',
   'AI disruption cockpit': '/ai-disruption',
 };

@@ -841,19 +841,22 @@ function TargetPickerSection({
                   <p className="mt-1 text-[11px] text-muted-foreground/70">{target.source_label}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => ready && onUse(target)}
-                    disabled={!ready}
-                    className={cn(
-                      'inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-semibold transition-colors',
-                      ready
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'cursor-not-allowed border border-border bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {ready ? target.screening_status === 'screened' ? 'Re-screen' : 'Use for screen' : 'Website required'}
-                  </button>
+                  {ready ? (
+                    <button
+                      type="button"
+                      onClick={() => onUse(target)}
+                      className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      {target.screening_status === 'screened' ? 'Re-screen' : 'Use for screen'}
+                    </button>
+                  ) : (
+                    <Link
+                      href="/app/origination"
+                      className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                    >
+                      Find website
+                    </Link>
+                  )}
                   {target.screening_status === 'screened' && onCompare && (
                     <button
                       type="button"
@@ -897,21 +900,20 @@ function TargetPicker({
 }) {
   const targets = runTargetsFromStorage();
   const hasTargets = targets.origination.length > 0 || targets.savedLeads.length > 0 || targets.cockpit.length > 0;
-  const readySavedCount = [...targets.savedLeads, ...targets.cockpit, ...targets.origination].filter(target => Boolean(target.website)).length;
+  const readySavedLeads = targets.savedLeads.filter(target => Boolean(target.website));
+  const originationLeadsNeedingWebsite = targets.origination.filter(target => !target.website);
   const handleCompareTarget = (target: RunTarget) => {
     addRunTargetToCompare(target);
     window.location.assign('/app/compare');
   };
   return (
-    <details className="mt-6 rounded-lg border border-border bg-card/80 overflow-hidden" open={activeSource !== 'manual' && hasPrefilledCompany}>
+    <details id="screen-target-picker" className="mt-6 rounded-lg border border-border bg-card/80 overflow-hidden">
       <summary className="cursor-pointer list-none px-5 py-4 border-b border-border bg-card/90">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">Choose from Origination or saved leads</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {hasTargets
-                ? `${readySavedCount} target${readySavedCount === 1 ? '' : 's'} ready to screen. Saved leads and Cockpit targets appear before weaker Origination leads.`
-                : 'No saved targets yet. Enter a company manually or start with Origination.'}
+              Use a saved lead, Cockpit target or Origination result.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -954,9 +956,9 @@ function TargetPicker({
         </div>
       ) : (
         <div className="grid gap-4 p-5">
-          <TargetPickerSection title="Saved leads" targets={targets.savedLeads} empty="No saved leads yet." onUse={onUseTarget} />
+          <TargetPickerSection title="Ready-to-screen saved leads" targets={readySavedLeads} empty="No ready-to-screen saved leads yet." onUse={onUseTarget} />
           <TargetPickerSection title="Cockpit targets" targets={targets.cockpit} empty="No screened Cockpit targets yet." onUse={onUseTarget} onCompare={handleCompareTarget} />
-          <TargetPickerSection title="From Origination" targets={targets.origination} empty="No targets restored from Origination." onUse={onUseTarget} limit={5} deEmphasizeMissing />
+          <TargetPickerSection title="Origination leads needing website confirmation" targets={originationLeadsNeedingWebsite} empty="No Origination leads need website confirmation." onUse={onUseTarget} limit={5} deEmphasizeMissing />
         </div>
       )}
     </details>
@@ -1023,6 +1025,9 @@ function Step1({
       : '';
   const documentFileRequired = documentMode && !documentFile;
   const documentAckRequired = documentAttached && !confidentialityAcknowledged;
+  const readySavedLeadCount = React.useMemo(() => (
+    runTargetsFromStorage().savedLeads.filter(target => Boolean(target.website)).length
+  ), []);
 
   const CHECK_LIST = [
     'Entity and registry sources',
@@ -1038,11 +1043,24 @@ function Step1({
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-10">
         {/* Left: form */}
         <div className="lg:col-span-3">
+          {readySavedLeadCount > 0 && (
+            <div className="mb-4 rounded-lg border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-medium text-[var(--semantic-info-text)]">
+                {readySavedLeadCount} ready-to-screen saved lead{readySavedLeadCount === 1 ? '' : 's'} available
+              </p>
+              <a
+                href="#screen-target-picker"
+                className="inline-flex h-8 w-fit items-center justify-center rounded-md border border-[var(--semantic-info-border)] bg-background px-3 text-xs font-semibold text-[var(--semantic-info-text)] hover:bg-accent transition-colors"
+              >
+                Choose saved lead
+              </a>
+            </div>
+          )}
           <Card className="border-border bg-card/90">
             <CardHeader className="pb-5">
               <CardTitle className="text-lg">Screen a company</CardTitle>
               <CardDescription>
-                Start with a company website and, where available, one non-confidential deck or teaser. Frontier OS separates verified facts, company claims, unknowns and diligence blockers for IC readiness.
+                Enter a company website and, where available, add one non-confidential document.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -3561,7 +3579,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
     setFromOrigination(true);
     setTargetSource('origination');
     const candidateCompany = params.get('company_name') || params.get('company');
-    const candidateWebsite = params.get('website');
+    const candidateWebsite = params.get('company_url') || params.get('website');
     const candidateJurisdiction = params.get('jurisdiction');
     if (candidateCompany) setCompany(candidateCompany);
     if (candidateWebsite) setWebsite(normaliseUrl(candidateWebsite));
@@ -4150,7 +4168,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
             {sampleMode ? 'Example screen' : 'Evidence-first acquisition screen'}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            {sampleMode ? 'Example acquisition screen.' : 'Screen a company with evidence-first diligence.'}
+            {sampleMode ? 'Example acquisition screen.' : 'Screen an evidence-first acquisition target.'}
           </h1>
           <p className="text-base text-muted-foreground">
             {sampleMode

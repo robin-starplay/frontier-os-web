@@ -410,8 +410,8 @@ export default function EvidenceWorkflowPage() {
 
       <BetaCTA
         title="Bring evidence ranking into your screening process."
-        body="Run a sample screen to see how Frontier OS separates verified facts, claims and unknowns before IC."
-        primaryLabel="Run screen"
+        body="Screen a sample company to see how Frontier OS separates verified facts, claims and unknowns before IC."
+        primaryLabel="Screen company"
         primaryHref="/run"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"

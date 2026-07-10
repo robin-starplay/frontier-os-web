@@ -46,7 +46,7 @@ export default function ResultsPreview() {
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <Button variant="outline" onClick={handleRunNew} className="flex-1 sm:flex-none">
-              Run Another
+              Screen another
             </Button>
             <Button onClick={handleViewMemo} className="flex-1 sm:flex-none">
               View Full IC Memo

@@ -248,16 +248,16 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Run history */}
+        {/* Screen history */}
         <section className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">Run history</p>
+            <p className="text-[10px] font-semibold tracking-normal text-primary">Screen history</p>
           </div>
           <div className="px-5 py-5">
             <p className="text-xs text-muted-foreground mb-4">
               {runs.length > 0
-                ? `${runs.length} run${runs.length !== 1 ? 's' : ''} saved in local browser storage on this device. Open the Deal Cockpit to view and manage your pipeline.`
-                : 'No runs saved yet. Run a URL screen or compare targets to start building your pipeline.'}
+                ? `${runs.length} screen${runs.length !== 1 ? 's' : ''} saved in local browser storage on this device. Open the Deal Cockpit to view and manage your pipeline.`
+                : 'No screens saved yet. Screen a company URL or compare targets to start building your pipeline.'}
             </p>
             <div className="flex flex-wrap gap-2">
               <Link href="/cockpit" className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground">
@@ -385,7 +385,7 @@ export default function SettingsPage() {
           </div>
           <div className="px-5 py-5">
             <p className="text-xs text-muted-foreground mb-4">
-              Run history is stored in your browser's local storage on this device only. No analysis data is sent to external servers beyond the Frontier OS API pipeline.
+              Screen history is stored in your browser's local storage on this device only. No analysis data is sent to external servers beyond the Frontier OS API pipeline.
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
               {[

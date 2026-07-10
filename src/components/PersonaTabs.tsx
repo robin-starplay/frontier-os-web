@@ -152,7 +152,7 @@ export function PersonaTabs() {
           </div>
           <p className="text-sm text-foreground font-medium leading-relaxed">{active.workflow}</p>
           <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-[10px] text-muted-foreground">Run this workflow in the sample screen →</p>
+            <p className="text-[10px] text-muted-foreground">Screen this workflow in the sample screen →</p>
           </div>
         </div>
       </div>
