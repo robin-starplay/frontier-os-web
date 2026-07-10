@@ -392,6 +392,39 @@ export function updateWorkflowTarget(targetIdOrMatcher: WorkflowTargetMatcher, p
   return dedupeTargets(updated);
 }
 
+export function removeWorkflowTarget(targetIdOrMatcher: WorkflowTargetMatcher): void {
+  ([
+    SAVED_LEADS_KEY,
+    COCKPIT_TARGETS_KEY,
+    COMPARE_CANDIDATES_KEY,
+    COCKPIT_COMPARE_SELECTION_KEY,
+  ] as const).forEach(key => {
+    const filtered = readArray(key)
+      .map(normalizeWorkflowTarget)
+      .filter((target): target is WorkflowTarget => target !== null)
+      .filter(target => !targetMatches(target, targetIdOrMatcher));
+    writeArray(key, dedupeTargets(filtered));
+  });
+
+  const result = readRecord(LAST_ORIGINATION_RESULT_KEY);
+  if (Object.keys(result).length === 0) return;
+  const next = { ...result };
+  let changed = false;
+  ORIGINATION_TARGET_LIST_KEYS.forEach(key => {
+    const list = asArray(result[key]).filter(item => item && typeof item === 'object') as Record<string, unknown>[];
+    if (list.length === 0) return;
+    const filtered = list
+      .map(item => normalizeWithRaw({ ...item, source: textValue(item.source, 'origination') }))
+      .filter((target): target is WorkflowTarget => target !== null)
+      .filter(target => !targetMatches(target, targetIdOrMatcher));
+    if (filtered.length !== list.length) {
+      changed = true;
+      next[key] = dedupeTargets(filtered);
+    }
+  });
+  if (changed) writeRecord(LAST_ORIGINATION_RESULT_KEY, next);
+}
+
 export function addUserSuppliedEvidence(targetIdOrMatcher: WorkflowTargetMatcher, evidencePatch: Record<string, unknown>): WorkflowTarget[] {
   const current = getAllWorkflowTargets().find(target => targetMatches(target, targetIdOrMatcher));
   const existingEvidence = current?.user_supplied_evidence ?? asRecord(current?.raw?.user_supplied_evidence);
