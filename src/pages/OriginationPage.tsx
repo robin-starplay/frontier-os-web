@@ -1826,7 +1826,9 @@ function OriginationWorkspacePanel({
               {savedLeads.slice(0, 10).map(lead => (
                 <div key={candidateStorageKey(lead)} className="rounded-md border border-border bg-background/60 px-3 py-2">
                   <p className="text-xs font-semibold text-foreground">{lead.company_name || lead.source_page_title || 'Saved lead'}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 break-all">{lead.website || lead.source_url || 'Website not confirmed'}</p>
+                  <p className="mt-0.5 max-w-full truncate text-[11px] text-muted-foreground" title={lead.website || lead.source_url || 'Website not confirmed'}>
+                    {lead.website || lead.source_url || 'Website not confirmed'}
+                  </p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     <SemanticBadge tone={['company', 'company_candidate'].includes(lead.candidate_type || '') ? 'info' : 'unknown'} className="text-[10px] px-2 py-1">
                       {humanLabel(lead.candidate_type || 'company_candidate')}
@@ -1879,7 +1881,9 @@ function OriginationWorkspacePanel({
               {compareCandidates.slice(0, 8).map(candidate => (
                 <div key={candidateStorageKey(candidate)} className="rounded-md border border-border bg-background/60 px-3 py-2">
                   <p className="text-xs font-semibold text-foreground">{candidate.company_name}</p>
-                  <p className="text-[11px] text-muted-foreground break-all">{candidate.website || candidate.source_url || 'Website missing'}</p>
+                  <p className="max-w-full truncate text-[11px] text-muted-foreground" title={candidate.website || candidate.source_url || 'Website missing'}>
+                    {candidate.website || candidate.source_url || 'Website missing'}
+                  </p>
                   <button type="button" onClick={() => onRemoveCompare(candidate)} className="mt-1 text-[11px] font-medium text-muted-foreground hover:text-destructive">
                     Remove
                   </button>
@@ -1904,7 +1908,9 @@ function OriginationWorkspacePanel({
               {researchSources.slice(0, 8).map(source => (
                 <div key={candidateStorageKey(source)} className="rounded-md border border-border bg-background/60 px-3 py-2">
                   <p className="text-xs font-semibold text-foreground">{source.source_page_title || source.company_name}</p>
-                  <p className="text-[11px] text-muted-foreground break-all">{source.source_url}</p>
+                  <p className="max-w-full truncate text-[11px] text-muted-foreground" title={source.source_url}>
+                    {source.source_url}
+                  </p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {source.source_url && (
                       <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-primary hover:underline">

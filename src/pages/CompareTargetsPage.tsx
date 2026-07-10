@@ -940,7 +940,9 @@ function CompareTargetSelector({
               <div key={target.key} className="flex flex-col gap-2 rounded-md border border-border bg-background px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground">{target.companyName || 'Saved lead'}</p>
-                  <p className="text-[11px] text-muted-foreground break-all">{target.website || target.needsReason || 'Website required'}</p>
+                  <p className="max-w-full truncate text-[11px] text-muted-foreground" title={target.website || target.needsReason || 'Website required'}>
+                    {target.website || target.needsReason || 'Website required'}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
@@ -1069,7 +1071,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 	          <div className="px-5 py-4 space-y-3">
 	            <div className="flex items-start gap-2 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
 	              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-	              Manual quick compare completed. Screen one companys for evidence-backed ranking.
+	              Manual quick compare completed. Screen one company for evidence-backed ranking.
 	            </div>
 	            {lacksDifferentiation && (
 	              <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -1176,7 +1178,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
         ))}
       <div className="rounded-lg border border-border bg-card p-3 col-span-2 lg:col-span-1">
         <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Best next action</p>
-        <p className="text-xs text-foreground leading-snug">{result.best_next_action || 'Screen one companys before IC use.'}</p>
+        <p className="text-xs text-foreground leading-snug">{result.best_next_action || 'Screen one company before IC use.'}</p>
       </div>
 	    </div>
 	      )}
