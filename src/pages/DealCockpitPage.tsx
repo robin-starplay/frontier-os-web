@@ -6,11 +6,11 @@ import {
   GitCompare, Clock, ChevronRight, X,
   BookMarked, TrendingUp, AlertTriangle,
   Lock, ArrowRight,
-  ExternalLink, Filter, Trash2,
+  ExternalLink, Filter, Trash2, PencilLine, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EvidenceCard } from '@/components/EvidenceCard';
-import { getRuns, removeRun, type RunEntry } from '@/lib/runHistory';
+import { getRuns, removeRun, updateRunEntry, type RunEntry } from '@/lib/runHistory';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { getWorkspaceId } from '@/lib/trialAccount';
 import { getCockpitRuns, type CockpitRunRecord } from '@/lib/frontierApi';
@@ -20,7 +20,19 @@ import type { RecommendationLevel } from '@/data/mockData';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import { type StoredCompareCandidate } from '@/lib/compareSelection';
-import { COCKPIT_COMPARE_SELECTION_KEY, saveCompareCandidates } from '@/lib/workflowTargets';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { normalizeWebsiteUrl } from '@/lib/urlUtils';
+import {
+  addUserSuppliedEvidence,
+  COCKPIT_COMPARE_SELECTION_KEY,
+  saveCompareCandidates,
+  updateWorkflowTarget,
+  type WorkflowTargetMatcher,
+} from '@/lib/workflowTargets';
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -97,11 +109,48 @@ function displayText(value: string | undefined | null): string | null {
   return isDisplayText(value) ? value.trim() : null;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function textValue(value: unknown, fallback = ''): string {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text || fallback;
+}
+
 function sourceTypeLabel(type: RunEntry['type']): string {
   if (type === 'compare') return 'Compare';
   if (type === 'document') return 'Document-assisted';
   if (type === 'origination') return 'Origination signal';
   return 'Public-source screen';
+}
+
+function cockpitTargetMatcher(run: RunEntry): WorkflowTargetMatcher {
+  return {
+    id: run.id,
+    cockpit_target_id: run.id,
+    run_id: run.id,
+    company_name: run.company,
+    website: run.website,
+    jurisdiction: 'UK',
+  };
+}
+
+function cockpitUserEvidence(run: RunEntry): Record<string, unknown> {
+  return asRecord(asRecord(run.result).user_supplied_evidence);
+}
+
+function hasFinancialEvidence(run: RunEntry): boolean {
+  const evidence = cockpitUserEvidence(run);
+  if (Object.keys(asRecord(evidence.user_supplied_financials)).length > 0) return true;
+  const cards = run.result?.evidence_cards ?? [];
+  return cards.some(card => /revenue|arr|ebitda|gross margin|financial|turnover/i.test(`${card.field} ${card.value} ${card.summary}`));
+}
+
+function looksLikeSourcePageUrl(value: string): boolean {
+  return /\/(blog|news|press|article|articles|insights|resources|top-|best-|list|lists|companies|startups)\b/i.test(value)
+    || /\b(blog|news|article|directory|listicle)\b/i.test(value);
 }
 
 function companyDedupeKey(company: string): string {
@@ -220,8 +269,43 @@ function writeCockpitCompareSelection(candidates: StoredCompareCandidate[]): voi
 // ─── Screen Detail Panel (real run entries) ──────────────────────────────────────
 
 type CockpitTab = 'summary' | 'evidence' | 'ai-risk' | 'diligence' | 'decisions' | 'exports';
+type CockpitEditMode = 'target' | 'website' | 'financials' | 'clients' | 'team' | 'product_ai' | 'note';
 
-function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }) {
+function ContextActionRow({
+  actions,
+  onAction,
+}: {
+  actions: { label: string; mode: CockpitEditMode }[];
+  onAction: (mode: CockpitEditMode) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {actions.map(action => (
+        <button
+          key={`${action.mode}-${action.label}`}
+          type="button"
+          onClick={() => onAction(action.mode)}
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {action.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function RunDetailPanel({
+  run,
+  onClose,
+  onEdit,
+  onAddEvidence,
+}: {
+  run: RunEntry;
+  onClose: () => void;
+  onEdit: (run: RunEntry, mode: CockpitEditMode) => void;
+  onAddEvidence: (run: RunEntry, mode: CockpitEditMode) => void;
+}) {
   const level = safeLevel(run.recommendation_level);
   const [activeTab, setActiveTab] = useState<CockpitTab>('summary');
 
@@ -247,6 +331,14 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {chip(level, run.recommendation)}
             </div>
+            <button
+              type="button"
+              onClick={() => onEdit(run, 'target')}
+              className="mt-3 inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              <PencilLine className="h-3.5 w-3.5" />
+              Edit target
+            </button>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5"><X className="w-4 h-4" /></button>
         </div>
@@ -274,6 +366,14 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
           {/* ── Summary ── */}
           {activeTab === 'summary' && (
             <div className="px-5 py-4 space-y-5">
+              <ContextActionRow
+                actions={[
+                  { label: run.website ? 'Edit website' : 'Add website', mode: 'website' },
+                  { label: hasFinancialEvidence(run) ? 'Edit financials' : 'Add financials', mode: 'financials' },
+                  { label: 'Add note', mode: 'note' },
+                ]}
+                onAction={mode => onAddEvidence(run, mode)}
+              />
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: 'IC readiness',        value: displayText(run.ic_readiness) },
@@ -320,6 +420,15 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
           {/* ── Evidence ── */}
           {activeTab === 'evidence' && (
             <div className="px-5 py-4 space-y-4">
+              <ContextActionRow
+                actions={[
+                  { label: 'Add financials', mode: 'financials' },
+                  { label: 'Add clients', mode: 'clients' },
+                  { label: 'Add team size', mode: 'team' },
+                  { label: 'Add product/AI evidence', mode: 'product_ai' },
+                ]}
+                onAction={mode => onAddEvidence(run, mode)}
+              />
               {run.result?.evidence_cards && run.result.evidence_cards.length > 0 ? (
                 <>
                   {/* Three-gate model: safeEvidenceStatus(status, source, confidence) */}
@@ -422,6 +531,15 @@ function RunDetailPanel({ run, onClose }: { run: RunEntry; onClose: () => void }
           {/* ── Diligence ── */}
           {activeTab === 'diligence' && (
             <div className="px-5 py-4 space-y-4">
+              <ContextActionRow
+                actions={[
+                  { label: 'Add clients', mode: 'clients' },
+                  { label: 'Add financials', mode: 'financials' },
+                  { label: 'Add product/AI evidence', mode: 'product_ai' },
+                  { label: 'Add note', mode: 'note' },
+                ]}
+                onAction={mode => onAddEvidence(run, mode)}
+              />
               {run.blockers.length > 0 ? (
                 <div>
                   <div className="flex items-center gap-1.5 mb-3">
@@ -651,6 +769,408 @@ function cockpitNextAction(run: RunEntry): string {
   return `${run.company}: review evidence gaps before IC use.`;
 }
 
+const editModeTitle: Record<CockpitEditMode, string> = {
+  target: 'Edit target',
+  website: 'Add website',
+  financials: 'Add financials',
+  clients: 'Add clients',
+  team: 'Add team size',
+  product_ai: 'Add product / AI evidence',
+  note: 'Add note',
+};
+
+function CockpitEditSheet({
+  run,
+  mode,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  run: RunEntry | null;
+  mode: CockpitEditMode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (run: RunEntry, message: string) => void;
+}) {
+  const [company, setCompany] = useState('');
+  const [website, setWebsite] = useState('');
+  const [jurisdiction, setJurisdiction] = useState('UK');
+  const [sector, setSector] = useState('');
+  const [sourceLabel, setSourceLabel] = useState('');
+  const [notes, setNotes] = useState('');
+  const [sourceNote, setSourceNote] = useState('');
+  const [allowSourceOverride, setAllowSourceOverride] = useState(false);
+  const [error, setError] = useState('');
+
+  const [revenue, setRevenue] = useState('');
+  const [arr, setArr] = useState('');
+  const [ebitda, setEbitda] = useState('');
+  const [grossMargin, setGrossMargin] = useState('');
+  const [period, setPeriod] = useState('');
+  const [currency, setCurrency] = useState('GBP');
+  const [financialSourceType, setFinancialSourceType] = useState('Management accounts');
+  const [financialReference, setFinancialReference] = useState('');
+  const [financialNote, setFinancialNote] = useState('');
+
+  const [clientNames, setClientNames] = useState('');
+  const [customerConcentration, setCustomerConcentration] = useState('');
+  const [retentionChurn, setRetentionChurn] = useState('');
+  const [clientSource, setClientSource] = useState('');
+
+  const [teamSize, setTeamSize] = useState('');
+  const [teamSourceType, setTeamSourceType] = useState('LinkedIn');
+  const [teamSource, setTeamSource] = useState('');
+
+  const [productSummary, setProductSummary] = useState('');
+  const [aiFeatures, setAiFeatures] = useState('');
+  const [defensibilityNotes, setDefensibilityNotes] = useState('');
+  const [productSource, setProductSource] = useState('');
+
+  useEffect(() => {
+    if (!run || !open) return;
+    const resultRecord = asRecord(run.result);
+    const evidence = asRecord(resultRecord.user_supplied_evidence);
+    const targetEdits = asRecord(evidence.target_edits);
+    const financials = asRecord(evidence.user_supplied_financials);
+    const clients = asRecord(evidence.user_supplied_clients);
+    const team = asRecord(evidence.team_size_signal);
+    const product = asRecord(evidence.product_signal);
+    const ai = asRecord(evidence.ai_signal);
+    const note = asRecord(evidence.note);
+
+    setCompany(textValue(targetEdits.company_name, run.company));
+    setWebsite(textValue(targetEdits.website, run.website));
+    setJurisdiction(textValue(targetEdits.jurisdiction, 'UK'));
+    setSector(textValue(targetEdits.sector, run.strategic_fit_label));
+    setSourceLabel(textValue(targetEdits.source_label, sourceTypeLabel(run.type)));
+    setNotes(textValue(targetEdits.notes ?? note.note, ''));
+    setSourceNote('');
+    setAllowSourceOverride(false);
+    setError('');
+
+    setRevenue(textValue(financials.revenue, ''));
+    setArr(textValue(financials.arr, ''));
+    setEbitda(textValue(financials.ebitda, ''));
+    setGrossMargin(textValue(financials.gross_margin, ''));
+    setPeriod(textValue(financials.period, ''));
+    setCurrency(textValue(financials.currency, 'GBP'));
+    setFinancialSourceType(textValue(financials.source_type, 'Management accounts'));
+    setFinancialReference(textValue(financials.source_reference, ''));
+    setFinancialNote(textValue(financials.note, ''));
+
+    setClientNames(textValue(clients.client_names, ''));
+    setCustomerConcentration(textValue(clients.customer_concentration_note, ''));
+    setRetentionChurn(textValue(clients.retention_churn_note, ''));
+    setClientSource(textValue(clients.source_note, ''));
+
+    setTeamSize(textValue(team.team_size, ''));
+    setTeamSourceType(textValue(team.source_type, 'LinkedIn'));
+    setTeamSource(textValue(team.source_note, ''));
+
+    setProductSummary(textValue(product.product_summary, ''));
+    setAiFeatures(textValue(ai.ai_features, ''));
+    setDefensibilityNotes(textValue(product.defensibility_notes, ''));
+    setProductSource(textValue(product.source_note ?? ai.source_note, ''));
+  }, [run, open]);
+
+  if (!run) return null;
+
+  const sourcePageWarning = website.trim() && looksLikeSourcePageUrl(website);
+
+  const patchRun = (patch: Partial<RunEntry>, evidencePatch?: Record<string, unknown>, message = 'Target updated') => {
+    const currentEvidence = cockpitUserEvidence(run);
+    const nextResult = {
+      ...asRecord(run.result),
+      user_supplied_evidence: {
+        ...currentEvidence,
+        ...(evidencePatch ?? {}),
+        updated_at: new Date().toISOString(),
+      },
+    } as RunEntry['result'];
+    const nextRun: RunEntry = {
+      ...run,
+      ...patch,
+      result: nextResult,
+    };
+    updateRunEntry(run.id, patch.result === null ? patch : { ...patch, result: nextResult });
+    onSaved(nextRun, message);
+  };
+
+  const saveTarget = () => {
+    const normalizedWebsite = normalizeWebsiteUrl(website);
+    if ((mode === 'website' || normalizedWebsite) && normalizedWebsite && !/^https?:\/\/[^.\s]+\.[^\s]+/i.test(normalizedWebsite)) {
+      setError('Enter a valid company website URL.');
+      return;
+    }
+    if (sourcePageWarning && !allowSourceOverride) {
+      setError('Confirm this is the official company website before saving.');
+      return;
+    }
+    const patch = {
+      company_name: company,
+      website: normalizedWebsite,
+      jurisdiction,
+      sector,
+      source_label: sourceLabel,
+      notes,
+      website_status: normalizedWebsite ? 'user_confirmed' : 'missing',
+      run_ready: Boolean(normalizedWebsite),
+      candidate_quality: normalizedWebsite ? 'ready_to_screen' : 'needs_website_confirmation',
+      next_action: normalizedWebsite ? 'Screen company' : 'Add website',
+      workflow_state: {
+        recommended_next_step: normalizedWebsite ? 'run_screen' : 'request_evidence',
+        compare_readiness: normalizedWebsite ? 'ready' : 'missing_website',
+      },
+    };
+    updateWorkflowTarget(cockpitTargetMatcher(run), patch);
+    patchRun(
+      {
+        company,
+        website: normalizedWebsite,
+        strategic_fit_label: sector,
+        next_action: normalizedWebsite ? 'Screen company' : run.next_action,
+      },
+      {
+        target_edits: {
+          company_name: company,
+          website: normalizedWebsite,
+          jurisdiction,
+          sector,
+          source_label: sourceLabel,
+          notes,
+          source_note: sourceNote,
+          evidence_status: normalizedWebsite ? 'user_supplied_claim' : 'unknown',
+        },
+      },
+      normalizedWebsite ? 'Website saved — ready to screen' : 'Target updated',
+    );
+    onOpenChange(false);
+  };
+
+  const saveEvidence = () => {
+    let evidencePatch: Record<string, unknown> = {};
+    if (mode === 'financials') {
+      evidencePatch = {
+        user_supplied_financials: {
+          revenue,
+          arr,
+          ebitda,
+          gross_margin: grossMargin,
+          period,
+          currency,
+          source_type: financialSourceType,
+          source_reference: financialReference,
+          note: financialNote,
+          evidence_status: financialReference ? 'source_backed_unverified' : 'user_supplied_claim',
+        },
+        evidence_confidence: 'User-supplied claim',
+      };
+    } else if (mode === 'clients') {
+      evidencePatch = {
+        user_supplied_clients: {
+          client_names: clientNames,
+          customer_concentration_note: customerConcentration,
+          retention_churn_note: retentionChurn,
+          source_note: clientSource,
+          evidence_status: clientSource ? 'source_backed_unverified' : 'user_supplied_claim',
+        },
+      };
+    } else if (mode === 'team') {
+      evidencePatch = {
+        team_size_signal: {
+          team_size: teamSize,
+          source_type: teamSourceType,
+          source_note: teamSource,
+          evidence_status: teamSource ? 'source_backed_unverified' : 'user_supplied_claim',
+        },
+      };
+    } else if (mode === 'product_ai') {
+      evidencePatch = {
+        product_signal: {
+          product_summary: productSummary,
+          defensibility_notes: defensibilityNotes,
+          source_note: productSource,
+          evidence_status: productSource ? 'source_backed_unverified' : 'user_supplied_claim',
+        },
+        ai_signal: {
+          ai_features: aiFeatures,
+          source_note: productSource,
+          evidence_status: productSource ? 'source_backed_unverified' : 'user_supplied_claim',
+        },
+      };
+    } else if (mode === 'note') {
+      evidencePatch = {
+        note: {
+          note: notes,
+          source_note: sourceNote,
+          evidence_status: 'user_supplied_claim',
+        },
+      };
+    }
+
+    addUserSuppliedEvidence(cockpitTargetMatcher(run), evidencePatch);
+    patchRun({}, evidencePatch, 'Target updated');
+    onOpenChange(false);
+  };
+
+  const save = mode === 'target' || mode === 'website' ? saveTarget : saveEvidence;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>{mode === 'website' ? 'Confirm official website' : editModeTitle[mode]}</SheetTitle>
+          <SheetDescription>
+            Edits are saved locally and treated as user-supplied claims unless independently verified by a later screen.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-5">
+          {(mode === 'target' || mode === 'website') && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="cockpit-company">Company name</Label>
+                <Input id="cockpit-company" value={company} onChange={event => setCompany(event.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cockpit-website">Website URL</Label>
+                <Input
+                  id="cockpit-website"
+                  value={website}
+                  onChange={event => { setWebsite(event.target.value); setError(''); }}
+                  onBlur={() => website.trim() && setWebsite(normalizeWebsiteUrl(website))}
+                  placeholder="https://company.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cockpit-jurisdiction">Jurisdiction</Label>
+                <Input id="cockpit-jurisdiction" value={jurisdiction} onChange={event => setJurisdiction(event.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cockpit-sector">Sector / vertical</Label>
+                <Input id="cockpit-sector" value={sector} onChange={event => setSector(event.target.value)} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="cockpit-source-label">Source label</Label>
+                <Input id="cockpit-source-label" value={sourceLabel} onChange={event => setSourceLabel(event.target.value)} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="cockpit-notes">Notes</Label>
+                <Textarea id="cockpit-notes" value={notes} onChange={event => setNotes(event.target.value)} rows={3} />
+              </div>
+              {mode === 'website' && (
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="cockpit-source-note">Source note</Label>
+                  <Input id="cockpit-source-note" value={sourceNote} onChange={event => setSourceNote(event.target.value)} placeholder="Where did the website confirmation come from?" />
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode === 'financials' && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <InputGroup id="financial-revenue" label="Revenue" value={revenue} onChange={setRevenue} />
+              <InputGroup id="financial-arr" label="ARR" value={arr} onChange={setArr} />
+              <InputGroup id="financial-ebitda" label="EBITDA" value={ebitda} onChange={setEbitda} />
+              <InputGroup id="financial-margin" label="Gross margin" value={grossMargin} onChange={setGrossMargin} />
+              <InputGroup id="financial-period" label="Period / year" value={period} onChange={setPeriod} />
+              <InputGroup id="financial-currency" label="Currency" value={currency} onChange={setCurrency} />
+              <InputGroup id="financial-source-type" label="Source type" value={financialSourceType} onChange={setFinancialSourceType} placeholder="Management accounts, public filing, data room, user estimate, other" className="sm:col-span-2" />
+              <InputGroup id="financial-reference" label="Source URL / document reference" value={financialReference} onChange={setFinancialReference} className="sm:col-span-2" />
+              <TextAreaGroup id="financial-note" label="Note" value={financialNote} onChange={setFinancialNote} className="sm:col-span-2" />
+            </div>
+          )}
+
+          {mode === 'clients' && (
+            <div className="space-y-4">
+              <TextAreaGroup id="client-names" label="Client names" value={clientNames} onChange={setClientNames} />
+              <TextAreaGroup id="client-concentration" label="Customer concentration note" value={customerConcentration} onChange={setCustomerConcentration} />
+              <TextAreaGroup id="client-retention" label="Retention / churn note" value={retentionChurn} onChange={setRetentionChurn} />
+              <InputGroup id="client-source" label="Source URL / note" value={clientSource} onChange={setClientSource} />
+            </div>
+          )}
+
+          {mode === 'team' && (
+            <div className="space-y-4">
+              <InputGroup id="team-size" label="Team size / range" value={teamSize} onChange={setTeamSize} />
+              <InputGroup id="team-source-type" label="Source type" value={teamSourceType} onChange={setTeamSourceType} placeholder="LinkedIn, company website, user estimate, other" />
+              <InputGroup id="team-source" label="Source URL / note" value={teamSource} onChange={setTeamSource} />
+            </div>
+          )}
+
+          {mode === 'product_ai' && (
+            <div className="space-y-4">
+              <TextAreaGroup id="product-summary" label="Product summary" value={productSummary} onChange={setProductSummary} />
+              <TextAreaGroup id="ai-features" label="AI features / AI usage" value={aiFeatures} onChange={setAiFeatures} />
+              <TextAreaGroup id="defensibility" label="Defensibility notes" value={defensibilityNotes} onChange={setDefensibilityNotes} />
+              <InputGroup id="product-source" label="Source URL / note" value={productSource} onChange={setProductSource} />
+            </div>
+          )}
+
+          {mode === 'note' && (
+            <div className="space-y-4">
+              <TextAreaGroup id="cockpit-note" label="Note" value={notes} onChange={setNotes} />
+              <InputGroup id="cockpit-note-source" label="Source note" value={sourceNote} onChange={setSourceNote} />
+            </div>
+          )}
+
+          {sourcePageWarning && (
+            <div className="rounded-lg border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-4 py-3">
+              <p className="text-xs font-semibold text-[var(--semantic-claim-text)]">This looks like a source page, not an official company website.</p>
+              <label className="mt-2 flex items-start gap-2 text-xs text-[var(--semantic-claim-text)]">
+                <input type="checkbox" checked={allowSourceOverride} onChange={event => setAllowSourceOverride(event.currentTarget.checked)} className="mt-0.5" />
+                <span>I confirm this is the official company website or a company product page.</span>
+              </label>
+            </div>
+          )}
+
+          {error && (
+            <p className="rounded-md border border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)] px-3 py-2 text-xs font-medium text-[var(--semantic-blocker-text)]">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <SheetFooter className="mt-6">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="button" onClick={save}>{mode === 'website' ? 'Save website' : 'Save changes'}</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function InputGroup({ id, label, value, onChange, placeholder = '', className = '' }: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn('space-y-2', className)}>
+      <Label htmlFor={id}>{label}</Label>
+      <Input id={id} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} />
+    </div>
+  );
+}
+
+function TextAreaGroup({ id, label, value, onChange, className = '' }: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn('space-y-2', className)}>
+      <Label htmlFor={id}>{label}</Label>
+      <Textarea id={id} value={value} onChange={event => onChange(event.target.value)} rows={3} />
+    </div>
+  );
+}
+
 function SavedRunCard({
   run,
   active,
@@ -658,6 +1178,8 @@ function SavedRunCard({
   selected = false,
   selectionDisabledReason = '',
   onToggleCompare,
+  onEdit,
+  onAddEvidence,
   onRemove,
   compact = false,
 }: {
@@ -667,6 +1189,8 @@ function SavedRunCard({
   selected?: boolean;
   selectionDisabledReason?: string;
   onToggleCompare?: () => void;
+  onEdit?: (mode: CockpitEditMode) => void;
+  onAddEvidence?: (mode: CockpitEditMode) => void;
   onRemove?: () => void;
   compact?: boolean;
 }) {
@@ -675,6 +1199,8 @@ function SavedRunCard({
   const confidence = displayText(run.evidence_confidence);
   const nextAction = cockpitNextAction(run);
   const canSelectForCompare = Boolean(onToggleCompare) && !selectionDisabledReason;
+  const missingWebsite = !displayText(run.website);
+  const missingFinancials = !hasFinancialEvidence(run);
 
   return (
     <div
@@ -709,6 +1235,9 @@ function SavedRunCard({
                 <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                   <Clock className="w-3 h-3" /> {formatTs(run.timestamp)}
                 </span>
+                <SemanticBadge tone={displayText(run.website) ? 'green' : 'amber'}>
+                  {displayText(run.website) ? 'Ready to screen' : 'Website required'}
+                </SemanticBadge>
                 {!compact && (
                   <SemanticBadge tone={canSelectForCompare ? 'green' : 'grey'}>
                     {canSelectForCompare ? 'Screened' : selectionDisabledReason || 'Not compare-ready'}
@@ -777,6 +1306,24 @@ function SavedRunCard({
 
         {!compact && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
+            {missingWebsite && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit('website')}
+                className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Add website
+              </button>
+            )}
+            {!missingWebsite && missingFinancials && onAddEvidence && (
+              <button
+                type="button"
+                onClick={() => onAddEvidence('financials')}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-accent transition-colors"
+              >
+                Add financials
+              </button>
+            )}
             <button
               type="button"
               onClick={onSelect}
@@ -784,6 +1331,24 @@ function SavedRunCard({
             >
               View
             </button>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit('target')}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+              >
+                Edit
+              </button>
+            )}
+            {onAddEvidence && (
+              <button
+                type="button"
+                onClick={() => onAddEvidence('note')}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+              >
+                Add evidence
+              </button>
+            )}
             <Link
               href={runScreenHref(run)}
               className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
@@ -820,6 +1385,9 @@ export default function DealCockpitPage() {
   const [runs, setRuns] = useState<RunEntry[]>(() => getRuns());
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [selectedCompareIds, setSelectedCompareIds] = useState<Set<string>>(() => readCockpitCompareSelectionIds());
+  const [editRun, setEditRun] = useState<RunEntry | null>(null);
+  const [editMode, setEditMode] = useState<CockpitEditMode>('target');
+  const [statusMessage, setStatusMessage] = useState('');
 
   // ── Backend run loading ──
   // When workspace_id is available, merge backend runs with localStorage runs.
@@ -906,6 +1474,18 @@ export default function DealCockpitPage() {
     setActiveRunId(prev => prev === runId ? null : prev);
   }
 
+  function openEditSheet(run: RunEntry, mode: CockpitEditMode): void {
+    setEditRun(run);
+    setEditMode(mode);
+    setStatusMessage('');
+  }
+
+  function handleEditSaved(updatedRun: RunEntry, message: string): void {
+    setRuns(prev => prev.map(run => run.id === updatedRun.id ? updatedRun : run));
+    setStatusMessage(message);
+    window.setTimeout(() => setStatusMessage(''), 3200);
+  }
+
   // ── Summary stats from real runs ──
   const stats = {
     total: runs.length,
@@ -978,6 +1558,12 @@ export default function DealCockpitPage() {
           </button>
         </div>
       </div>
+
+      {statusMessage && (
+        <div className="mb-6 rounded-lg border border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)] px-4 py-3 text-sm font-medium text-[var(--semantic-verified-text)]">
+          {statusMessage}
+        </div>
+      )}
 
       {/* ── Account state banner (no workspace) ── */}
       {isLoaded && !isSignedIn && (
@@ -1112,6 +1698,8 @@ export default function DealCockpitPage() {
                             : compareDisabledReason(run)
                       }
                       onToggleCompare={() => toggleCompareSelection(run)}
+                      onEdit={mode => openEditSheet(run, mode)}
+                      onAddEvidence={mode => openEditSheet(run, mode)}
                       onRemove={() => handleRemoveRun(run.id)}
                     />
                   ))
@@ -1133,6 +1721,8 @@ export default function DealCockpitPage() {
                         run={run}
                         active={activeRunId === run.id}
                         onSelect={() => setActiveRunId(prev => prev === run.id ? null : run.id)}
+                        onEdit={mode => openEditSheet(run, mode)}
+                        onAddEvidence={mode => openEditSheet(run, mode)}
                         onRemove={() => handleRemoveRun(run.id)}
                         compact
                       />
@@ -1157,11 +1747,21 @@ export default function DealCockpitPage() {
               <>
                 {/* Mobile overlay */}
                 {typeof window !== 'undefined' && !window.matchMedia('(min-width: 1024px)').matches && (
-                  <RunDetailPanel run={activeRun} onClose={() => setActiveRunId(null)} />
+                  <RunDetailPanel
+                    run={activeRun}
+                    onClose={() => setActiveRunId(null)}
+                    onEdit={openEditSheet}
+                    onAddEvidence={openEditSheet}
+                  />
                 )}
                 {/* Desktop inline */}
                 <div className="hidden lg:flex flex-col w-96 shrink-0">
-                  <RunDetailPanel run={activeRun} onClose={() => setActiveRunId(null)} />
+                  <RunDetailPanel
+                    run={activeRun}
+                    onClose={() => setActiveRunId(null)}
+                    onEdit={openEditSheet}
+                    onAddEvidence={openEditSheet}
+                  />
                 </div>
               </>
             )}
@@ -1233,6 +1833,13 @@ export default function DealCockpitPage() {
         secondaryLabel=""
         secondaryHref=""
         eventName="deal_cockpit_bottom"
+      />
+      <CockpitEditSheet
+        run={editRun}
+        mode={editMode}
+        open={Boolean(editRun)}
+        onOpenChange={open => { if (!open) setEditRun(null); }}
+        onSaved={handleEditSaved}
       />
     </div>
   );

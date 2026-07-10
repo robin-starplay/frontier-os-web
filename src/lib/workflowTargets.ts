@@ -243,7 +243,9 @@ function patchTarget(raw: unknown, patch: WorkflowTargetPatch): Record<string, u
   const merged = mergeRecords(base, patch);
   if (patch.website || patch.company_url) {
     merged.website = normalizeWebsiteUrl(textValue(patch.website ?? patch.company_url, ''));
-    merged.website_status = merged.website ? 'known' : textValue(merged.website_status, 'missing');
+    merged.website_status = merged.website
+      ? textValue(patch.website_status ?? merged.website_status, 'known')
+      : textValue(merged.website_status, 'missing');
     merged.run_ready = Boolean(merged.website);
   }
   return merged;

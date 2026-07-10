@@ -428,3 +428,18 @@ export function removeRun(runId: string): RunEntry[] {
   }
   return updated;
 }
+
+export function updateRunEntry(runId: string, patch: Partial<RunEntry>): RunEntry[] {
+  const updated = getRuns().map((entry) => (
+    entry.id === runId
+      ? {
+          ...entry,
+          ...patch,
+          result: patch.result === undefined ? entry.result : patch.result,
+          blockers: patch.blockers === undefined ? entry.blockers : patch.blockers,
+        }
+      : entry
+  ));
+  persistRuns(updated);
+  return updated;
+}
