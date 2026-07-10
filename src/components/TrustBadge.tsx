@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { semanticBadgeClass } from './SemanticBadge';
+import { semanticBadgeClass, type SemanticBadgeTone } from './SemanticBadge';
 
 interface TrustBadgeProps {
   label: string;
@@ -9,17 +9,17 @@ interface TrustBadgeProps {
   className?: string;
 }
 
-const variantStyles: Record<string, string> = {
-  default: semanticBadgeClass('info'),
-  success: semanticBadgeClass('verified'),
-  warning: semanticBadgeClass('partial'),
-  muted: semanticBadgeClass('unknown'),
+const variantTone: Record<string, SemanticBadgeTone> = {
+  default: 'info',
+  success: 'positive',
+  warning: 'warning',
+  muted: 'neutral',
 };
 
 export function TrustBadge({ label, value, variant = 'default', className }: TrustBadgeProps) {
   return (
     <div className={cn(
-      variantStyles[variant],
+      semanticBadgeClass(variantTone[variant], undefined, value || label),
       className
     )}>
       <span className="opacity-70">{label}</span>

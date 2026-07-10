@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { semanticBadgeClass } from '@/components/SemanticBadge';
+import { semanticBadgeClass, type SemanticBadgeTone } from '@/components/SemanticBadge';
 
 export type StatusVariant = "verified" | "caveat" | "candidate" | "diligence" | "blocking" | "pending" | "running" | "completed" | "warning";
 
@@ -11,17 +11,17 @@ interface StatusChipProps {
 }
 
 export function StatusChip({ status, variant, className }: StatusChipProps) {
-  const tone = (
-    variant === 'verified' || variant === 'completed' ? 'verified' :
-    variant === 'caveat' || variant === 'diligence' || variant === 'warning' ? 'partial' :
+  const tone: SemanticBadgeTone = (
+    variant === 'verified' || variant === 'completed' ? 'positive' :
+    variant === 'caveat' || variant === 'diligence' || variant === 'warning' ? 'warning' :
     variant === 'candidate' || variant === 'running' ? 'info' :
-    variant === 'blocking' ? 'blocker' :
+    variant === 'blocking' ? 'danger' :
     'unknown'
   );
   return (
     <span
       className={cn(
-        semanticBadgeClass(tone),
+        semanticBadgeClass(tone, undefined, status),
         variant === 'running' && 'animate-pulse',
         className
       )}

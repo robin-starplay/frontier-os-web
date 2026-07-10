@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import { StatusChip, StatusVariant } from './StatusChip';
+import { statusVariantForLabel } from '@/lib/statusStyles';
 
 interface EvidenceCardProps {
   field: string;
@@ -43,21 +44,20 @@ export function EvidenceCard({ field, value, source, confidence, status, classNa
   }
   // ── End defensive rendering ─────────────────────────────────────────────────
 
-  const statusColors: Record<StatusVariant, string> = {
-    verified:  "bg-green-500",
-    caveat:    "bg-amber-500",
-    candidate: "bg-blue-500",
-    diligence: "bg-amber-500",
-    blocking:  "bg-red-500",
-    pending:   "bg-muted",
-    running:   "bg-blue-500",
-    completed: "bg-green-500",
-    warning:   "bg-amber-500",
+  const accentByStatus = {
+    positive: "bg-green-500",
+    warning:  "bg-amber-500",
+    danger:   "bg-red-500",
+    info:     "bg-blue-500",
+    neutral:  "bg-slate-300",
+    unknown:  "bg-slate-300",
+    category: "bg-slate-300",
   };
+  const accent = accentByStatus[statusVariantForLabel(displayLabel, effectiveStatus === 'verified' || effectiveStatus === 'completed' ? 'positive' : effectiveStatus === 'blocking' ? 'danger' : effectiveStatus === 'caveat' || effectiveStatus === 'diligence' || effectiveStatus === 'warning' ? 'warning' : effectiveStatus === 'pending' ? 'unknown' : 'info')];
 
   return (
     <div className={cn("relative flex items-center overflow-hidden rounded-md border border-border bg-card/80 p-4 shadow-sm", className)}>
-      <div className={cn("absolute bottom-0 left-0 top-0 w-1", statusColors[effectiveStatus])} />
+      <div className={cn("absolute bottom-0 left-0 top-0 w-1", accent)} />
       <div className="ml-2 flex-1 space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{field}</p>
         <p className="text-lg font-semibold text-foreground">{value}</p>

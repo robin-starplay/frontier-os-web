@@ -40,7 +40,7 @@ import {
 } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
-import { SemanticBadge } from '@/components/SemanticBadge';
+import { SemanticBadge, semanticBadgeClass } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import {
   getCockpitTargets,
@@ -151,14 +151,14 @@ function levelClass(level: Level | string) {
 }
 
 function evidenceChipClass(status: EvidenceStatus) {
-  const map: Record<EvidenceStatus, string> = {
-    verified: 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-    caveat:   'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-    claim:    'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
-    blocking: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]',
-    unknown:  'bg-[var(--semantic-unknown-bg)] text-[var(--semantic-unknown-text)] border-[var(--semantic-unknown-border)]',
+  const label: Record<EvidenceStatus, string> = {
+    verified: 'Verified public source',
+    caveat:   'Company claim',
+    claim:    'Company claim',
+    blocking: 'Blocker',
+    unknown:  'Not independently verified',
   };
-  return map[status] ?? map.unknown;
+  return semanticBadgeClass(undefined, '', label[status]);
 }
 
 /** Evidence status chip with defensive rendering (three-gate model).
@@ -366,15 +366,8 @@ function PackSection({
 }
 
 function StatusPill({ label, className }: { label: string; className?: string }) {
-  const normalised = label.toLowerCase();
-  const status: EvidenceStatus =
-    normalised.includes('verified') || normalised.includes('source-backed') ? 'verified' :
-    normalised.includes('blocking') ? 'blocking' :
-    normalised.includes('unknown') || normalised.includes('not source-backed') ? 'unknown' :
-    normalised.includes('signal') ? 'caveat' :
-    'claim';
   return (
-    <span className={cn('inline-flex shrink-0 items-center justify-center rounded-full border px-[9px] py-[5px] text-xs font-semibold leading-none', evidenceChipClass(status), className)}>
+    <span className={semanticBadgeClass(undefined, className, label)}>
       {label}
     </span>
   );
