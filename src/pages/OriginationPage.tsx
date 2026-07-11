@@ -33,9 +33,12 @@ import {
 // ─── Origination API call ─────────────────────────────────────────────────────
 
 interface OriginationRequest {
+  origination_mode?: 'candidate_discovery' | 'thesis_research' | 'target_universe_ranking';
   buyer_thesis: string;
   sector: string;
+  sector_or_vertical?: string;
   geography: string;
+  optional_keywords?: string;
   size_criteria: string;
   strategic_rationale: string;
   targets?: KnownTarget[];
@@ -54,12 +57,21 @@ interface OriginationRequestDiagnostics {
 const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
 const ORIGINATION_RUNS_KEY = 'frontier_origination_runs';
 
-type OriginationMode = 'rank_known_targets' | 'research_thesis';
+const FIND_COMPANY_EXAMPLES = [
+  { label: 'Software utility / UK', sector: 'Software utility', geo: 'UK', optionalKeywords: '' },
+  { label: 'Energy billing software / UK', sector: 'Energy billing software', geo: 'UK', optionalKeywords: '' },
+  { label: 'Public safety software / UK', sector: 'Public safety software', geo: 'UK', optionalKeywords: '' },
+  { label: 'Healthcare workflow software / UK', sector: 'Healthcare workflow software', geo: 'UK', optionalKeywords: '' },
+  { label: 'Field service software / UK', sector: 'Field service software', geo: 'UK', optionalKeywords: '' },
+];
+
+type OriginationMode = 'candidate_discovery' | 'research_thesis';
 
 interface OriginationFormValues {
   mode: OriginationMode;
   sector: string;
   geo: string;
+  optionalKeywords: string;
   sizeCriteria: string;
   rationale: string;
   buyerThesis: string;
@@ -118,7 +130,7 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
   const runUrl = base ? `${base}/api/origination/run` : '/api/origination/run';
   const controller = new AbortController();
   const startedAt = Date.now();
-  let endpoint = req.targets && req.targets.length > 0 ? runUrl : thesisUrl;
+  let endpoint = req.origination_mode ? runUrl : req.targets && req.targets.length > 0 ? runUrl : thesisUrl;
   let timeout: number | undefined;
   const requestInit: RequestInit = {
     method:  'POST',
@@ -451,9 +463,10 @@ function storageAvailable(): boolean {
 
 function readStoredOriginationForm(): OriginationFormValues {
   const empty: OriginationFormValues = {
-    mode: 'rank_known_targets',
+    mode: 'candidate_discovery',
     sector: '',
     geo: '',
+    optionalKeywords: '',
     sizeCriteria: '',
     rationale: '',
     buyerThesis: '',
@@ -463,9 +476,10 @@ function readStoredOriginationForm(): OriginationFormValues {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(LAST_ORIGINATION_FORM_KEY) || '{}') as Partial<OriginationFormValues>;
     return {
-      mode: parsed.mode === 'research_thesis' ? 'research_thesis' : 'rank_known_targets',
+      mode: parsed.mode === 'research_thesis' ? 'research_thesis' : 'candidate_discovery',
       sector: safeStr(parsed.sector),
       geo: safeStr(parsed.geo),
+      optionalKeywords: safeStr(parsed.optionalKeywords),
       sizeCriteria: safeStr(parsed.sizeCriteria),
       rationale: safeStr(parsed.rationale),
       buyerThesis: safeStr(parsed.buyerThesis),
@@ -1424,7 +1438,7 @@ function OriginationResultView({
         <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <p className="text-[10px] font-semibold tracking-normal text-primary">
-              {hasConfirmedCandidates ? 'Candidate summary' : 'Research summary'}
+              Candidate summary
             </p>
             {safeStr(candidateSummary.discovery_quality) && (
               <SemanticBadge tone={safeStr(candidateSummary.discovery_quality) === 'low' ? 'partial' : safeStr(candidateSummary.discovery_quality) === 'high' ? 'verified' : 'info'}>
@@ -1477,6 +1491,13 @@ function OriginationResultView({
             Frontier OS found company-like leads in research sources, but no official company websites were confirmed.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Try narrower vertical
+            </button>
             <a
               href="#origination-possible-leads"
               className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
@@ -1508,6 +1529,13 @@ function OriginationResultView({
             Frontier OS found research sources, but no official company websites were confirmed.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-border bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-foreground"
+            >
+              Try narrower vertical
+            </button>
             <button
               type="button"
               onClick={onPasteKnownTargets}
@@ -1556,7 +1584,7 @@ function OriginationResultView({
           description: 'Articles, directories and search results used to find potential company mentions.',
         },
       )}
-      {renderCandidateGroup(
+      {showDiagnostics && renderCandidateGroup(
         'Rejected extractions',
         rejectedExtractionItems,
         'excluded',
@@ -2036,6 +2064,7 @@ function OriginationForm() {
   const [mode, setMode] = useState<OriginationMode>(storedForm.mode);
   const [sector,    setSector   ] = useState(storedForm.sector);
   const [geo,       setGeo      ] = useState(storedForm.geo);
+  const [optionalKeywords, setOptionalKeywords] = useState(storedForm.optionalKeywords);
   const [sizeCriteria, setSizeCriteria] = useState(storedForm.sizeCriteria);
   const [rationale, setRationale] = useState(storedForm.rationale);
   const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
@@ -2048,13 +2077,13 @@ function OriginationForm() {
     const storedResult = readStoredOriginationResult();
     return storedResult ? { kind: 'result', data: storedResult, restored: true } : { kind: 'idle' };
   });
-  const isRankKnownTargetsMode = mode === 'rank_known_targets';
-  const statusCopy = isRankKnownTargetsMode
-    ? 'Paste company names and websites. Frontier OS will rank and enrich only supplied/source-backed targets.'
-    : 'Frontier OS will return research sources and possible leads. It will not invent acquisition targets.';
-  const submitLabel = isRankKnownTargetsMode ? 'Rank supplied targets' : 'Research thesis';
-  const loadingLabel = isRankKnownTargetsMode
-    ? 'Ranking supplied/source-backed targets...'
+  const isFindCompaniesMode = mode === 'candidate_discovery';
+  const statusCopy = isFindCompaniesMode
+    ? 'Origination creates leads. Screen verifies evidence.'
+    : 'Research thesis returns source pages and possible leads. Frontier OS will not invent acquisition targets.';
+  const submitLabel = isFindCompaniesMode ? 'Find companies' : 'Research thesis';
+  const loadingLabel = isFindCompaniesMode
+    ? 'Finding source-backed company candidates...'
     : 'Researching source-backed thesis evidence...';
 
   function clearErrorState() {
@@ -2087,9 +2116,10 @@ function OriginationForm() {
 
   function restoreRun(run: StoredOriginationRun) {
     const form: OriginationFormValues = {
-      mode: run.form?.mode === 'research_thesis' ? 'research_thesis' : 'rank_known_targets',
+      mode: run.form?.mode === 'research_thesis' ? 'research_thesis' : 'candidate_discovery',
       sector: run.form?.sector ?? run.sector ?? '',
       geo: run.form?.geo ?? run.geography ?? '',
+      optionalKeywords: run.form?.optionalKeywords ?? '',
       sizeCriteria: run.form?.sizeCriteria ?? run.size_criteria ?? '',
       rationale: run.form?.rationale ?? run.strategic_rationale ?? '',
       buyerThesis: run.form?.buyerThesis ?? run.thesis ?? '',
@@ -2098,6 +2128,7 @@ function OriginationForm() {
     setMode(form.mode);
     setSector(form.sector);
     setGeo(form.geo);
+    setOptionalKeywords(form.optionalKeywords);
     setSizeCriteria(form.sizeCriteria);
     setRationale(form.rationale);
     setBuyerThesis(form.buyerThesis);
@@ -2121,26 +2152,30 @@ function OriginationForm() {
     setState({ kind: 'idle' });
     try {
       const targets = parseKnownTargetUniverse(targetUniverse);
-      if (mode === 'rank_known_targets' && targets.length === 0) {
-        setState({ kind: 'error', message: 'Add at least one company and website to rank targets.' });
+      if (isFindCompaniesMode && !sector.trim() && !optionalKeywords.trim()) {
+        setState({ kind: 'error', message: 'Add a sector / vertical or optional keywords to find companies.' });
         return;
       }
       const formValues: OriginationFormValues = {
         mode,
         sector,
         geo,
+        optionalKeywords,
         sizeCriteria,
         rationale,
         buyerThesis,
         targetUniverse,
       };
       const data = await runOrigination({
+        origination_mode: targets.length > 0 ? 'target_universe_ranking' : mode,
         buyer_thesis: buyerThesis,
         sector,
+        sector_or_vertical: sector,
         geography: geo,
+        optional_keywords: optionalKeywords,
         size_criteria: sizeCriteria,
         strategic_rationale: rationale,
-        ...(mode === 'rank_known_targets' && targets.length > 0 ? { targets } : {}),
+        ...(targets.length > 0 ? { targets } : {}),
       });
       if (isQuotaExceededResponse(data)) {
         setState({ kind: 'error', message: originationErrorMessage(data, 429) });
@@ -2173,11 +2208,12 @@ function OriginationForm() {
     clearStoredOriginationRun();
     setSector('');
     setGeo('');
+    setOptionalKeywords('');
     setSizeCriteria('');
     setRationale('');
     setBuyerThesis('');
     setTargetUniverse('');
-    setMode('rank_known_targets');
+    setMode('candidate_discovery');
     setState({ kind: 'idle' });
   }
 
@@ -2212,17 +2248,17 @@ function OriginationForm() {
         <div>
           <p className="text-sm font-semibold text-foreground">Start an origination</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Research a thesis or rank known targets. Frontier OS will not invent acquisition targets.
+            Find companies in a narrow vertical or research a thesis. Frontier OS will not invent acquisition targets.
           </p>
         </div>
         <div className="surface-flat rounded-lg px-4 py-3">
           <p className="text-sm font-semibold text-foreground">
-            {isRankKnownTargetsMode
-              ? 'Paste company names and websites to rank a known universe.'
+            {isFindCompaniesMode
+              ? 'Find source-backed company leads for a specific sector and geography.'
               : 'Research a thesis and keep source pages separate from company candidates.'}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Best practice: screen companies individually before comparing candidates.
+            Origination creates leads. Screen verifies evidence.
           </p>
         </div>
         <div className="surface-flat rounded-lg p-3">
@@ -2230,9 +2266,9 @@ function OriginationForm() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[
               {
-                value: 'rank_known_targets' as OriginationMode,
-                label: 'Rank known targets',
-                description: 'Rank and enrich a supplied/source-backed target universe.',
+                value: 'candidate_discovery' as OriginationMode,
+                label: 'Find companies',
+                description: 'Search a narrow vertical for source-backed company leads.',
               },
               {
                 value: 'research_thesis' as OriginationMode,
@@ -2262,58 +2298,100 @@ function OriginationForm() {
             })}
           </div>
         </div>
-        {!isRankKnownTargetsMode && (
-          <>
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">
-                Buyer thesis
-              </label>
-              <textarea
-                value={buyerThesis}
-                onChange={e => {
-                  setBuyerThesis(e.target.value);
-                  clearErrorState();
-                }}
-                rows={3}
-                placeholder="e.g. Founder-owned UK vertical software with recurring revenue, low implementation complexity and low AI replica risk."
-                className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1.5">
-                  Target sector / vertical
-                </label>
-                <input
-                  type="text"
-                  value={sector}
-                  onChange={e => {
-                    setSector(e.target.value);
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-foreground mb-1.5">
+              Sector / vertical
+            </label>
+            <input
+              type="text"
+              value={sector}
+              onChange={e => {
+                setSector(e.target.value);
+                clearErrorState();
+              }}
+              placeholder="e.g. Software utility"
+              className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-foreground mb-1.5">
+              Geography
+            </label>
+            <input
+              type="text"
+              value={geo}
+              onChange={e => {
+                setGeo(e.target.value);
+                clearErrorState();
+              }}
+              placeholder="e.g. UK"
+              className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+            />
+          </div>
+        </div>
+
+        {isFindCompaniesMode && (
+          <div>
+            <p className="text-xs font-medium text-foreground mb-2">Examples</p>
+            <div className="flex flex-wrap gap-2">
+              {FIND_COMPANY_EXAMPLES.map(example => (
+                <button
+                  key={example.label}
+                  type="button"
+                  onClick={() => {
+                    setMode('candidate_discovery');
+                    setSector(example.sector);
+                    setGeo(example.geo);
+                    setOptionalKeywords(example.optionalKeywords);
                     clearErrorState();
                   }}
-                  placeholder="e.g. UK vertical SaaS, telecoms BSS"
-                  className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1.5">
-                  Geography
-                </label>
-                <input
-                  type="text"
-                  value={geo}
-                  onChange={e => {
-                    setGeo(e.target.value);
-                    clearErrorState();
-                  }}
-                  placeholder="e.g. UK, DACH, Nordic"
-                  className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
-                />
-              </div>
+                  className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"
+                >
+                  {example.label}
+                </button>
+              ))}
             </div>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-xs font-medium text-foreground mb-1.5">
+            Optional keywords
+          </label>
+          <input
+            type="text"
+            value={optionalKeywords}
+            onChange={e => {
+              setOptionalKeywords(e.target.value);
+              clearErrorState();
+            }}
+            placeholder="e.g. billing, smart metering, customer engagement"
+            className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-foreground mb-1.5">
+            Optional buyer thesis
+          </label>
+          <textarea
+            value={buyerThesis}
+            onChange={e => {
+              setBuyerThesis(e.target.value);
+              clearErrorState();
+            }}
+            rows={3}
+            placeholder="e.g. UK vertical software serving regulated utility workflows; screen before comparing."
+            className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+          />
+        </div>
+
+        {!isFindCompaniesMode && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-foreground mb-1.5">
-                Size criteria
+                Size criteria <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <input
                 type="text"
@@ -2322,7 +2400,7 @@ function OriginationForm() {
                   setSizeCriteria(e.target.value);
                   clearErrorState();
                 }}
-                placeholder="e.g. UK lower mid-market, profitable bootstrapped software"
+                placeholder="e.g. early stage high growth"
                 className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
               />
             </div>
@@ -2330,21 +2408,25 @@ function OriginationForm() {
               <label className="block text-xs font-medium text-foreground mb-1.5">
                 Strategic rationale <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
-              <textarea
+              <input
+                type="text"
                 value={rationale}
                 onChange={e => {
                   setRationale(e.target.value);
                   clearErrorState();
                 }}
-                rows={3}
-                placeholder="What makes this a compelling thesis? e.g. mission-critical vertical software with low churn, cross-sell to existing portfolio..."
-                className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
+                placeholder="e.g. compliance-heavy workflow with expansion potential"
+                className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
               />
             </div>
-          </>
+          </div>
         )}
-        {isRankKnownTargetsMode ? (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+
+        <details className="rounded-lg border border-border bg-background/60 overflow-hidden">
+          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+            Optional: paste known target companies
+          </summary>
+          <div className="border-t border-border p-3">
             <label className="block text-xs font-semibold text-foreground mb-1.5">
               Paste known target companies
             </label>
@@ -2368,29 +2450,7 @@ Example format:
               Only paste targets you are permitted to screen. Frontier OS will not invent or enrich targets without evidence.
             </p>
           </div>
-        ) : (
-          <details className="rounded-lg border border-border bg-background/60 overflow-hidden">
-            <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-              Optional: provide known targets instead
-            </summary>
-            <div className="border-t border-border p-3">
-              <textarea
-                value={targetUniverse}
-                onChange={e => {
-                  setTargetUniverse(e.target.value);
-                  clearErrorState();
-                }}
-                rows={4}
-                placeholder={`Paste known targets, one per line:
-[Company name], [website URL], [jurisdiction], [brief description]`}
-                className="w-full px-3 py-2 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors resize-none"
-              />
-              <p className="text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
-                Research thesis mode focuses on source pages. Switch to Rank known targets to rank supplied companies.
-              </p>
-            </div>
-          </details>
-        )}
+        </details>
 
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
           {statusCopy}
@@ -2496,7 +2556,7 @@ Example format:
             data={state.data}
             onReset={handleReset}
             onPasteKnownTargets={() => {
-              setMode('rank_known_targets');
+              setMode('candidate_discovery');
               handleReset();
             }}
             onWorkspaceChange={refreshWorkspace}
@@ -2524,8 +2584,8 @@ const AVAILABLE_NOW = [
   },
   {
     href:  '/origination',
-    title: 'Origination thesis',
-    desc:  'Private-beta thesis-led target discovery from a reference universe.',
+    title: 'Find companies',
+    desc:  'Build source-backed company leads from a narrow vertical and geography.',
   },
   {
     href:  '/cockpit',
@@ -2553,11 +2613,11 @@ export default function OriginationPage() {
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            Preview thesis-led origination workflow.
+            Find companies for acquisition screening.
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl">
-            Describe your buyer thesis. Hosted preview will not invent acquisition targets; it only
-            renders targets when the backend provides a source-backed target universe.
+            Start with a narrow vertical and geography. Origination creates source-backed leads;
+            Screen verifies evidence before Cockpit and Compare.
           </p>
         </div>
       </div>
@@ -2567,9 +2627,9 @@ export default function OriginationPage() {
         {/* Workflow steps */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { icon: <Search className="w-4 h-4" />, step: '1', title: 'Enter buyer thesis', desc: 'Sector, geography, revenue range and strategic rationale.' },
-            { icon: <Target className="w-4 h-4" />, step: '2', title: 'Backend screen', desc: 'If enabled, the backend returns public-source candidate signals.' },
-            { icon: <ChevronRight className="w-4 h-4" />, step: '3', title: 'Review candidates', desc: 'Treat all output as signals until each target is screened directly.' },
+            { icon: <Search className="w-4 h-4" />, step: '1', title: 'Find companies', desc: 'Use sector, geography and optional keywords to build a source-backed lead list.' },
+            { icon: <Target className="w-4 h-4" />, step: '2', title: 'Confirm websites', desc: 'Treat possible leads as unverified until the official company website is confirmed.' },
+            { icon: <ChevronRight className="w-4 h-4" />, step: '3', title: 'Screen evidence', desc: 'Run company URLs through Screen before saving to Cockpit or comparing.' },
           ].map(({ icon, step, title, desc }) => (
             <div key={step} className="rounded-lg border border-border/70 bg-card/70 p-5">
               <div className="flex items-center gap-2 mb-3">
@@ -2585,7 +2645,7 @@ export default function OriginationPage() {
         </div>
 
         <div className="rounded-lg border border-card-border bg-card/80 px-5 py-4 shadow-xs">
-          <p className="text-sm font-semibold text-foreground mb-1">Private-beta origination workflow</p>
+          <p className="text-sm font-semibold text-foreground mb-1">Origination creates leads. Screen verifies evidence.</p>
           <p className="text-xs text-muted-foreground leading-relaxed">
             This page calls the backend origination endpoint when available. It does not show static target lists or save illustrative candidates to Cockpit.
           </p>
@@ -2595,9 +2655,9 @@ export default function OriginationPage() {
           {/* Live origination thesis form */}
           <div className="min-w-0">
             <div className="mb-4">
-              <p className="text-xs font-semibold text-primary mb-1">Origination thesis</p>
+              <p className="text-xs font-semibold text-primary mb-1">Find companies</p>
               <p className="text-sm text-muted-foreground">
-                Describe your buyer thesis and manage source-backed leads in the workspace.
+                Start with a specific vertical, then manage source-backed leads in the workspace.
               </p>
             </div>
             <OriginationForm />
