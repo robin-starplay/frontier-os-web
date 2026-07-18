@@ -6,8 +6,8 @@ import { FeedbackModal } from './FeedbackModal';
 import { SendFeedbackButton } from './SendFeedbackButton';
 import { ThemeToggle } from './ThemeToggle';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
-import { getRuns } from '@/lib/runHistory';
 import { OptionalUserButton } from '@/lib/optionalClerk';
+import { useUsage } from '@/contexts/UsageContext';
 
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
@@ -66,16 +66,10 @@ const APP_MOBILE_MORE = [
 // ── Trial usage badge ─────────────────────────────────────────────────────────
 
 function TrialBadge() {
-  const [used, setUsed] = useState(0);
-  useEffect(() => {
-    try {
-      setUsed(getRuns().filter(r => r.type === 'url').length);
-    } catch {
-      setUsed(0);
-    }
-  }, []);
-  const limit = 5;
-  const remaining = Math.max(0, limit - used);
+  const usage = useUsage();
+  if (usage.status !== 'ready' || usage.screensRemaining === null || usage.screensLimit === null) return null;
+  const remaining = usage.screensRemaining;
+  const limit = usage.screensLimit;
   const isLow = remaining <= 1;
   return (
     <span className={cn(

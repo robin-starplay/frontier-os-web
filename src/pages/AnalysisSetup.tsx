@@ -15,8 +15,9 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { cn } from '@/lib/utils';
 import { DEMO_SCENARIOS, DEFAULT_SCENARIO, NEUTRAL_STAGES, type DemoScenario, type AnalysisStageData } from '@/data/scenarios';
 import { useAccess } from '@/contexts/AccessContext';
+import { useUsage } from '@/contexts/UsageContext';
 import { saveUrlRun, saveDocumentRun, getRuns } from '@/lib/runHistory';
-import { getWorkspaceId, getUserId, createBackendAccount, getTrialAccount } from '@/lib/trialAccount';
+import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAccount';
 import { normalizeWebsiteUrl, isValidWebsiteUrl } from '@/lib/urlUtils';
 import {
   runUrlAnalysis,
@@ -1392,27 +1393,9 @@ function Step1({
   onScenarioSelect, onRun, onClearForm, analysisInFlight, backendConfigured,
   investmentStyle, setInvestmentStyle, riskPosture, setRiskPosture,
 }: Step1Props) {
+  const usage = useUsage();
   const [urlError, setUrlError] = React.useState('');
-  const [urlScreensUsed, setUrlScreensUsed] = React.useState(() => {
-    try { return getRuns().filter(r => r.type === 'url').length; } catch { return 0; }
-  });
-
-  React.useEffect(() => {
-    function refreshUsage() {
-      try { setUrlScreensUsed(getRuns().filter(r => r.type === 'url').length); }
-      catch { setUrlScreensUsed(0); }
-    }
-    window.addEventListener('storage', refreshUsage);
-    window.addEventListener('focus', refreshUsage);
-    return () => {
-      window.removeEventListener('storage', refreshUsage);
-      window.removeEventListener('focus', refreshUsage);
-    };
-  }, []);
-
-  const urlScreensLimit = getTrialAccount()?.url_screens_limit ?? 5;
-  const screensLeft = Math.max(0, urlScreensLimit - urlScreensUsed);
-  const quotaReached = screensLeft <= 0;
+  const quotaReached = usage.status === 'ready' && usage.quotaExceeded === true && usage.screensRemaining === 0;
   const documentAttached = Boolean(documentFile);
   const documentMode = mode === 'doc-assisted';
   const pdfError = documentFile && !documentFile.name.toLowerCase().endsWith('.pdf') && documentFile.type !== 'application/pdf'
@@ -1743,39 +1726,6 @@ function Step1({
                   </button>
                 </div>
 
-                {quotaReached && (
-                  <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-3 space-y-3">
-                    <div>
-                      <p className="text-sm font-semibold text-amber-700">Free preview limit reached.</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Start access to continue, or reset local workspace for local testing.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={openStarterGrowthCta}
-                        className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                      >
-                        Start access <ExternalLink className="w-3 h-3" />
-                      </button>
-                      <Link
-                        href="/pricing"
-                        className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
-                      >
-                        Open pricing
-                      </Link>
-                      {import.meta.env.DEV && (
-                        <Link
-                          href="/app/settings"
-                          className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          Reset local workspace in Workspace
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 <div className="flex items-center justify-center pt-1">
                   <a
@@ -3926,6 +3876,7 @@ const SAMPLE_RESULT: AnalysisResult = {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boolean }) {
+  const usage = useUsage();
   const initialMode = React.useMemo<ModeCode>(() => {
     if (typeof window === 'undefined') return sampleMode ? DEFAULT_SCENARIO.modeCode : 'url-only';
     const requested = new URLSearchParams(window.location.search).get('mode');
@@ -4184,6 +4135,8 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
     const token = { cancelled: false };
     cancelRef.current = token;
+    usage.beginUsageRequest();
+    setAnalysisError(null);
 
     // ── Step 1: start ──────────────────────────────────────────
     startedAtRef.current = Date.now();
@@ -4237,6 +4190,8 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
   /** Real URL-analysis path: calls POST /api/analyse/url and never substitutes sample data. */
   async function runUrlAnalysisForForm() {
     if (analysisInFlight) return;
+    usage.beginUsageRequest();
+    setAnalysisError(null);
     setAnalysisInFlight(true);
     setIsFinalising(false);
     setFinalisingElapsedSecs(0);
@@ -4293,6 +4248,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
         setIsFinalising(true);
       }
       const apiResult = await apiPromise;
+      await usage.reconcileUsageResponse(apiResult);
       if (!hasUsableAnalysisPayload(apiResult)) {
         throw new Error(analysisPayloadError(apiResult));
       }
@@ -4309,6 +4265,8 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setIsFinalising(false);
       setIsTimelineComplete(true);
     } catch (err) {
+      const backendBody = err && typeof err === 'object' && 'backendBody' in err ? (err as { backendBody?: unknown }).backendBody : null;
+      await usage.reconcileUsageResponse(backendBody);
       setIsFinalising(false);
       const detail = err instanceof Error ? err.message : 'Backend analysis failed.';
       const message = detail;
@@ -4324,6 +4282,8 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
   async function runDocumentAssistedForForm(file: File) {
     if (analysisInFlight) return;
+    usage.beginUsageRequest();
+    setAnalysisError(null);
     setAnalysisInFlight(true);
     setIsFinalising(false);
     setFinalisingElapsedSecs(0);
@@ -4376,6 +4336,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
       if (!apiSettled) setIsFinalising(true);
       const apiResult = await apiPromise;
+      await usage.reconcileUsageResponse(apiResult);
       if (isDocumentUnavailablePayload(apiResult)) {
         setIsFinalising(false);
         setStages(current => {
@@ -4441,6 +4402,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
       setIsFinalising(false);
       setIsTimelineComplete(true);
     } catch (err) {
+      await usage.refreshUsage();
       setIsFinalising(false);
       setAnalysisError(err instanceof Error ? err.message : 'Document-assisted analysis failed.');
       setCompletionMessage('Analysis complete.');

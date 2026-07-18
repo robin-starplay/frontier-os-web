@@ -12,6 +12,7 @@ import { getBackendBaseUrl, isBackendConfigured } from '@/lib/frontierApi';
 import { BackendStatusBadge } from '@/components/BackendStatusBadge';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
 import { clerkEnabled, useOptionalClerk, useOptionalUser } from '@/lib/optionalClerk';
+import { useUsage } from '@/contexts/UsageContext';
 
 // ─── Optional developer API health ────────────────────────────────────────────
 
@@ -45,14 +46,13 @@ export default function SettingsPage() {
   const { isLoaded, isSignedIn, user } = useOptionalUser();
   const { signOut } = useOptionalClerk();
   const localApi = useLocalApiHealth();
+  const usage = useUsage();
   const showDeveloperDiagnostics = import.meta.env.DEV;
 
   const trial = getTrialAccount();
   const runs  = getRuns();
-  const urlScreensUsed   = runs.filter(r => r.type === 'url').length;
   const compareRunsUsed  = runs.filter(r => r.type === 'compare').length;
-  const urlScreensLimit  = trial?.url_screens_limit ?? 5;
-  const urlScreensLeft   = Math.max(0, urlScreensLimit - urlScreensUsed);
+  const usageAvailable = usage.status === 'ready';
 
   const workspaceId = getWorkspaceId();
   const userId      = getUserId();
@@ -217,11 +217,11 @@ export default function SettingsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">URL screens used</p>
-                <p className="text-lg font-bold text-foreground">{urlScreensUsed}<span className="text-muted-foreground font-normal text-sm">/{urlScreensLimit}</span></p>
+                <p className="text-lg font-bold text-foreground">{usageAvailable ? usage.screensUsed : 'Unavailable'}{usageAvailable && <span className="text-muted-foreground font-normal text-sm">/{usage.screensLimit}</span>}</p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Screens left</p>
-                <p className={`text-lg font-bold ${urlScreensLeft <= 1 ? 'text-amber-700' : 'text-green-700'}`}>{urlScreensLeft}</p>
+                <p className={`text-lg font-bold ${usageAvailable && (usage.screensRemaining ?? 0) <= 1 ? 'text-amber-700' : 'text-green-700'}`}>{usageAvailable ? usage.screensRemaining : 'Unavailable'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Compare runs</p>

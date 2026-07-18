@@ -5,11 +5,11 @@ import { Link } from 'wouter';
 import {
   clearLocalWorkspace,
   fetchWorkspaceSession,
-  getTrialAccount,
   getWorkspaceId,
   getWorkspaceProfile,
   getWorkspaceSession,
 } from './trialAccount';
+import { useUsage } from '@/contexts/UsageContext';
 
 const rawClerkKey = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined)?.trim();
 
@@ -62,22 +62,10 @@ function shortId(value: string | null): string {
   return value.length > 10 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
 }
 
-function getLocalUrlRunCount(): number {
-  try {
-    const raw = localStorage.getItem('fos_run_history');
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return 0;
-    return parsed.filter(run => run && typeof run === 'object' && run.type === 'url').length;
-  } catch {
-    return 0;
-  }
-}
-
 function LocalWorkspaceMenu() {
+  const usage = useUsage();
   const [open, setOpen] = useState(false);
   const [version, setVersion] = useState(0);
-  const [runsUsed, setRunsUsed] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,23 +75,15 @@ function LocalWorkspaceMenu() {
     function onEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
     }
-    function onStorage() {
-      setRunsUsed(getLocalUrlRunCount());
-      setVersion(v => v + 1);
-    }
-    setRunsUsed(getLocalUrlRunCount());
     document.addEventListener('mousedown', onClickOutside);
     document.addEventListener('keydown', onEscape);
-    window.addEventListener('storage', onStorage);
     return () => {
       document.removeEventListener('mousedown', onClickOutside);
       document.removeEventListener('keydown', onEscape);
-      window.removeEventListener('storage', onStorage);
     };
   }, []);
 
   const profile = getWorkspaceProfile();
-  const account = getTrialAccount();
   const session = getWorkspaceSession();
   const workspaceId = getWorkspaceId();
 
@@ -118,8 +98,7 @@ function LocalWorkspaceMenu() {
     };
   }, [workspaceId]);
 
-  const urlLimit = account?.url_screens_limit ?? 5;
-  const screensRemaining = Math.max(0, urlLimit - runsUsed);
+  const usageAvailable = usage.status === 'ready';
   const displayName = profile?.org || profile?.name || 'Beta workspace';
   const subtitle = profile?.email || `Workspace ${shortId(workspaceId)}`;
   const initials = initialsFrom(profile?.name || profile?.org || displayName);
@@ -146,9 +125,9 @@ function LocalWorkspaceMenu() {
         <span className="w-6 h-6 rounded-full bg-primary/15 border border-primary/25 text-primary text-[10px] font-bold flex items-center justify-center">
           {initials}
         </span>
-        <span className="hidden sm:inline text-[11px] font-mono text-muted-foreground">
-          {screensRemaining}/{urlLimit}
-        </span>
+        {usageAvailable && <span className="hidden sm:inline text-[11px] font-mono text-muted-foreground">
+          {usage.screensRemaining}/{usage.screensLimit}
+        </span>}
       </button>
 
       {open && (
@@ -172,7 +151,7 @@ function LocalWorkspaceMenu() {
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Screens remaining</span>
-              <span className="font-mono text-foreground">{screensRemaining}/{urlLimit}</span>
+              <span className="font-mono text-foreground">{usageAvailable ? `${usage.screensRemaining}/${usage.screensLimit}` : 'Unavailable'}</span>
             </div>
             {typeof session?.status === 'string' && (
               <div className="flex items-center justify-between gap-3">

@@ -5,6 +5,7 @@ import { AppNavbar } from './AppNavbar';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { ensureTrialAccount, hasLocalWorkspaceSession } from '@/lib/trialAccount';
 import { useOptionalUser } from '@/lib/optionalClerk';
+import { UsageStatusNotice } from '@/contexts/UsageContext';
 
 // Pages served inside the app shell
 import AnalysisSetupBase from '@/pages/AnalysisSetup';
@@ -132,6 +133,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground font-sans selection:bg-primary/30">
       <AppNavbar />
+      <UsageStatusNotice />
       <main className="flex-1 flex flex-col relative">
         <Switch>
           <Route path="/app/run"         component={AnalysisSetup} />

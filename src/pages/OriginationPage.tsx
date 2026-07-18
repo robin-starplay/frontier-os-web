@@ -29,6 +29,7 @@ import {
   saveLead,
   type WorkflowTarget,
 } from '@/lib/workflowTargets';
+import { useUsage } from '@/contexts/UsageContext';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
@@ -158,7 +159,9 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
     }
     const body = await res.json().catch(() => null) as OriginationResult | null;
     if (!res.ok) {
-      throw new Error(originationErrorMessage(body, res.status));
+      const error = new Error(originationErrorMessage(body, res.status)) as Error & { backendBody?: OriginationResult | null };
+      error.backendBody = body;
+      throw error;
     }
     return body ?? {};
   })();
@@ -2060,6 +2063,7 @@ type FormState =
   | { kind: 'error'; message: string; diagnostics?: OriginationRequestDiagnostics };
 
 function OriginationForm() {
+  const usage = useUsage();
   const storedForm = readStoredOriginationForm();
   const [mode, setMode] = useState<OriginationMode>(storedForm.mode);
   const [sector,    setSector   ] = useState(storedForm.sector);
@@ -2148,6 +2152,7 @@ function OriginationForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    usage.beginUsageRequest();
     setIsSubmitting(true);
     setState({ kind: 'idle' });
     try {
@@ -2177,8 +2182,9 @@ function OriginationForm() {
         strategic_rationale: rationale,
         ...(targets.length > 0 ? { targets } : {}),
       });
+      await usage.reconcileUsageResponse(data);
       if (isQuotaExceededResponse(data)) {
-        setState({ kind: 'error', message: originationErrorMessage(data, 429) });
+        setState({ kind: 'idle' });
         return;
       }
       if (safeStr(data.status).toLowerCase() === 'ok') {
@@ -2189,6 +2195,14 @@ function OriginationForm() {
       refreshWorkspace();
       setState({ kind: 'result', data, restored: false, runId: storedRun.id });
     } catch (err) {
+      const backendBody = err && typeof err === 'object' && 'backendBody' in err
+        ? (err as { backendBody?: OriginationResult | null }).backendBody
+        : null;
+      await usage.reconcileUsageResponse(backendBody);
+      if (isQuotaExceededResponse(backendBody)) {
+        setState({ kind: 'idle' });
+        return;
+      }
       console.error('[origination] run failed', err);
       setState({
         kind: 'error',
