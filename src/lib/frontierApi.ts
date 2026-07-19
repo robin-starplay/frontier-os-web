@@ -69,6 +69,9 @@ export interface DocumentAssistedResult {
   customer_claims?: unknown[];
   product_claims?: unknown[];
   ai_claims?: unknown[];
+  market_claims?: unknown[];
+  pricing_claims?: unknown[];
+  team_claims?: unknown[];
   verified_facts?: unknown[];
   public_source_checks?: unknown;
   public_source_check_records?: unknown[];

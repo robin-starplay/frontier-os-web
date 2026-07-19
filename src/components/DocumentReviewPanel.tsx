@@ -539,7 +539,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
                 {(data.limitations.length === 0
                   ? [
                       'Extraction is based on a non-confidential document-assisted review. No guarantee of completeness.',
-                      'All extracted items are classified as claims — none have been independently verified.',
+                      'All extracted items are classified as claims. None have been independently verified.',
                       'Do not rely on this output for investment decisions without independent verification.',
                       'Outputs require human review before use in IC.',
                     ]

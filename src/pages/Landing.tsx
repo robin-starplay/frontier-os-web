@@ -40,7 +40,7 @@ function RunYourOwnLink() {
   );
 }
 
-/** "Screen sample company" — sends to workspace creation or /app/run if already set up. */
+/** Start a real company screen, using workspace creation when needed. */
 function ReviewerStartButton() {
   const { isLoaded, isSignedIn } = useOptionalUser();
   const hasWorkspace = (isLoaded && isSignedIn) || hasLocalWorkspaceSession();
@@ -50,7 +50,7 @@ function ReviewerStartButton() {
       href={href}
       className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-5 rounded-md transition-colors"
     >
-      Screen sample company <ArrowRight className="w-4 h-4" />
+      Screen a company <ArrowRight className="w-4 h-4" />
     </Link>
   );
 }
@@ -115,13 +115,13 @@ const PERSONAS: Persona[] = [
     title: 'PE deal teams',
     desc: 'Screen targets faster. See IC readiness, valuation blockers and diligence questions before spending analyst time.',
     action: 'Screen company',
-    href: '/run?mode=sample',
+    href: '/app/run',
   },
   {
     title: 'Software roll-ups',
     desc: 'Compare targets against a buyer thesis. Identify fit, integration risk and AI replica exposure.',
     action: 'Screen company',
-    href: '/run?mode=sample',
+    href: '/app/run',
   },
   {
     title: 'VC / growth investors',
@@ -145,7 +145,7 @@ const PERSONAS: Persona[] = [
     title: 'Corp dev teams',
     desc: 'Assess strategic fit, adjacency logic and what must be verified before internal approval.',
     action: 'Screen company',
-    href: '/run?mode=sample',
+    href: '/app/run',
   },
 ];
 
@@ -190,7 +190,7 @@ export default function Landing() {
             </p>
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <Link
-                href="/run?mode=sample"
+                href="/app/run"
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-7 rounded-md group transition-colors"
               >
                 Screen company
@@ -207,7 +207,7 @@ export default function Landing() {
               Public-source preview. Outputs are decision support. Human review required.
             </p>
             <Link
-              href="/platform-demo"
+              href="/how-it-works"
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
             >
               View Team / Platform workflow <ArrowRight className="w-3 h-3" />
@@ -237,9 +237,9 @@ export default function Landing() {
             {/* Left: title + CTA */}
             <div className="md:w-64 shrink-0">
               <p className="text-xs font-semibold text-primary mb-2">3-minute review</p>
-              <h2 className="text-xl font-bold text-foreground mb-2">Try Frontier OS in 3 minutes</h2>
+              <h2 className="text-xl font-bold text-foreground mb-2">Start a focused company screen</h2>
               <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                Screen a sample company to see the workflow before using your own target.
+                Enter a real company website and review only the public-source evidence returned by the screen.
               </p>
               <ReviewerStartButton />
             </div>
@@ -249,13 +249,13 @@ export default function Landing() {
               {[
                 {
                   n: 1,
-                  label: 'Screen sample company',
-                  detail: 'Public-source preview',
+                  label: 'Screen a company website',
+                  detail: 'Public-source evidence',
                 },
                 {
                   n: 2,
-                  label: 'Compare sample targets',
-                  detail: 'Static example — not a real company',
+                  label: 'Compare screened targets',
+                  detail: 'Use saved, screened companies',
                 },
                 {
                   n: 3,
@@ -339,7 +339,7 @@ export default function Landing() {
               title: 'Compare targets',
               desc: 'Rank 2–5 companies by strategic fit, evidence quality, AI replica risk and blockers. See which target is most IC-ready at a glance.',
               href: '/compare',
-              action: 'Compare two sample targets',
+              action: 'Compare screened targets',
               highlight: true,
             },
             {
@@ -382,7 +382,7 @@ export default function Landing() {
             className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors"
           >
             <GitCompare className="w-4 h-4" />
-            Compare two sample targets
+            Compare screened targets
           </Link>
         </div>
       </div>
@@ -455,7 +455,7 @@ export default function Landing() {
             <div className="shrink-0">
               <p className="text-sm text-muted-foreground mb-3">Screen a software target and see what must be verified before IC.</p>
               <Link
-                href="/run?mode=sample"
+                href="/app/run"
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-7 rounded-md transition-colors"
               >
                 Screen company <ArrowRight className="w-4 h-4" />
@@ -533,9 +533,9 @@ export default function Landing() {
 
       <BetaCTA
         title="Want to test Frontier OS on your workflow?"
-        body="Screen a sample company, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
+        body="Screen a company, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
         primaryLabel="Screen company"
-        primaryHref="/run?mode=sample"
+        primaryHref="/app/run"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"
         eventName="landing_page_bottom"

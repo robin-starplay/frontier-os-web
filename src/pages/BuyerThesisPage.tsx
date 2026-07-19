@@ -17,7 +17,7 @@ export default function BuyerThesisPage() {
         <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Buyer Thesis</p>
         <h1 className="text-2xl font-bold text-foreground">Buyer thesis templates</h1>
         <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          Each buyer type has a different screening logic — different objectives, evidence requirements and AI stance.
+          Each buyer type has distinct objectives, evidence requirements and an AI stance.
           Frontier OS assesses targets against the buyer thesis, not in isolation.
         </p>
       </div>
@@ -128,7 +128,7 @@ export default function BuyerThesisPage() {
           {/* sample: vertical roll-up detail block */}
           {active.id === 'vertical-rollup' && (
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-5">
-              <p className="text-[10px] font-semibold tracking-normal text-amber-700 mb-3">Sample screen — vertical roll-up</p>
+              <p className="text-[10px] font-semibold tracking-normal text-amber-700 mb-3">Sample screen: vertical roll-up</p>
               <div className="space-y-2.5">
                 {[
                   { label: 'Rewards',          value: 'Recurring revenue, durable niche, low churn, management independence.' },

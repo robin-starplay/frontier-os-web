@@ -27,7 +27,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What is AI replica risk?',
-    a: 'An assessment of whether the product\'s core workflow could be rebuilt by AI-native competitors or internal customer teams — considering data, integrations, switching costs and domain complexity.',
+    a: 'An assessment of whether AI-native competitors or internal customer teams could rebuild the product\'s core workflow. It considers data, integrations, switching costs and domain complexity.',
   },
   {
     q: 'What is inference economics?',

@@ -915,6 +915,7 @@ function LeadEditSheet({
   const isScreened = target.screening_status === 'screened';
 
   function saveChanges() {
+    if (!target) return;
     const trimmedWebsite = website.trim();
     const normalized = trimmedWebsite ? normalizeWebsiteUrl(trimmedWebsite) : '';
     if (trimmedWebsite && !isValidWebsiteUrl(normalized)) {
@@ -1993,7 +1994,7 @@ function Step2({
           Evidence checked. Gaps flagged. Frontier OS separates verified facts from claims and shows what still needs diligence.
         </p>
         <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">
-          Quality-first is available for private pilots once the hosted worker is enabled.
+          Registry-backed screening is available in selected private pilots.
         </p>
       </div>
 
@@ -2033,7 +2034,7 @@ function LockedFeature({ title, description }: { title: string; description: str
 
 function claimText(item: unknown): string {
   const rec = asRecord(item);
-  return displayValue(rec.text ?? rec.claim_text ?? rec.summary ?? rec.value ?? item, '');
+  return displayValue(rec.text ?? rec.claim_text ?? rec.summary ?? rec.detail ?? rec.title ?? rec.value ?? item, '');
 }
 
 function normalizeUnknown(item: unknown) {
@@ -2094,21 +2095,16 @@ function DocumentClaimList({ items, empty }: { items: unknown[]; empty: string }
       {items.map((item, i) => {
         const rec = asRecord(item);
         const source = textValue(rec.source_label ?? rec.source, 'Uploaded document');
-        const badgeClass = 'px-2 py-1 text-[11px] font-medium';
         return (
-          <div key={i} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
+          <div key={textValue(rec.claim_id, String(i))} className="border-b border-border/60 py-2.5 last:border-0">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <p className="text-xs font-semibold text-foreground leading-snug sm:pr-4">
                 {claimText(item)}
               </p>
-              <div className="flex flex-wrap gap-1.5 sm:justify-end sm:shrink-0 sm:max-w-[48%]">
-                <StatusPill label={formatLabel(textValue(rec.type ?? rec.category, 'company claim'))} className={badgeClass} />
-                <StatusPill label="Company claim" className={badgeClass} />
-                <StatusPill label="Not independently verified" className={badgeClass} />
-              </div>
+              <StatusPill label={textValue(rec.status_label, 'Company claim')} className="px-2 py-1 text-[11px] font-medium shrink-0" />
             </div>
             <p className="text-[10px] text-muted-foreground/55 mt-1.5">
-              Source: {source} · Status: Claim, not verified
+              {formatLabel(textValue(rec.type ?? rec.category, 'company claim'))} · Source: {source}
               {rec.page ? ` · Page ${displayValue(rec.page)}` : ''}
             </p>
           </div>
@@ -2129,6 +2125,7 @@ function DocumentAssistedResultDisplay({
 }) {
   const summary = asRecord(result.document_summary);
   const readiness = asRecord(result.acquisition_readiness_summary);
+  const investmentAssessment = asRecord(result.preliminary_investment_assessment);
   const publicCheckItems = asArray(result.public_source_check_records).length > 0
     ? asArray(result.public_source_check_records)
     : asArray(result.public_source_checks);
@@ -2137,10 +2134,16 @@ function DocumentAssistedResultDisplay({
     : asRecord(result.public_source_checks);
   const extractedClaims = asArray(result.extracted_claims ?? result.claims);
   const financialClaims = asArray(result.financial_claims ?? result.metric_claims);
+  const financialIds = new Set(financialClaims.map(item => textValue(asRecord(item).claim_id ?? claimText(item))));
+  const nonFinancialClaims = extractedClaims.filter(item => !financialIds.has(textValue(asRecord(item).claim_id ?? claimText(item))) && textValue(asRecord(item).category) !== 'financial');
   const customerClaims = asArray(result.customer_claims);
   const productClaims = asArray(result.product_claims);
   const aiClaims = asArray(result.ai_claims);
+  const marketClaims = asArray(result.market_claims);
+  const pricingClaims = asArray(result.pricing_claims);
+  const teamClaims = asArray(result.team_claims);
   const verifiedFacts = asArray(result.verified_facts);
+  const conflicts = asArray(result.conflicts);
   const unknowns = asArray(result.unknowns);
   const blockers = asArray(result.diligence_blockers);
   const nextQuestions = asArray(result.next_questions);
@@ -2181,7 +2184,7 @@ function DocumentAssistedResultDisplay({
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="document-assisted-result w-full space-y-4">
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--semantic-verified-bg)] border border-[var(--semantic-verified-border)] text-xs text-[var(--semantic-verified-text)]">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>{saveSource === 'backend' ? 'Saved to Cockpit' : 'Saved locally · document-assisted run'}</span>
@@ -2200,9 +2203,10 @@ function DocumentAssistedResultDisplay({
             ['Recommendation', result.recommendation || 'Request evidence pack'],
             ['IC readiness', result.ic_readiness || 'Not ready'],
             ['Evidence confidence', result.evidence_confidence || 'Claim, not verified'],
-            ['Document claims', String(extractedClaims.length)],
-            ['Financial claims', String(financialClaims.length)],
-            ['Blockers', String(blockers.length)],
+            ['Evidence period', summary.document_period_end ? `${displayValue(summary.document_period_start)}–${displayValue(summary.document_period_end)}` : 'Unknown'],
+            ['Staleness', formatLabel(textValue(summary.evidence_staleness ?? result.evidence_staleness, 'unknown'))],
+            ['Financial readiness', result.valuation_readiness || 'Current evidence required'],
+            ['Current verification', textValue(result.current_verification_status, 'Current evidence not verified')],
           ].map(([label, value]) => (
             <div key={label}>
               <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{label}</p>
@@ -2210,7 +2214,9 @@ function DocumentAssistedResultDisplay({
             </div>
           ))}
         </div>
+        {textValue(investmentAssessment.decision_reason) && <div className="px-4 py-3 border-t border-border"><p className="text-[10px] font-semibold text-muted-foreground mb-1">Why</p><p className="text-xs text-foreground leading-relaxed">{textValue(investmentAssessment.decision_reason)}</p></div>}
         <div className="px-4 py-3 border-t border-border bg-card/30">
+          {textValue(result.resolved_website) && <p className="mb-2 text-[10px] text-muted-foreground">Resolved domain: {textValue(result.resolved_website).replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>}
           <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Next action</p>
           <p className="text-xs text-foreground leading-snug">{result.next_action || displayValue(readiness.recommended_next_action, 'Request management accounts and source evidence before IC.')}</p>
         </div>
@@ -2233,37 +2239,21 @@ function DocumentAssistedResultDisplay({
         <p className="text-xs text-muted-foreground leading-relaxed mt-3">{displayValue(summary.summary, 'Document claims extracted. All document-derived items require independent verification.')}</p>
       </PackSection>
 
-      <PackSection title="Metric Cards">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            ['Claims extracted', String(extractedClaims.length)],
-            ['Financial claims', String(financialClaims.length)],
-            ['Unknowns', String(unknowns.length)],
-            ['Blockers', String(blockers.length)],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-md border border-border/70 bg-card/30 px-3 py-2.5">
-              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">{label}</p>
-              <p className="text-lg font-semibold text-foreground">{value}</p>
-            </div>
-          ))}
+      <PackSection title="Key claimed metrics" empty={financialClaims.length === 0} emptyMessage="No financial or operating metrics extracted. Request current management accounts.">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead><tr className="border-b border-border text-muted-foreground"><th className="py-2 pr-3">Metric</th><th className="py-2 pr-3">Claimed value</th><th className="py-2 pr-3">Period</th><th className="py-2">Source</th></tr></thead>
+            <tbody>{financialClaims.map((item, i) => { const rec = asRecord(item); return <tr key={textValue(rec.claim_id, String(i))} className="border-b border-border/60 last:border-0"><td className="py-2 pr-3 font-medium">{formatLabel(textValue(rec.metric_name ?? rec.label, 'Metric'))}</td><td className="py-2 pr-3">{displayValue(rec.value)}</td><td className="py-2 pr-3">{displayValue(rec.period)}</td><td className="py-2 text-muted-foreground">Page {displayValue(rec.page)}</td></tr>; })}</tbody>
+          </table>
         </div>
       </PackSection>
 
-      <PackSection title="Extracted Claims" empty={extractedClaims.length === 0} emptyMessage="No non-metric claims extracted. Metric claims are shown under Financial Claims.">
-        <DocumentClaimList items={extractedClaims} empty="No claims extracted." />
-      </PackSection>
-
-      <PackSection title="Financial Claims" empty={financialClaims.length === 0} emptyMessage="No financial or metric claims extracted. Request management accounts / ARR bridge.">
-        <DocumentClaimList items={financialClaims} empty="No financial claims extracted." />
-      </PackSection>
-
-      <PackSection title="Customer / GTM Claims" empty={customerClaims.length === 0} emptyMessage="Customer concentration, retention and GTM evidence not found in the uploaded document.">
-        <DocumentClaimList items={customerClaims} empty="No customer claims extracted." />
-      </PackSection>
-
-      <PackSection title="Product and AI Claims" empty={[...productClaims, ...aiClaims].length === 0} emptyMessage="Product and AI claims not found in the uploaded document.">
-        <DocumentClaimList items={[...productClaims, ...aiClaims]} empty="No product or AI claims extracted." />
-      </PackSection>
+      <details className="rounded-lg border border-border bg-card/20">
+        <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-primary">Claims by category ({nonFinancialClaims.length})</summary>
+        <div className="border-t border-border p-4 space-y-5">
+          {[['Product and pricing', [...productClaims, ...pricingClaims]], ['Customer and GTM', customerClaims], ['Market and funding', marketClaims], ['Team and organisation', teamClaims], ['AI and technology', aiClaims]].map(([title, items]) => <div key={String(title)}><p className="mb-2 text-[10px] font-semibold text-muted-foreground">{String(title)}</p><DocumentClaimList items={items as unknown[]} empty="No claims in this category." /></div>)}
+        </div>
+      </details>
 
       <PackSection title="Public Verification Checks">
         <div className="space-y-3">
@@ -2319,13 +2309,15 @@ function DocumentAssistedResultDisplay({
         </div>
       </PackSection>
 
+      {conflicts.length > 0 && <PackSection title="Conflicts"><DocumentClaimList items={conflicts} empty="No conflicts identified." /></PackSection>}
+
       <PackSection title="Unknowns" empty={unknowns.length === 0}>
         <UnknownList items={unknowns} empty="No unknowns flagged." />
       </PackSection>
 
       <PackSection title="Diligence Blockers" empty={blockers.length === 0}>
         <div className="space-y-2">
-          {blockers.map((item, i) => {
+          {blockers.slice(0, 3).map((item, i) => {
             const rec = asRecord(item);
             return (
               <div key={i} className="rounded-md border border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)]/40 px-3 py-2.5">
@@ -2340,13 +2332,14 @@ function DocumentAssistedResultDisplay({
 
       <PackSection title="Next questions" empty={nextQuestions.length === 0}>
         <ol className="space-y-2">
-          {nextQuestions.map((question, i) => (
+          {nextQuestions.slice(0, 5).map((question, i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
               <span className="text-[10px] font-medium text-muted-foreground/60 mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
               <span>{displayValue(question)}</span>
             </li>
           ))}
         </ol>
+        {nextQuestions.length > 5 && <details className="mt-3"><summary className="cursor-pointer text-xs font-medium text-primary">Full diligence library ({nextQuestions.length})</summary><ol className="mt-2 space-y-2">{nextQuestions.slice(5).map((question, i) => <li key={i} className="text-xs text-muted-foreground">{i + 6}. {displayValue(question)}</li>)}</ol></details>}
       </PackSection>
 
       <PackSection title="Documents to request" empty={recommendedDocuments.length === 0}>
@@ -2941,7 +2934,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
             className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-primary border border-dashed border-border hover:border-primary/40 rounded py-2 transition-colors"
           >
             <LockIcon className="w-3 h-3" />
-            Unlock AI thesis detail, inference cost benchmark and scenario modelling
+            View AI thesis detail, inference cost benchmarks and scenario modelling
           </button>
         </div>
       </div>
@@ -3048,7 +3041,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
             className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-primary border border-dashed border-border hover:border-primary/40 rounded py-2 transition-colors"
           >
             <LockIcon className="w-3 h-3" />
-            Unlock buyer-specific fit, platform alignment and integration considerations
+            View buyer-specific fit, platform alignment and integration considerations
           </button>
         </div>
       </div>
@@ -3133,9 +3126,9 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
 
       {/* Upgrade CTA */}
       <div className="rounded-lg border border-card-border bg-card px-5 py-5 shadow-xs">
-        <p className="text-sm font-semibold text-foreground mb-1">Unlock the full acquisition screen.</p>
+        <p className="text-sm font-semibold text-foreground mb-1">View the full acquisition screen.</p>
         <p className="text-xs text-muted-foreground mb-4">
-          Pilot access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
+          Pilot access includes the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <button
@@ -3622,9 +3615,9 @@ function AnalysisResultDisplay({
 
       {/* ── Upgrade CTA ────────────────────────────────────────────── */}
       <div className="rounded-lg border border-card-border bg-card px-5 py-5 shadow-xs">
-        <p className="text-sm font-semibold text-foreground mb-1">Unlock the full acquisition screen.</p>
+        <p className="text-sm font-semibold text-foreground mb-1">View the full acquisition screen.</p>
         <p className="text-xs text-muted-foreground mb-4">
-          Pilot access unlocks the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
+          Pilot access includes the full evidence trail, document-assisted analysis, AI disruption detail, buyer fit, IC pack exports and saved pipeline runs.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <button
@@ -3817,15 +3810,15 @@ const SAMPLE_RESULT: AnalysisResult = {
   strategic_fit: {
     score: 'Adjacent',
     why_fits: [
-      'UK SME software target — matches PE buy-and-build mandate',
-      'Recurring revenue model — Companies House verification required',
+      'UK SME software target: matches PE buy-and-build mandate',
+      'Recurring revenue model. Companies House verification required.',
     ],
     why_not: [
       'ARR definition absent from official filings',
       'Synergies not independently underwritten',
     ],
     assumptions: ['Revenue bridge from SaaS to ARR requires management clarification'],
-    risks: ['AI replica risk medium-high — product defensibility not established'],
+    risks: ['AI replica risk is medium-high. Product defensibility is not established.'],
     diligence_questions: [
       'Confirm ARR definition and SaaS/services split',
       'Quantify AI feature usage vs core product revenue',
@@ -3833,12 +3826,12 @@ const SAMPLE_RESULT: AnalysisResult = {
   },
   evidence_cards: [
     {
-      field: 'Revenue', value: 'Not confirmed — example screen only',
-      status: 'claim', source: 'Example — illustrative only',
+      field: 'Revenue', value: 'Not confirmed; example screen only',
+      status: 'claim', source: 'Illustrative example only',
       summary: 'This is an example screen. For real company screens, revenue is extracted from official filings and shown as a claim until independently verified.', confidence: 'Low',
     },
     {
-      field: 'ARR', value: 'Claimed — definition absent',
+      field: 'ARR', value: 'Claimed; definition absent',
       status: 'caveat', source: 'Company website / investor deck',
       summary: 'ARR stated on company website but SaaS vs services split is not confirmed in official filings.', confidence: 'Medium',
     },
@@ -3859,10 +3852,10 @@ const SAMPLE_RESULT: AnalysisResult = {
     },
   ],
   ai_disruption: {
-    replica_risk: 'Medium-high — generic AI workflow tooling is replicable by incumbents',
+    replica_risk: 'Medium-high. Incumbents may replicate generic AI workflow tooling.',
     replica_risk_level: 'amber',
     moat_evidence: 'No proprietary dataset or model identified in public sources',
-    inference_economics: 'Unknown — inference cost per workflow unit not disclosed',
+    inference_economics: 'Unknown. Inference cost per workflow unit is not disclosed.',
     product_expansion: 'AI layer could expand into adjacent workflow verticals if moat is established',
     opex_improvement: 'Process automation potential present but unquantified',
     diligence_questions: [

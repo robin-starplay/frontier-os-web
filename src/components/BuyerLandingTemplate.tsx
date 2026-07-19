@@ -60,7 +60,7 @@ function SampleCard({ data }: { data: BuyerPageData }) {
           Public-source preview · requires human review
         </span>
         <Link
-          href="/run?mode=sample"
+          href="/app/run"
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
         >
           Screen your own <ArrowRight className="w-3 h-3" />
@@ -88,7 +88,7 @@ function CtaBand() {
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
             <Link
-              href="/run?mode=sample"
+              href="/app/run"
               className="inline-flex items-center gap-2 h-10 px-6 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Screen company <ArrowRight className="w-3.5 h-3.5" />
@@ -247,7 +247,7 @@ export function BuyerLandingTemplate({ data }: { data: BuyerPageData }) {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-4">
-            Request private beta access to unlock these features as they become available.
+            Request private beta access to use these features as they become available.
           </p>
         </section>
 

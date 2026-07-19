@@ -2,6 +2,10 @@
 
 React + Vite frontend for [Frontier OS](https://frontier-os.com) — private beta acquisition screening product.
 
+## Product quality gates
+
+New pages and material workflow changes must pass the [Design QA checklist](docs/design-qa-checklist.md) before they are considered complete. Automated tests are necessary, but they do not replace the human hierarchy, density and institutional-credibility review.
+
 **Framework:** React 19 + Vite 7  
 **Styling:** Tailwind CSS v4 + shadcn/ui (New York style)  
 **Auth:** Clerk  

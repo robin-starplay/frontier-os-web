@@ -37,7 +37,7 @@ const WORKFLOW_BLOCKS = [
     icon: ClipboardList,
     title: 'IC-ready output',
     body: 'The result is a recommendation, diligence gaps and next actions.',
-    detail: 'IC readiness, valuation readiness, evidence register, diligence request list. The memo is the output — the evidence workflow is the product.',
+    detail: 'IC readiness, valuation readiness, evidence register and diligence request list. The memo is an output. The evidence workflow is the product.',
   },
 ];
 

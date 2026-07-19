@@ -51,7 +51,7 @@ const MODULES: Module[] = [
     icon: Target,
     name: 'Strategic fit',
     description:
-      'The target is assessed against a buyer thesis — not in isolation. Fit mode, sector overlap, integration risk and synergy confidence are each given a status, not a headline score.',
+      'The target is assessed against a buyer thesis. Fit mode, sector overlap, integration risk and synergy confidence each receive a status instead of a headline score.',
     status: 'Active',
     confidence: 'Medium',
     confidenceColor: 'text-amber-700',
@@ -60,7 +60,7 @@ const MODULES: Module[] = [
     icon: ClipboardList,
     name: 'Diligence gaps',
     description:
-      'Unknowns and conflicts are not suppressed. They are converted into a structured request list — what to ask for, why it matters, and what it blocks in the current analysis.',
+      'Unknowns and conflicts remain visible. The request list states what to ask for, why it matters and what it blocks in the current analysis.',
     status: 'Active',
     confidence: 'High',
     confidenceColor: 'text-green-700',

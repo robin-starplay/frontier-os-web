@@ -120,7 +120,7 @@ export function OAuthButtons({ redirectUrlComplete }: OAuthButtonsProps) {
               onClick={() => startOAuth(strategy)}
               disabled={isDisabled}
               aria-disabled={isDisabled}
-              aria-label={comingSoonMsg ? `${label} — ${comingSoonMsg}` : label}
+              aria-label={comingSoonMsg ? `${label}: ${comingSoonMsg}` : label}
               className={[
                 'w-full flex items-center justify-center gap-3 h-10 px-4 rounded-md border',
                 'border-[hsl(222,20%,22%)] bg-[hsl(222,30%,14%)]',

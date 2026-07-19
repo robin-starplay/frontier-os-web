@@ -198,7 +198,7 @@ export default function AIDisruptionPage() {
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm text-muted-foreground">
-              Indicative analysis — <span className="text-foreground font-medium">{AI_TARGET.name}</span>
+              Indicative analysis: <span className="text-foreground font-medium">{AI_TARGET.name}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-[9px] py-[5px] text-xs font-semibold leading-none text-[var(--semantic-claim-text)]">
               <AlertCircle className="w-3 h-3" />
@@ -300,12 +300,12 @@ export default function AIDisruptionPage() {
         {/* ── AI value and risk summary ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-5">
-            <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-4">AI can create value in three ways</p>
+            <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-4">Potential AI value</p>
             <div className="space-y-2.5">
               {[
-                'Product expansion — new AI-native features that expand the addressable market',
-                'OPEX reduction — automation of support, onboarding and implementation workflows',
-                'Implementation and support productivity — faster time-to-value for customers',
+                'Product expansion: Add AI-native capabilities that increase the addressable market.',
+                'Operating leverage: Automate support, onboarding and implementation work.',
+                'Customer productivity: Reduce implementation time and accelerate time to value.',
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 mt-1.5" />
@@ -315,12 +315,12 @@ export default function AIDisruptionPage() {
             </div>
           </div>
           <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-5">
-            <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-4">AI can create risk in three ways</p>
+            <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-4">Potential AI risk</p>
             <div className="space-y-2.5">
               {[
-                'Workflow replication — AI-native entrants replicate core functionality at lower cost',
-                'Services revenue cannibalisation — automation reduces billable implementation hours',
-                'Inference cost drag — uncapped model usage suppresses gross margin expansion',
+                'Workflow replication: AI-native entrants may reproduce core functionality at lower cost.',
+                'Services revenue pressure: Automation may reduce billable implementation work.',
+                'Inference costs: Uncontrolled model usage may limit gross margin expansion.',
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mt-1.5" />

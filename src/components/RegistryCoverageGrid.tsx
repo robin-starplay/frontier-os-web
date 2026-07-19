@@ -86,7 +86,7 @@ const REGISTRIES: Registry[] = [
       { text: 'Registry routing mapping' },
       { text: 'Manual intake framework' },
     ],
-    note: 'In design phase — not available for v1',
+    note: 'In design phase. Not available for v1.',
   },
 ];
 
@@ -166,7 +166,7 @@ export function RegistryCoverageGrid() {
         ))}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        Registry connectors provide authoritative Tier 1 evidence. Coverage and access constraints vary by jurisdiction — see individual connector notes.
+        Registry connectors provide authoritative Tier 1 evidence. Coverage and access constraints vary by jurisdiction; see the individual connector notes.
       </p>
     </div>
   );

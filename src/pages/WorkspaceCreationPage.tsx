@@ -65,7 +65,7 @@ function Field({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={type === 'email' ? 'email' : 'off'}
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+        className="w-full h-12 rounded-md border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
       />
     </div>
   );
@@ -190,26 +190,26 @@ export default function WorkspaceCreationPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-background px-6 py-16">
+      <div className="w-full max-w-2xl">
 
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-12">
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">
             Private beta · free access
           </p>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
+          <h1 className="text-4xl font-bold text-foreground mb-4">
             Create private beta workspace
           </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          <p className="text-base text-muted-foreground leading-relaxed">
             No payment required. Public-source screening only.<br />
             Do not upload confidential information.
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-lg">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-card border border-border rounded-xl p-8 md:p-12 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-6">
 
             <Field
               id="ws-name"
@@ -249,7 +249,7 @@ export default function WorkspaceCreationPage() {
                 value={role}
                 onChange={e => setRole(e.target.value)}
                 placeholder="e.g. Investment Director"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full h-12 rounded-md border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
               />
               <datalist id="role-suggestions">
                 {ROLE_SUGGESTIONS.map(r => <option key={r} value={r} />)}
@@ -260,10 +260,10 @@ export default function WorkspaceCreationPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-13 px-6 rounded-md transition-colors disabled:opacity-60"
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Creating workspace…</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Creating workspace</>
               ) : (
                 <>Create workspace <ArrowRight className="w-4 h-4" /></>
               )}
@@ -281,7 +281,7 @@ export default function WorkspaceCreationPage() {
         <p className="text-center text-xs text-muted-foreground/60 mt-5">
           Want to try first?{' '}
           <Link
-            href="/run?mode=sample"
+            href="/app/run"
             className="text-primary/80 hover:text-primary hover:underline transition-colors"
           >
             Screen the example company without an account

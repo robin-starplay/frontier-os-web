@@ -26,38 +26,38 @@ const REGISTRIES: Registry[] = [
     jurisdiction: 'United Kingdom',
     source: 'Companies House',
     status: 'active',
-    statusLabel: 'Active — v1',
-    bestFor: 'Private UK companies — filings, accounts, director records.',
+    statusLabel: 'Active: v1',
+    bestFor: 'Private UK companies: filings, accounts and director records.',
     uses: [
       'Company resolution and canonical entity identification',
       'Filed accounts extraction (revenue, EBITDA, balance sheet)',
       'Director and officer records',
       'Confirmation statements and share structure',
     ],
-    limitations: ['Statutory accounts only — no management accounts or ARR disclosure', 'Filing lag of up to 9 months from period end'],
-    access: 'Direct API — no authentication required for public filings',
+    limitations: ['Statutory accounts only; no management accounts or ARR disclosure', 'Filing lag of up to 9 months from period end'],
+    access: 'Direct API. No authentication required for public filings.',
     tier: 1,
   },
   {
     jurisdiction: 'United States',
     source: 'SEC EDGAR',
     status: 'connector',
-    statusLabel: 'Connector — v1',
-    bestFor: 'Public US companies — 10-K, 10-Q and 8-K filings.',
+    statusLabel: 'Connector: v1',
+    bestFor: 'Public US companies: 10-K, 10-Q and 8-K filings.',
     uses: [
       'Public company resolution via CIK or ticker',
       '10-K, 10-Q and 8-K filing extraction',
       'Company facts API for structured financial data',
     ],
-    limitations: ['Public companies only — private companies not covered', 'No private SaaS metrics or ARR disclosure in most filings'],
-    access: 'Direct API — no authentication required. Rate limits apply.',
+    limitations: ['Public companies only; private companies are not covered', 'No private SaaS metrics or ARR disclosure in most filings'],
+    access: 'Direct API. No authentication required. Rate limits apply.',
     tier: 1,
   },
   {
     jurisdiction: 'Germany',
     source: 'Unternehmensregister / Handelsregister',
     status: 'manual',
-    statusLabel: 'Manual connector — v1',
+    statusLabel: 'Manual connector: v1',
     bestFor: 'Official search routing and filing lookup. Some access requires login or paid documents.',
     uses: [
       'Official company search routing',
@@ -65,7 +65,7 @@ const REGISTRIES: Registry[] = [
       'Trade register extract access (Handelsregisterauszug)',
     ],
     limitations: [
-      'Direct API not publicly available — access routes through official portal',
+      'Direct API not publicly available. Access is through the official portal.',
       'Some documents require manual confirmation or paid download',
       'Full accounts not always filed for smaller entities',
     ],
@@ -77,7 +77,7 @@ const REGISTRIES: Registry[] = [
     source: 'Infogreffe / Registre du Commerce',
     status: 'planned',
     statusLabel: 'Planned',
-    bestFor: 'French registered companies — planned coverage.',
+    bestFor: 'French registered companies. Coverage planned.',
     uses: [],
     limitations: [],
     access: 'Not yet implemented.',
@@ -88,7 +88,7 @@ const REGISTRIES: Registry[] = [
     source: 'Registro delle Imprese',
     status: 'planned',
     statusLabel: 'Planned',
-    bestFor: 'Italian registered companies — planned coverage.',
+    bestFor: 'Italian registered companies. Coverage planned.',
     uses: [],
     limitations: [],
     access: 'Not yet implemented.',
@@ -115,7 +115,7 @@ export default function RegistryCoveragePage() {
             Official registry coverage.
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl leading-relaxed mb-5">
-            Registry coverage helps Frontier OS avoid treating weak web data as truth. Official filings outrank decks, websites and aggregator estimates. Where registry data is unavailable, that limitation is shown explicitly — not hidden.
+            Registry coverage prevents weak web data from being treated as fact. Official filings outrank decks, websites and aggregator estimates. Any gaps in registry data are stated explicitly.
           </p>
           <div className="flex items-center gap-5 text-sm text-muted-foreground flex-wrap">
             {(['active', 'connector', 'manual', 'planned'] as RegistryStatus[]).map((s) => {

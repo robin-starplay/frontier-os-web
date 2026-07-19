@@ -70,7 +70,7 @@ const QUESTIONS = [
 ];
 
 function buildEmailBody(answers: Answers): string {
-  const lines: string[] = ['Frontier OS — private beta feedback\n'];
+  const lines: string[] = ['Frontier OS private beta feedback\n'];
   QUESTIONS.forEach((q, idx) => {
     const answer = answers[q.id] ?? '(no answer)';
     lines.push(`${idx + 1}. ${q.label}`);

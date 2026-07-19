@@ -374,7 +374,7 @@ function CockpitPreview() {
 /**
  * Shown to signed-out users who navigate to a protected route (/run, /compare, /cockpit).
  * Uses Clerk's SignUpButton / SignInButton so clicks are handled by the configured Clerk flow.
- * When page='run' or page='cockpit', a static sample preview renders below the gate.
+ * Static example previews stay hidden until source-backed demo runs are available.
  */
 export function BetaGate({ page }: BetaGateProps) {
   const [, setLocation] = useLocation();
@@ -403,8 +403,7 @@ export function BetaGate({ page }: BetaGateProps) {
 
         {/* Body */}
         <p className="text-base text-muted-foreground max-w-md mb-8 leading-relaxed">
-          Public pages use example screens. A free beta account lets you run URL-only
-          analysis on your own targets.
+          A free beta account lets you run URL-only analysis on your own targets.
         </p>
 
         {/* CTAs */}
@@ -433,18 +432,18 @@ export function BetaGate({ page }: BetaGateProps) {
           {/* Secondary — context-specific sample preview link */}
           {page === 'run' && (
             <Link
-              href="/run?mode=sample"
+              href="/app/run"
               className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium border border-border text-foreground hover:border-primary/40 hover:bg-accent/20 rounded-md transition-colors"
             >
-              View sample screen
+              Start a company screen
             </Link>
           )}
           {page === 'cockpit' && (
             <Link
-              href="/cockpit?mode=sample"
+              href="/app/cockpit"
               className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium border border-border text-foreground hover:border-primary/40 hover:bg-accent/20 rounded-md transition-colors"
             >
-              View sample cockpit
+              Open deal cockpit
             </Link>
           )}
 
@@ -462,10 +461,6 @@ export function BetaGate({ page }: BetaGateProps) {
 
         </div>
       </div>
-
-      {/* ── Static sample previews (below gate) ── */}
-      {page === 'run'     && <RunPreview />}
-      {page === 'cockpit' && <CockpitPreview />}
 
     </div>
   );

@@ -5,7 +5,7 @@
 
 export const AI_TARGET = {
   name: 'Illustrative Target Co.',
-  revenue: '— (not verified in preview)',
+  revenue: 'Not verified in preview',
   recurringRevenue: '—',
   ebitda: '[illustrative]',
   aiClaim: 'AI-powered workflow assistant',

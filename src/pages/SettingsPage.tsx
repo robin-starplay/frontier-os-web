@@ -5,6 +5,7 @@ import {
   getTrialAccount,
   getWorkspaceId,
   getUserId,
+  getWorkspaceProfile,
   clearLocalWorkspace,
 } from '@/lib/trialAccount';
 import { getRuns, clearRuns } from '@/lib/runHistory';
@@ -43,6 +44,7 @@ function useLocalApiHealth() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const workspaceProfile = getWorkspaceProfile();
   const { isLoaded, isSignedIn, user } = useOptionalUser();
   const { signOut } = useOptionalClerk();
   const localApi = useLocalApiHealth();
@@ -158,13 +160,13 @@ export default function SettingsPage() {
               <div>
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Workspace name</p>
                 <p className="text-sm text-foreground">
-                  {trial?.workspace_name ?? user?.fullName ?? 'Private beta workspace'}
+                  {workspaceProfile?.name ?? user?.fullName ?? 'Private beta workspace'}
                 </p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Account</p>
                 <p className="text-sm text-foreground">
-                  {user?.primaryEmailAddress?.emailAddress ?? trial?.email ?? 'Local reviewer workspace'}
+                  {user?.primaryEmailAddress?.emailAddress ?? workspaceProfile?.email ?? 'Local reviewer workspace'}
                 </p>
               </div>
               <div>

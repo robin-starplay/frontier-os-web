@@ -45,7 +45,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     category: 'AI disruption',
     q: 'What is AI replica risk?',
-    a: 'An assessment of whether the product\'s core workflow could be rebuilt by AI-native competitors or internal customer teams — considering data uniqueness, integration depth, switching costs and domain complexity. A high replica risk does not make a deal uninvestable, but it changes price and structure assumptions.',
+    a: 'An assessment of whether AI-native competitors or internal customer teams could rebuild the product\'s core workflow. It considers data uniqueness, integration depth, switching costs and domain complexity. High replica risk may affect price and structure assumptions.',
   },
   {
     category: 'AI disruption',
@@ -85,7 +85,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     category: 'Upload',
     q: 'Can I upload pitch decks, CIMs or Excel files?',
-    a: 'Document-assisted review is part of the product direction. In the private beta sample workflow, upload is simulated — files are selected locally but not transmitted. Controlled pilots should define retention, deletion and provider data-use settings before confidential documents are processed.',
+    a: 'Document-assisted review is part of the product direction. In the private beta sample workflow, upload is simulated. Files are selected locally but not transmitted. Controlled pilots should define retention, deletion and provider data-use settings before confidential documents are processed.',
   },
   {
     category: 'Upload',

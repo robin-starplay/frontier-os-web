@@ -32,7 +32,7 @@ export function LockedSection({ title, description, reason, preview }: LockedSec
         type="button"
         onClick={() => openGate(reason)}
         className="w-full flex items-center gap-4 px-4 py-4 hover:bg-muted/20 transition-colors text-left group"
-        aria-label={`Unlock ${title}`}
+        aria-label={`Request access to ${title}`}
       >
         <div className="w-8 h-8 rounded-full border border-border bg-muted/30 flex items-center justify-center shrink-0 group-hover:border-primary/40 group-hover:bg-primary/5 transition-colors">
           <Lock className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />

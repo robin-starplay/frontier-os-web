@@ -87,7 +87,7 @@ export default function ICMemo() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">ARR unverified — management claim, not confirmed</span></div>
+                  <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">ARR unverified. Management claim not confirmed.</span></div>
                   <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Customer concentration schedule required</span></div>
                   <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" /><span className="text-sm font-medium">Non-GAAP EBITDA reconciliation required</span></div>
                 </CardContent>
@@ -115,7 +115,7 @@ export default function ICMemo() {
           <TabsContent value="evidence" className="space-y-6 outline-none">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-md border border-border bg-card text-center">
-                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <div className="text-2xl font-bold text-muted-foreground">Not available</div>
                 <div className="text-xs text-muted-foreground">Verified</div>
               </div>
               <div className="p-4 rounded-md border border-border bg-card text-center">
@@ -277,7 +277,7 @@ export default function ICMemo() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-blue-700">Executive AI View</CardTitle>
-                    <CardDescription>Source-based AI disruption assessment — medium confidence</CardDescription>
+                    <CardDescription>Source-based AI disruption assessment. Medium confidence.</CardDescription>
                   </div>
                   <RiskBadge level="moderate" className="shrink-0" />
                 </div>
@@ -379,7 +379,7 @@ export default function ICMemo() {
             {/* AI diligence questions */}
             <Card className="border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">AI Diligence Questions — must request before IC</CardTitle>
+                <CardTitle className="text-sm">AI diligence questions required before IC</CardTitle>
               </CardHeader>
               <CardContent>
                 <ol className="space-y-2">

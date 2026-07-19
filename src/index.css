@@ -129,14 +129,14 @@
   --app-font-serif: Georgia, serif;
   --app-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
   --font-size-nav: 13px;
-  --font-size-label: 13px;
-  --font-size-body: 14px;
-  --font-size-body-lg: 15px;
-  --font-size-card-title: 16px;
-  --font-size-section-title: 18px;
-  --font-size-page-title: 30px;
+  --font-size-label: 14px;
+  --font-size-body: 16px;
+  --font-size-body-lg: 18px;
+  --font-size-card-title: 18px;
+  --font-size-section-title: 24px;
+  --font-size-page-title: 40px;
   --font-size-hero-title: 48px;
-  --line-height-body: 1.55;
+  --line-height-body: 1.6;
   --line-height-compact: 1.35;
   --line-height-heading: 1.2;
   --radius: 0.75rem;
@@ -202,7 +202,7 @@
 @layer components {
   .app-container {
     width: 100%;
-    max-width: 88rem;
+    max-width: 80rem;
     margin-left: auto;
     margin-right: auto;
     padding-left: 1rem;
@@ -357,6 +357,14 @@
     font-size: var(--font-size-body);
     line-height: var(--line-height-compact);
   }
+  button,
+  a {
+    text-underline-offset: 3px;
+  }
+  button,
+  [role='button'] {
+    min-height: 44px;
+  }
   ::selection {
     background: hsl(var(--primary) / 0.16);
     color: hsl(var(--foreground));
@@ -443,5 +451,22 @@
   .focus-ring {
     outline: none;
     box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+}
+@media print {
+  .document-assisted-result {
+    gap: 0.5rem !important;
+    font-size: 10pt;
+  }
+  .document-assisted-result > * {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  .document-assisted-result details:not([open]) {
+    display: none;
+  }
+  .document-assisted-result button,
+  .document-assisted-result a[href="/app/cockpit"] {
+    display: none !important;
   }
 }

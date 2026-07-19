@@ -20,7 +20,7 @@ export default function ResultsPreview() {
       <div className="border-b border-amber-500/20 bg-amber-500/5 px-6 py-2 text-xs text-amber-700 flex items-center gap-2">
         <span className="font-semibold tracking-normal">Example screen</span>
         <span className="text-amber-700/60">·</span>
-        <span>Static example — not a real company. Public-source facts require source metadata.</span>
+        <span>Static example, not a real company. Public-source facts require source metadata.</span>
       </div>
 
       {/* Top Bar */}
@@ -90,21 +90,21 @@ export default function ResultsPreview() {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-medium text-muted-foreground">Revenue</span>
                 </div>
-                <div className="font-mono text-2xl font-bold mb-1">—</div>
+                <div className="font-mono text-2xl font-bold mb-1">N/A</div>
                 <div className="text-[10px] text-muted-foreground">Not verified in this public-source preview</div>
               </div>
               <div className="p-4 rounded-md bg-muted/30 border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-medium text-muted-foreground">Net cash</span>
                 </div>
-                <div className="font-mono text-2xl font-bold mb-1">—</div>
+                <div className="font-mono text-2xl font-bold mb-1">N/A</div>
                 <div className="text-[10px] text-muted-foreground">Not verified in this public-source preview</div>
               </div>
               <div className="p-4 rounded-md bg-muted/30 border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-medium text-muted-foreground">EBITDA margin</span>
                 </div>
-                <div className="font-mono text-2xl font-bold mb-1">—</div>
+                <div className="font-mono text-2xl font-bold mb-1">N/A</div>
                 <div className="text-[10px] text-muted-foreground">Not verified in this public-source preview</div>
               </div>
             </div>

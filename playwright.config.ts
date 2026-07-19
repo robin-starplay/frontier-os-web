@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'https://www.getfrontieros.com';
+const configuredBaseURL = process.env.PLAYWRIGHT_BASE_URL;
+const localBaseURL = 'http://127.0.0.1:3000';
+const baseURL = configuredBaseURL || localBaseURL;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -14,6 +16,14 @@ export default defineConfig({
   reporter: process.env.CI
     ? [['github'], ['html', { open: 'never', outputFolder: '.playwright/report' }]]
     : [['list'], ['html', { open: 'never', outputFolder: '.playwright/report' }]],
+  webServer: configuredBaseURL
+    ? undefined
+    : {
+        command: 'npm run dev -- --host 127.0.0.1',
+        url: localBaseURL,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
   use: {
     baseURL,
     trace: 'retain-on-failure',

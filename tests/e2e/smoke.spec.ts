@@ -28,7 +28,7 @@ test('desktop navigation reaches primary product pages', async ({ page }, testIn
   await createTestWorkspace(page);
   await gotoAndAssertUsable(page, '/');
 
-  await clickNavLink(page, /^Run$/i);
+  await clickNavLink(page, /^Screen$/i);
   await expect(page).toHaveURL(/\/app\/run/);
   await visibleText(page, /evidence-first acquisition screen|run an evidence-first acquisition screen/i);
 

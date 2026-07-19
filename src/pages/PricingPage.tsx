@@ -122,16 +122,16 @@ const TIER_NAMES = ['Free Preview', 'Starter / Growth', 'Team / Platform', 'Ente
 const COMPARISON_ROWS: { label: string; vals: string[] }[] = [
   { label: 'Public-source screens',       vals: ['5 screens', 'More screens',  'Volume',    'Volume+'] },
   { label: 'Full on-screen result',       vals: ['✓', '✓', '✓', '✓'] },
-  { label: 'Compare targets',             vals: ['—', '✓', '✓', '✓'] },
-  { label: 'Deal pipeline',               vals: ['—', '✓', '✓', '✓'] },
+  { label: 'Compare targets',             vals: ['Not included', '✓', '✓', '✓'] },
+  { label: 'Deal pipeline',               vals: ['Not included', '✓', '✓', '✓'] },
   { label: 'Document-assisted review',    vals: ['1 review', '✓', '✓', '✓'] },
-  { label: 'Save summaries to pipeline',  vals: ['—', '✓', '✓', '✓'] },
-  { label: 'Export-ready summaries',      vals: ['—', '✓', '✓', '✓'] },
-  { label: 'Buyer thesis templates',      vals: ['—', '—', '✓', '✓'] },
-  { label: 'PowerPoint IC pack',          vals: ['—', '—', '✓', '✓'] },
-  { label: 'API access',                  vals: ['—', '—', '—', '✓'] },
-  { label: 'Custom data / retention',     vals: ['—', '—', '—', '✓'] },
-  { label: 'Pilot setup',                 vals: ['—', '—', '—', '✓'] },
+  { label: 'Save summaries to pipeline',  vals: ['Not included', '✓', '✓', '✓'] },
+  { label: 'Export-ready summaries',      vals: ['Not included', '✓', '✓', '✓'] },
+  { label: 'Buyer thesis templates',      vals: ['Not included', 'Not included', '✓', '✓'] },
+  { label: 'PowerPoint IC pack',          vals: ['Not included', 'Not included', '✓', '✓'] },
+  { label: 'API access',                  vals: ['Not included', 'Not included', 'Not included', '✓'] },
+  { label: 'Custom data / retention',     vals: ['Not included', 'Not included', 'Not included', '✓'] },
+  { label: 'Pilot setup',                 vals: ['Not included', 'Not included', 'Not included', '✓'] },
 ];
 
 // ─── Backend plan shape ───────────────────────────────────────────────────────
@@ -232,45 +232,45 @@ function TierCard({
 
   return (
     <div className={cn(
-      'rounded-xl border bg-card flex flex-col p-6 relative h-full',
+      'min-w-0 rounded-xl border bg-card flex flex-col p-8 relative h-full overflow-hidden',
       'border-border',
     )}>
       {/* Header */}
-      <div className="mb-5">
-        <div className="flex items-center gap-2 mb-1.5">
-          <p className="text-sm font-bold text-foreground">{tier.name}</p>
+      <div className="mb-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 mb-1.5">
+          <p className="min-w-0 break-words text-lg font-bold text-foreground">{tier.name}</p>
           {tier.badge && (
-            <SemanticBadge tone="info" className="shrink-0">{tier.badge}</SemanticBadge>
+            <SemanticBadge tone="info" className="max-w-full shrink break-words whitespace-normal text-center">{tier.badge}</SemanticBadge>
           )}
         </div>
         <p className={cn(
-          'font-bold text-foreground',
-          tier.price_label === 'Free' || tier.price_label === '£0' ? 'text-2xl' : 'text-xl',
+          'min-w-0 break-words font-bold text-foreground',
+          tier.price_label === 'Free' || tier.price_label === '£0' ? 'text-3xl' : 'text-2xl',
         )}>
           {tier.price_label}
         </p>
       </div>
 
       {/* Description */}
-      <p className="text-xs text-muted-foreground leading-relaxed mb-5">{tier.audience}</p>
+      <p className="min-w-0 break-words text-sm text-muted-foreground leading-relaxed mb-8">{tier.audience}</p>
 
       {/* Features — flex-1 pushes CTA block to card bottom */}
-      <div className="flex-1 space-y-2 mb-6">
+      <div className="flex-1 space-y-3 mb-8">
         {tier.features.map(f => (
           <div key={f} className="flex items-start gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-            <span className="text-xs text-muted-foreground">{f}</span>
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-1" />
+            <span className="text-sm text-muted-foreground leading-relaxed">{f}</span>
           </div>
         ))}
       </div>
 
       {/* CTA block — pinned to card bottom */}
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <button
           type="button"
           onClick={() => onPlanCta(tier)}
           className={cn(
-            'inline-flex items-center justify-center gap-1.5 w-full h-9 rounded-md text-sm font-semibold transition-colors whitespace-nowrap',
+            'inline-flex min-w-0 items-center justify-center gap-2 w-full min-h-13 rounded-md px-3 py-3 text-center text-sm font-semibold leading-snug transition-colors whitespace-normal break-words',
             tier.ctaVariant === 'primary'
               ? 'bg-primary text-primary-foreground hover:bg-primary/90'
               : 'border border-primary/40 bg-transparent text-foreground hover:bg-primary/5 hover:border-primary/60',
@@ -360,25 +360,25 @@ export default function PricingPage() {
 
       {/* Header */}
       <div className="w-full border-b border-border bg-card/30">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 text-center">
+        <div className="max-w-7xl mx-auto px-6 md:px-8 py-16 text-center">
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Pricing</p>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-5">
             Start free. Scale as you screen.
           </h1>
-          <p className="text-base text-muted-foreground max-w-xl mx-auto">
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Free preview includes one document-assisted review. Starter / Growth is £99/month during pilot access.
             Team and Enterprise pricing available on request.
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] text-xs">
+          <div className="mt-5 inline-flex max-w-full flex-wrap items-center justify-center gap-2 px-3 py-1.5 rounded-full border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] text-[var(--semantic-info-text)] text-xs leading-relaxed">
             Pilot access · Do not upload confidential information in the public preview
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 py-16">
 
         {/* Tier cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-16 items-stretch">
+        <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-20 items-stretch [&>*]:min-w-0">
           {tiers.map(t => {
             if (import.meta.env.DEV) {
               console.log('pricing plan', t.plan_id, t.payment_mode, t.cta_url);
@@ -403,7 +403,7 @@ export default function PricingPage() {
         </div>
 
         {/* Comparison table — desktop only */}
-        <div className="hidden lg:block mb-16">
+        <div className="hidden xl:block mb-16">
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-6">Feature comparison</p>
           <div className="rounded-xl border border-border overflow-hidden">
             <div className="grid grid-cols-5 bg-muted/20 border-b border-border">
@@ -428,7 +428,7 @@ export default function PricingPage() {
                     key={vi}
                     className={cn(
                       'px-4 py-3 text-xs text-center font-medium',
-                      v === '—' ? 'text-muted-foreground/30' : 'text-foreground',
+                      v === 'Not included' ? 'text-muted-foreground/50 font-normal' : 'text-foreground',
                       v === '✓' ? 'text-primary' : '',
                     )}
                   >

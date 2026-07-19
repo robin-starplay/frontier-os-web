@@ -212,24 +212,24 @@ export function Navbar() {
   return (
     <>
       <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="app-container flex h-14 items-center gap-3">
+        <div className="app-container flex h-16 items-center gap-3">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-sm tracking-normal text-foreground">
+            <span className="text-base font-semibold leading-tight tracking-normal text-foreground">
               Frontier OS
             </span>
           </Link>
 
           {/* Desktop public nav — always the same set */}
-          <div className="hidden lg:flex items-center gap-0.5 ml-4">
+          <div className="ml-3 hidden items-center gap-1 xl:flex">
             {PUBLIC_NAV.map(({ label, href }) => (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  'px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
+                  'whitespace-nowrap rounded-md px-2 py-2 text-sm font-medium leading-tight transition-colors',
                   isActive(href)
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
@@ -246,21 +246,15 @@ export function Navbar() {
           </div>
 
           {/* Right side */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex min-w-0 items-center gap-2.5">
             <ThemeToggle compact className="hidden sm:inline-flex" />
-
-            {!isLoaded && (
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
-                BETA
-              </span>
-            )}
 
             {isLoaded && hasWorkspace && (
               /* Signed-in or local reviewer workspace on a public page — return to workspace */
               <>
                 <Link
                   href={workspaceHref}
-                  className="hidden sm:inline-flex items-center justify-center gap-1.5 text-[var(--font-size-nav)] font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
+                  className="hidden h-10 min-w-max shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium leading-tight text-primary-foreground transition-colors hover:bg-primary/90 sm:inline-flex"
                 >
                   Open workspace
                 </Link>
@@ -273,27 +267,24 @@ export function Navbar() {
             {isLoaded && !hasWorkspace && (
               /* Public / signed-out right rail */
               <>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
-                  BETA
-                </span>
                 <a
                   href={BOOK_INTRO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden lg:inline-flex items-center gap-1.5 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
+                  className="hidden h-10 min-w-max shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-4 text-sm font-medium leading-tight text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground xl:inline-flex"
                 >
                   <Calendar className="w-3.5 h-3.5" />
                   Intro
                 </a>
                 <Link
                   href={clerkEnabled ? '/sign-in' : '/create-workspace'}
-                  className="hidden sm:inline-flex items-center justify-center text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors"
+                  className="hidden h-10 w-auto min-w-max shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-border px-4 text-sm font-medium leading-tight text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:inline-flex"
                 >
                   {clerkEnabled ? 'Sign in' : 'Beta workspace'}
                 </Link>
                 <Link
-                  href={clerkEnabled ? '/run?mode=sample' : '/create-workspace'}
-                  className="hidden sm:inline-flex items-center justify-center text-[var(--font-size-nav)] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors whitespace-nowrap"
+                  href={clerkEnabled ? '/app/run' : '/create-workspace'}
+                  className="hidden h-10 min-w-max shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 text-sm font-semibold leading-tight text-primary-foreground transition-colors hover:bg-primary/90 sm:inline-flex"
                 >
                   {clerkEnabled ? 'Screen company' : 'Start free'}
                 </Link>
@@ -302,7 +293,7 @@ export function Navbar() {
 
             {/* Mobile hamburger */}
             <button
-              className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+              className="min-h-10 min-w-10 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground xl:hidden"
               onClick={() => setMobileOpen(o => !o)}
               aria-label="Toggle navigation"
             >
@@ -313,7 +304,7 @@ export function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-border bg-background px-4 py-3">
+          <div className="xl:hidden border-t border-border bg-background px-4 py-3">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
               {PUBLIC_MOBILE_PRIMARY.map(({ label, href }) => (
                 <Link
@@ -404,11 +395,6 @@ export function Navbar() {
                 </div>
               ) : isLoaded && !hasWorkspace ? (
                 <>
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
-                      BETA
-                    </span>
-                  </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
                       href={clerkEnabled ? '/sign-in' : '/create-workspace'}
@@ -425,7 +411,7 @@ export function Navbar() {
                       {clerkEnabled ? 'Create account' : 'Create workspace'}
                     </Link>
                     <Link
-                      href={clerkEnabled ? '/run?mode=sample' : '/create-workspace'}
+                      href={clerkEnabled ? '/app/run' : '/create-workspace'}
                       className="inline-flex items-center justify-center text-[var(--font-size-nav)] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >

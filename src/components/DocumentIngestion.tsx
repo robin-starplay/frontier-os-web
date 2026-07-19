@@ -17,7 +17,7 @@ export function DocumentIngestion() {
         </div>
         <h4 className="text-sm font-medium mb-1 text-foreground">Upload Documents</h4>
         <p className="text-xs text-muted-foreground mb-4 max-w-[250px]">
-          PDF, Excel, Word — drag & drop or browse. Financials, cap tables, and legal docs.
+          Drag and drop or browse PDF, Excel and Word files, including financials, cap tables and legal documents.
         </p>
         <button type="button" className="px-4 py-2 bg-secondary text-secondary-foreground text-xs font-medium rounded hover:bg-secondary/80 transition-colors border border-secondary-border">
           Browse Files

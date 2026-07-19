@@ -51,13 +51,13 @@ const SECTIONS: TrustSection[] = [
   {
     icon: UserCheck,
     title: 'Human review required',
-    body: 'All outputs are decision support material, not investment advice. Source review and professional judgement are required before any investment decision. Frontier OS surfaces evidence, gaps and conflicts — it does not resolve them on your behalf.',
+    body: 'All outputs are decision support material, not investment advice. Source review and professional judgement are required before any investment decision. Frontier OS surfaces evidence, gaps and conflicts. The user remains responsible for resolving them.',
   },
 ];
 
 const SECURITY_ITEMS = [
-  { label: 'Authentication',    status: 'Planned',          note: 'Role-based access and SSO — not yet live' },
-  { label: 'Audit log',        status: 'Planned',          note: 'Per-workspace event log — not yet live' },
+  { label: 'Authentication',    status: 'Planned',          note: 'Role-based access and SSO are not yet live' },
+  { label: 'Audit log',        status: 'Planned',          note: 'The per-workspace event log is not yet live' },
   { label: 'Data at rest',     status: 'Provider defaults', note: 'Subject to chosen cloud provider configuration' },
   { label: 'Data in transit',  status: 'HTTPS',            note: 'TLS enforced where hosted' },
   { label: 'Malware scanning', status: 'Planned',          note: 'Scheduled before document upload is live' },
@@ -79,7 +79,7 @@ export default function TrustPage() {
 
       {/* Page header */}
       <div className="w-full border-b border-border bg-card/30">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-6 md:px-8 py-16">
           <SectionLabel>Trust & privacy</SectionLabel>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight max-w-xl">
             Designed for careful deal workflows.
@@ -95,12 +95,12 @@ export default function TrustPage() {
       </div>
 
       {/* Trust principles */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 py-16">
         <SectionLabel>Trust principles</SectionLabel>
         <h2 className="text-xl font-bold text-foreground mb-8">How it is designed</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {SECTIONS.map(({ icon: Icon, title, body, caveat }) => (
-            <div key={title} className="rounded-lg border border-border bg-card p-6">
+            <div key={title} className="rounded-lg border border-border bg-card p-8">
               <div className="flex items-start gap-4">
                 <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
                   <Icon className="w-4 h-4 text-primary" />
@@ -123,15 +123,15 @@ export default function TrustPage() {
 
       {/* Current status */}
       <div className="w-full bg-card/30 border-y border-border py-12">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
+        <div className="max-w-7xl mx-auto px-6 md:px-8">
           <SectionLabel>Current status</SectionLabel>
           <h2 className="text-xl font-bold text-foreground mb-2">Security posture</h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-xl">
             A factual account of the current state. No certifications are claimed.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {SECURITY_ITEMS.map(({ label, status, note }) => (
-              <div key={label} className="rounded-lg border border-border bg-card px-5 py-4 flex items-start justify-between gap-4">
+              <div key={label} className="rounded-lg border border-border bg-card p-8 flex items-start justify-between gap-6">
                 <div>
                   <p className="text-sm font-medium text-foreground mb-0.5">{label}</p>
                   <p className="text-xs text-muted-foreground">{note}</p>
@@ -146,7 +146,7 @@ export default function TrustPage() {
       </div>
 
       {/* What we do not claim yet */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 py-16">
         <SectionLabel>What we do not claim yet</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">

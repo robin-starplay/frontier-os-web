@@ -3,12 +3,12 @@ import { createTestWorkspace, gotoAndAssertUsable, installGuardrails } from './h
 
 async function openMobileMenu(page: import('@playwright/test').Page) {
   const nav = page.getByRole('navigation').first();
-  if (!(await nav.getByText(/^Screening$/).isVisible().catch(() => false))) {
+  if (!(await nav.getByText(/^Workflow$/).isVisible().catch(() => false))) {
     await page.getByRole('button', { name: /toggle navigation/i }).click();
   }
-  await expect(nav.getByText(/^Screening$/)).toBeVisible();
+  await expect(nav.getByText(/^Workflow$/)).toBeVisible();
   await expect(nav.getByText(/^Commercial$/)).toBeVisible();
-  await expect(nav.locator('p').filter({ hasText: /^Trust$/ })).toBeVisible();
+  await expect(nav.getByText(/^Support$/)).toBeVisible();
 }
 
 test('mobile navigation is grouped and reaches key routes', async ({ page }, testInfo) => {
@@ -17,12 +17,12 @@ test('mobile navigation is grouped and reaches key routes', async ({ page }, tes
   await createTestWorkspace(page);
   await gotoAndAssertUsable(page, '/');
   await openMobileMenu(page);
-  await expect(page.getByRole('link', { name: /^Run$/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Screen$/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /^Cockpit$/i })).toBeVisible();
   await expect(page.getByText(/^More$/)).toBeVisible();
 
   const links = [
-    { name: /^Run$/i, url: /\/app\/run/ },
+    { name: /^Screen$/i, url: /\/app\/run/ },
     { name: /^Cockpit$/i, url: /\/app\/cockpit/ },
     { name: /^Compare$/i, url: /\/app\/compare/ },
     { name: /^Origination$/i, url: /\/app\/origination/ },

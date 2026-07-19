@@ -43,7 +43,7 @@ const WORKFLOW_STAGES: Stage[] = [
     id: 3,
     label: 'Document-assisted review',
     description: 'CIM, ARR bridge and customer contract documents ingested. Claims extracted from each document and cross-referenced against public and registry evidence. Conflicts and verification gaps are flagged for diligence.',
-    output: 'ARR claim confirmed as management estimate only — not audited. SaaS/services split: 78/22. Customer concentration: top 3 = 41% revenue.',
+    output: 'ARR confirmed as a management estimate only; it is not audited. SaaS/services split: 78/22. Customer concentration: top 3 = 41% of revenue.',
     note: 'Document upload is shown as a sample workflow. No files are processed on this page.',
   },
   {
@@ -116,7 +116,7 @@ const COCKPIT_TARGETS = [
     valuationReadiness: 'Blocked',
     aiRisk: 'High',                            aiLevel: 'red' as Level,
     confidence: 'Low',                         confLevel: 'grey' as Level,
-    nextAction: 'Confirm Handelsregister filings — registry data is blocking IC readiness.',
+    nextAction: 'Confirm Handelsregister filings. Registry data is blocking IC readiness.',
   },
   {
     company: 'DataRoomOps Ltd.',               jurisdiction: 'UK',
@@ -136,11 +136,11 @@ const COMPARE_TARGETS = ['Illustrative Co.', 'LedgerWorks', 'VerticalOps'];
 const COMPARE_ROWS: { label: string; vals: string[]; levels?: Level[] }[] = [
   {
     label: 'Strategic fit',
-    vals: ['Adjacent — further diligence required', 'Strong — core mandate fit', 'Poor — jurisdiction and AI risk block'],
+    vals: ['Adjacent; further diligence required', 'Strong: core mandate fit', 'Poor: jurisdiction and AI risk block'],
   },
   {
     label: 'Evidence quality',
-    vals: ['Medium — 9/24 verified', 'High — 18/21 verified', 'Low — 4/17 verified'],
+    vals: ['Medium: 9/24 verified', 'High: 18/21 verified', 'Low: 4/17 verified'],
     levels: ['amber', 'green', 'red'],
   },
   {
@@ -150,22 +150,22 @@ const COMPARE_ROWS: { label: string; vals: string[]; levels?: Level[] }[] = [
   },
   {
     label: 'ARR evidence',
-    vals: ['Claimed — unaudited', '£12.4m — Companies House', 'Unknown — no public data'],
+    vals: ['Claimed; unaudited', '£12.4m: Companies House', 'Unknown: no public data'],
     levels: ['amber', 'green', 'red'],
   },
   {
     label: 'EBITDA evidence',
-    vals: ['Not disclosed', '£2.1m — filings', 'Not disclosed'],
+    vals: ['Not disclosed', '£2.1m: filings', 'Not disclosed'],
     levels: ['red', 'green', 'red'],
   },
   {
     label: 'Blocking gaps',
-    vals: ['3 — ARR, AI moat, EBITDA', '1 — Customer concentration', '4 — Registry, ARR, AI, EBITDA'],
+    vals: ['3: ARR, AI moat, EBITDA', '1: Customer concentration', '4: Registry, ARR, AI, EBITDA'],
     levels: ['amber', 'green', 'red'],
   },
   {
     label: 'Next action',
-    vals: ['Request financials', 'Advance to IC', 'Pass — re-evaluate Q3'],
+    vals: ['Request financials', 'Advance to IC', 'Pass; re-evaluate in Q3'],
     levels: ['amber', 'green', 'red'],
   },
 ];
@@ -176,7 +176,7 @@ const BUYER_THESES = [
   {
     buyer: 'PE add-on',
     score: 72,
-    fits: ['Recurring revenue model', 'UK jurisdiction — mandate match', 'Sub-£50m ARR — buy-and-build range'],
+    fits: ['Recurring revenue model', 'UK jurisdiction: mandate match', 'Sub-£50m ARR: buy-and-build range'],
     blocks: ['AI moat unproven', 'ARR definition unclear', 'No EBITDA disclosure'],
     question: 'Does management have audited ARR and adjusted EBITDA that supports a 7–10× revenue multiple?',
   },
@@ -575,7 +575,7 @@ export default function PlatformDemoPage() {
           <h2 className="text-xl font-bold text-foreground mb-1.5">IC pack and export preview</h2>
           <p className="text-sm text-muted-foreground mb-6">
             Team / Platform includes full export capability. PowerPoint IC pack, Excel diligence tracker, full
-            evidence register and board memo — all generated from the same analysis run.
+            evidence register and board memo, all generated from the same analysis run.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

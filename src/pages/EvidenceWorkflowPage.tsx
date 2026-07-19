@@ -55,7 +55,7 @@ const TIERS = [
   {
     tier: 6,
     label: 'Aggregators',
-    desc: 'Estimates and summaries. Lowest authority — used for context only.',
+    desc: 'Estimates and summaries. Lowest authority; used for context only.',
     examples: 'Crunchbase, PitchBook estimates, news digests',
     dot: 'bg-muted-foreground',
     bar: 'w-1/6',
@@ -82,7 +82,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     statusColor: 'bg-muted/40 text-muted-foreground border-border',
     confidence: 'Unverified',
     confidenceColor: 'text-muted-foreground',
-    note: 'Revenue not confirmed from official filings — shown as unknown until a Tier 1 source is indexed',
+    note: 'Revenue not confirmed from official filings. Shown as unknown until a Tier 1 source is indexed.',
   },
   {
     field: 'ARR',
@@ -91,7 +91,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     statusColor: 'bg-muted/40 text-muted-foreground border-border',
     confidence: 'Blocking gap',
     confidenceColor: 'text-red-700',
-    note: 'Not filed or disclosed — blocks valuation readiness',
+    note: 'Not filed or disclosed. Blocks valuation readiness.',
   },
   {
     field: 'Adjusted EBITDA',
@@ -100,7 +100,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     statusColor: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
     confidence: 'Medium',
     confidenceColor: 'text-amber-700',
-    note: 'Non-GAAP — requires statutory reconciliation',
+    note: 'Non-GAAP. Requires statutory reconciliation.',
   },
   {
     field: 'AI assistant',
@@ -109,7 +109,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     statusColor: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]',
     confidence: 'Medium',
     confidenceColor: 'text-amber-700',
-    note: 'Product page only — no usage, adoption or revenue proof',
+    note: 'Product page only. No usage, adoption or revenue proof.',
   },
   {
     field: 'Customer concentration',
@@ -118,7 +118,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
     statusColor: 'bg-muted/40 text-muted-foreground border-border',
     confidence: 'High severity',
     confidenceColor: 'text-red-700',
-    note: 'No data from any source — blocking gap for IC',
+    note: 'No data from any source. Blocking gap for IC.',
   },
 ];
 
@@ -152,7 +152,7 @@ export default function EvidenceWorkflowPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Before */}
           <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-7">
-            <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-5">Before Frontier OS — deck says</p>
+            <p className="text-[10px] font-semibold tracking-normal text-red-700 mb-5">Before Frontier OS: deck claim</p>
             <div className="space-y-4">
               {[
                 { label: 'Revenue',            value: '£50m' },
@@ -172,7 +172,7 @@ export default function EvidenceWorkflowPage() {
 
           {/* After */}
           <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-7">
-            <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-5">After Frontier OS — evidence workflow</p>
+            <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-5">After Frontier OS: evidence workflow</p>
             <div className="space-y-3">
               {[
                 { label: 'Revenue',            value: 'Conflict detected — figures differ between Tier 1 and Tier 3', chip: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]', chipLabel: 'Conflict' },
@@ -231,7 +231,7 @@ export default function EvidenceWorkflowPage() {
             ))}
             <div className="px-6 py-3.5 bg-muted/10 border-t border-border">
               <p className="text-sm text-muted-foreground">
-                Higher tier overrides lower tier in conflict resolution. Conflicts are never silently merged — they are retained and flagged.
+                Higher-tier evidence overrides lower-tier evidence in conflict resolution. Conflicts remain visible and are flagged.
               </p>
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function EvidenceWorkflowPage() {
       {/* Example evidence register */}
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-14">
         <SectionLabel>Live example</SectionLabel>
-        <h2 className="text-2xl font-bold text-foreground mb-3">Example company — evidence register</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-3">Example company: evidence register</h2>
         <p className="text-base text-muted-foreground mb-10 max-w-xl">
           Five fields from the same target, showing how each receives a status and a confidence label.
         </p>
@@ -309,7 +309,7 @@ export default function EvidenceWorkflowPage() {
             <div className="flex items-start gap-3 mb-5">
               <AlertCircle className="w-5 h-5 text-[var(--semantic-claim-text)] shrink-0 mt-0.5" />
               <div>
-                <p className="text-base font-semibold text-[var(--semantic-claim-text)] mb-1">Conflict detected — Revenue</p>
+                <p className="text-base font-semibold text-[var(--semantic-claim-text)] mb-1">Conflict detected: Revenue</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Two sources report different revenue figures for the same period.
                 </p>
@@ -318,14 +318,14 @@ export default function EvidenceWorkflowPage() {
             <div className="space-y-2 mb-5">
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 3 — Management pack</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 3: Management pack</p>
                   <p className="text-base font-mono font-semibold text-foreground">Revenue £50m</p>
                 </div>
                 <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)] shrink-0">Claim</span>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 1 — Official filing</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold tracking-normal mb-0.5">Tier 1: Official filing</p>
                   <p className="text-base font-mono font-semibold text-foreground">Revenue [Tier 1 filing figure]</p>
                 </div>
                 <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)] shrink-0">Tier 1</span>
@@ -364,7 +364,7 @@ export default function EvidenceWorkflowPage() {
               <SectionLabel>Blocking gaps</SectionLabel>
               <h3 className="text-xl font-bold text-foreground mb-5">How unknowns become diligence output</h3>
               <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                A blocking gap is a required metric with no evidence. It does not produce an error — it produces a diligence request.
+                A blocking gap is a required metric with no evidence. It produces a diligence request instead of an error.
               </p>
               <div className="space-y-3">
                 {[

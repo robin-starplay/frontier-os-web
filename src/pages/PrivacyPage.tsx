@@ -134,13 +134,13 @@ export default function PrivacyPage() {
                 Under UK data protection law, you may have the right to:
               </p>
               <ul className="list-disc list-outside ml-4 space-y-1.5">
-                <li><strong className="text-foreground">Access</strong> — request a copy of your personal data.</li>
-                <li><strong className="text-foreground">Correction</strong> — ask us to correct inaccurate data.</li>
-                <li><strong className="text-foreground">Deletion</strong> — ask us to delete your data in certain circumstances.</li>
-                <li><strong className="text-foreground">Restriction</strong> — ask us to restrict processing in certain circumstances.</li>
-                <li><strong className="text-foreground">Objection</strong> — object to processing based on legitimate interests.</li>
-                <li><strong className="text-foreground">Portability</strong> — receive your data in a portable format where applicable.</li>
-                <li><strong className="text-foreground">Withdraw consent</strong> — where processing is based on consent, you may withdraw it at any time.</li>
+                <li><strong className="text-foreground">Access:</strong> request a copy of your personal data.</li>
+                <li><strong className="text-foreground">Correction:</strong> ask us to correct inaccurate data.</li>
+                <li><strong className="text-foreground">Deletion:</strong> ask us to delete your data in certain circumstances.</li>
+                <li><strong className="text-foreground">Restriction:</strong> ask us to restrict processing in certain circumstances.</li>
+                <li><strong className="text-foreground">Objection:</strong> object to processing based on legitimate interests.</li>
+                <li><strong className="text-foreground">Portability:</strong> receive your data in a portable format where applicable.</li>
+                <li><strong className="text-foreground">Withdraw consent:</strong> where processing is based on consent, you may withdraw it at any time.</li>
               </ul>
               <p className="mt-3">
                 To exercise these rights, contact{' '}

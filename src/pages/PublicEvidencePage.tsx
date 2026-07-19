@@ -26,11 +26,11 @@ const EVIDENCE_TIERS = [
     color: 'border-amber-500/20 bg-amber-500/[0.03]',
     badge: 'amber',
     description:
-      'Statements made by the company in marketing, pitch materials or press releases — not independently corroborated. Must be verified before IC reliance.',
+      'Statements made by the company in marketing, pitch materials or press releases. These claims are not independently corroborated and must be verified before IC reliance.',
     examples: [
       '"£14m ARR" stated on company website without a filing source',
       '"120 enterprise customers" referenced in a blog post',
-      '"AI-powered platform" — capability asserted but not tested or verified',
+      '"AI-powered platform": capability asserted but not tested or verified',
       'Market size figure cited from a vendor-commissioned report',
     ],
   },
@@ -40,12 +40,12 @@ const EVIDENCE_TIERS = [
     color: 'border-border bg-card/30',
     badge: 'grey',
     description:
-      'Evidence not found in public sources. Not a negative signal — many important metrics are not public. Flags what must be confirmed in diligence.',
+      'Evidence not found in public sources. This is not a negative signal; many important metrics are not public. It identifies what must be confirmed in diligence.',
     examples: [
-      'Customer concentration — no public disclosure',
-      'Gross margin — not available in public filings',
-      'ARR composition (new vs. expansion vs. churn) — not disclosed',
-      'Key-person dependency — not assessable from public sources alone',
+      'Customer concentration: no public disclosure',
+      'Gross margin: not available in public filings',
+      'ARR composition (new vs. expansion vs. churn): not disclosed',
+      'Key-person dependency: not assessable from public sources alone',
     ],
   },
   {
@@ -57,9 +57,9 @@ const EVIDENCE_TIERS = [
       'Specific gaps that would prevent an IC recommendation from being made without further evidence. Prioritised for diligence workstream.',
     examples: [
       'Revenue figure from company claim not corroborated in any filing',
-      'AI replica risk rated High — requires technical architecture review',
-      'Missing ARR definition — SaaS revenue quality cannot be confirmed',
-      'Retention rate unknown — limits LTV / CAC assessment',
+      'AI replica risk rated High. Technical architecture review required.',
+      'ARR definition missing. SaaS revenue quality cannot be confirmed.',
+      'Retention rate unknown. LTV / CAC cannot be assessed reliably.',
     ],
   },
 ];
@@ -70,7 +70,7 @@ const WHY_MATTERS = [
     body: 'When a recommendation relies on company-stated revenue or customer counts without a primary source, the IC pack carries hidden risk. Frontier OS surfaces this explicitly.',
   },
   {
-    title: 'Diligence is expensive — screen first',
+    title: 'Screen before committing to diligence',
     body: 'Full legal, financial and technical diligence on a target that later reveals a structural blocker wastes 6–12 weeks. Evidence ranking identifies those blockers before the mandate begins.',
   },
   {
@@ -97,13 +97,13 @@ export default function PublicEvidencePage() {
             Separate verified facts from claims before diligence gets expensive.
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl leading-relaxed mb-8">
-            Frontier OS ranks every evidence item by source type — official filing, company claim, or
-            unknown — so your IC team knows exactly what has been verified and what still needs
+            Frontier OS ranks every evidence item by source type: official filing, company claim or
+            unknown. Your IC team can see what has been verified and what still needs
             confirmation.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/run?mode=sample"
+              href="/app/run"
               className="inline-flex items-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors"
             >
               Screen company <ArrowRight className="w-4 h-4" />
@@ -204,9 +204,9 @@ export default function PublicEvidencePage() {
       {/* ── CTA ── */}
       <BetaCTA
         title="See evidence ranking in action."
-        body="Start a public-source screen on a real software company. See verified facts, company claims and unknowns — separated and ranked by source."
+        body="Start a public-source screen on a real software company. See verified facts, company claims and unknowns, separated and ranked by source."
         primaryLabel="Screen company"
-        primaryHref="/run?mode=sample"
+        primaryHref="/app/run"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"
         eventName="evidence_public_bottom"

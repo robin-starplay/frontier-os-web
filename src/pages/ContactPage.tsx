@@ -82,14 +82,14 @@ export default function ContactPage() {
               <div className="flex-1 rounded-lg border border-border bg-card/50 px-4 py-3 flex items-start gap-3">
                 <Send className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">Option A — Send a message</p>
+                  <p className="text-sm font-medium text-foreground">Option A: Send a message</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Fill in the form below.</p>
                 </div>
               </div>
               <div className="flex-1 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-start gap-3">
                 <BookIntroButton
                   variant="link"
-                  label="Option B — Book a 30-minute intro"
+                  label="Option B: Book a 30-minute intro"
                   showIcon={true}
                   className="text-sm font-medium text-foreground hover:text-primary gap-2 [&>svg]:text-primary"
                 />
@@ -112,7 +112,7 @@ export default function ContactPage() {
                 </div>
                 <p className="text-base font-semibold text-foreground">Message received</p>
                 <p className="text-sm text-muted-foreground">
-                  Thanks — we'll review your message and respond from{' '}
+                  Thanks. We'll review your message and respond from{' '}
                   <a href="mailto:contact@getfrontieros.com" className="text-primary hover:underline">
                     contact@getfrontieros.com
                   </a>.

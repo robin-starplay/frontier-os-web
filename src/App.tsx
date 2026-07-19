@@ -12,7 +12,7 @@ import { getRuns } from '@/lib/runHistory';
 import { ensureTrialAccount } from '@/lib/trialAccount';
 import { Navbar } from '@/components/Navbar';
 import { AppShell } from '@/components/AppShell';
-import { X } from 'lucide-react';
+import { Activity, BarChart3, ShieldCheck, X } from 'lucide-react';
 import { Footer } from '@/components/Footer';
 import { GateModal } from '@/components/GateModal';
 import { OAuthButtons } from '@/components/OAuthButtons';
@@ -36,7 +36,6 @@ import HowItWorksPage from '@/pages/HowItWorksPage';
 import UseCasesPage from '@/pages/UseCasesPage';
 import FAQPage from '@/pages/FAQPage';
 import DealCockpitPage from '@/pages/DealCockpitPage';
-import PlatformDemoPage from '@/pages/PlatformDemoPage';
 import CompareTargetsPage from '@/pages/CompareTargetsPage';
 import BuyerThesisPage from '@/pages/BuyerThesisPage';
 import OriginationPage from '@/pages/OriginationPage';
@@ -140,7 +139,7 @@ class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; message?: string }
 > {
-  state = { hasError: false };
+  state: { hasError: boolean; message?: string } = { hasError: false };
 
   static getDerivedStateFromError() {
     return { hasError: true };
@@ -237,9 +236,26 @@ const strippedCardAppearance = {
 
 function AuthCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-background px-4 py-12">
-      <div className="bg-[hsl(222,47%,11%)] rounded-2xl w-[440px] max-w-full border border-[hsl(222,20%,20%)] shadow-2xl overflow-hidden">
-        {children}
+    <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-background px-6 py-16">
+      <div className="grid w-full max-w-[1100px] overflow-hidden rounded-2xl border border-border bg-card shadow-xl lg:grid-cols-[0.85fr_1.15fr]">
+        <aside className="relative hidden min-h-[680px] overflow-hidden bg-[linear-gradient(145deg,#173f88_0%,#0b2759_100%)] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <Activity className="h-7 w-7 text-blue-300" />
+            <h2 className="mt-16 max-w-sm text-4xl font-bold leading-tight">Welcome to Frontier OS</h2>
+            <p className="mt-5 max-w-sm text-base leading-relaxed text-blue-100">Evidence-first acquisition screening, built for investors and operators.</p>
+          </div>
+          <div className="grid grid-cols-3 gap-6 border-t border-white/15 pt-8">
+            {[['Evidence first', Activity], ['Secure by design', ShieldCheck], ['Built for investors', BarChart3]].map(([label, Icon]) => (
+              <div key={String(label)} className="space-y-2">
+                <Icon className="h-5 w-5 text-blue-300" />
+                <p className="text-xs leading-relaxed text-blue-100">{String(label)}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
+        <div className="flex min-h-[620px] flex-col justify-center bg-white px-8 py-12 sm:px-12 lg:px-16">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -247,20 +263,20 @@ function AuthCard({ children }: { children: React.ReactNode }) {
 
 function AuthHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="flex flex-col items-center px-8 pt-8 pb-4 text-center">
-      <img src={`${basePath}/logo.svg`} alt="Frontier OS" className="h-7 w-auto mb-4" />
-      <h1 className="text-xl font-bold text-[hsl(210,40%,98%)]">{title}</h1>
-      <p className="text-sm text-[hsl(215,20%,65%)] mt-1">{subtitle}</p>
+    <div className="flex flex-col items-start px-0 pb-8 text-left">
+      <img src={`${basePath}/logo.svg`} alt="Frontier OS" className="mb-8 h-7 w-auto lg:hidden" />
+      <h1 className="text-3xl font-bold text-slate-950">{title}</h1>
+      <p className="mt-2 text-base text-slate-600">{subtitle}</p>
     </div>
   );
 }
 
 function OAuthDivider() {
   return (
-    <div className="flex items-center gap-3 px-8 pb-2">
-      <div className="flex-1 h-px bg-[hsl(222,20%,20%)]" />
-      <span className="text-xs text-[hsl(215,20%,65%)]">or</span>
-      <div className="flex-1 h-px bg-[hsl(222,20%,20%)]" />
+    <div className="flex items-center gap-4 py-6">
+      <div className="h-px flex-1 bg-slate-200" />
+      <span className="text-xs text-slate-500">or</span>
+      <div className="h-px flex-1 bg-slate-200" />
     </div>
   );
 }
@@ -272,7 +288,7 @@ function SignInPage() {
   return (
     <AuthCard>
       <AuthHeader title="Join the private beta" subtitle="Sign in to run your own screens." />
-      <div className="px-8 pb-4">
+      <div className="pb-2">
         <OAuthButtons redirectUrlComplete={redirectUrlComplete} />
       </div>
       <OAuthDivider />
@@ -292,7 +308,7 @@ function SignUpPage() {
   return (
     <AuthCard>
       <AuthHeader title="Join the private beta" subtitle="Create a free account to run your own screens." />
-      <div className="px-8 pb-4">
+      <div className="pb-2">
         <OAuthButtons redirectUrlComplete={redirectUrlComplete} />
       </div>
       <OAuthDivider />
@@ -367,11 +383,18 @@ function AppRedirect({ to, fallback }: { to: string; fallback: React.ReactNode }
 function ProtectedRun() {
   const search = useSearch();
   const isSampleMode = new URLSearchParams(search).get('mode') === 'sample';
-  // ?mode=sample is a public bypass — skip auth redirect for sample views
-  if (isSampleMode) return <AnalysisSetup sampleMode key="sample" />;
+  if (isSampleMode) return <SafeRouteRedirect to="/app/run" />;
   // AppRedirect returns null for signed-in users (redirect fires in useEffect),
   // so the fallback is only ever rendered for signed-out visitors.
   return <AppRedirect to="/app/run" fallback={<BetaGate page="run" />} />;
+}
+
+function SafeRouteRedirect({ to }: { to: string }) {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation(to, { replace: true });
+  }, [setLocation, to]);
+  return null;
 }
 
 function ProtectedCockpit() {
@@ -417,8 +440,8 @@ function PublicRouter() {
       <Route path="/exports"     component={ProtectedExports} />
       <Route path="/settings"    component={ProtectedSettings} />
 
-      {/* Platform workflow preview — public */}
-      <Route path="/platform-demo" component={PlatformDemoPage} />
+      {/* Retired static demo: use the real source-backed workflow. */}
+      <Route path="/platform-demo"><SafeRouteRedirect to="/app/run" /></Route>
 
       {/* Buyer landing pages */}
       <Route path="/private-equity"        component={PrivateEquityPage} />

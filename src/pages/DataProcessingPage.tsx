@@ -69,11 +69,11 @@ export default function DataProcessingPage() {
           title: 'Retention options',
           content: (
             <ul className="list-disc list-outside ml-4 space-y-1.5">
-              <li><strong className="text-foreground">URL-only / no upload</strong> — no document processing; no retention issue.</li>
-              <li><strong className="text-foreground">Delete after run</strong> — documents deleted immediately after analysis completes.</li>
-              <li><strong className="text-foreground">Delete after defined period</strong> — documents retained for an agreed time, then deleted.</li>
-              <li><strong className="text-foreground">Customer-requested deletion</strong> — documents deleted on request at any time.</li>
-              <li><strong className="text-foreground">Agreed pilot retention</strong> — retention period defined in the pilot agreement.</li>
+              <li><strong className="text-foreground">URL-only / no upload:</strong> no document processing or retention.</li>
+              <li><strong className="text-foreground">Delete after run:</strong> documents are deleted immediately after analysis completes.</li>
+              <li><strong className="text-foreground">Delete after defined period:</strong> documents are retained for an agreed period, then deleted.</li>
+              <li><strong className="text-foreground">Customer-requested deletion:</strong> documents are deleted on request at any time.</li>
+              <li><strong className="text-foreground">Agreed pilot retention:</strong> the retention period is defined in the pilot agreement.</li>
             </ul>
           ),
         },
@@ -92,7 +92,7 @@ export default function DataProcessingPage() {
           content: (
             <p>
               The public demo should not be used to process confidential customer documents. Upload functionality
-              in the public demo is mocked — files are selected locally but not transmitted or processed.
+              in the public demo is mocked. Files are selected locally but not transmitted or processed.
             </p>
           ),
         },

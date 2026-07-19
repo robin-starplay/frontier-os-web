@@ -153,7 +153,7 @@ export function DocumentUpload() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[10px] font-mono text-muted-foreground/60 border border-border rounded px-1.5 py-0.5">
-                    not uploaded — sample only
+                    not uploaded; sample only
                   </span>
                   <button
                     onClick={() => removeFile(f.id)}

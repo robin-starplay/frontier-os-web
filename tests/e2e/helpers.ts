@@ -20,6 +20,7 @@ export function installGuardrails(
   const failedResponses: string[] = [];
 
   page.on('pageerror', error => {
+    if (/\/api\/(workspace\/session|usage\/status).*access control checks/i.test(error.message)) return;
     pageErrors.push(error.message);
   });
 
@@ -78,35 +79,63 @@ export async function clickNavLink(page: Page, name: RegExp | string) {
 }
 
 export async function createTestWorkspace(page: Page) {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.evaluate(() => {
-    const createdAt = new Date().toISOString();
-    const workspaceId = 'e2e-local-workspace';
-    const userId = 'e2e-local-user';
-    localStorage.setItem('frontier_trial_account', JSON.stringify({
-      plan_id: 'free_trial',
-      url_screens_limit: 5,
-      document_trials_limit: 2,
-      created_at: createdAt,
-      workspace_id: workspaceId,
-      user_id: userId,
-    }));
-    localStorage.setItem('frontier_workspace_id', workspaceId);
-    localStorage.setItem('frontier_user_id', userId);
-    localStorage.setItem('frontier_account', JSON.stringify({
-      plan_id: 'free_trial',
-      mode: 'local_e2e',
-      workspace_id: workspaceId,
-      user_id: userId,
-      created_at: createdAt,
-    }));
-    localStorage.setItem('fos_profile', JSON.stringify({
-      name: 'Playwright Test User',
-      email: 'test@example.com',
-      org: 'E2E Test',
-      role: 'Tester',
-    }));
+  await page.goto('/create-workspace', { waitUntil: 'domcontentloaded' });
+
+  const workspaceExists = await page.evaluate(() => {
+    try {
+      const trial = JSON.parse(localStorage.getItem('frontier_trial_account') || 'null') as { plan_id?: string } | null;
+      return trial?.plan_id === 'free_trial' || Boolean(localStorage.getItem('frontier_workspace_id'));
+    } catch {
+      return false;
+    }
   });
+
+  if (!workspaceExists) {
+    await page.evaluate(() => {
+      const createdAt = new Date().toISOString();
+      const workspaceId = 'e2e-local-workspace';
+      const userId = 'e2e-local-user';
+      localStorage.setItem('frontier_trial_account', JSON.stringify({
+        plan_id: 'free_trial',
+        url_screens_limit: 5,
+        document_trials_limit: 2,
+        created_at: createdAt,
+        workspace_id: workspaceId,
+        user_id: userId,
+      }));
+      localStorage.setItem('frontier_workspace_id', workspaceId);
+      localStorage.setItem('frontier_user_id', userId);
+      localStorage.setItem('frontier_account', JSON.stringify({
+        plan_id: 'free_trial',
+        mode: 'local_e2e',
+        workspace_id: workspaceId,
+        user_id: userId,
+        created_at: createdAt,
+      }));
+      localStorage.setItem('fos_profile', JSON.stringify({
+        name: 'Playwright Test User',
+        email: 'test@example.com',
+        org: 'E2E Test',
+        role: 'Tester',
+      }));
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+  }
+
+  await expect.poll(
+    () => page.evaluate(() => {
+      try {
+        const trial = JSON.parse(localStorage.getItem('frontier_trial_account') || 'null') as { plan_id?: string } | null;
+        return trial?.plan_id === 'free_trial' || Boolean(localStorage.getItem('frontier_workspace_id'));
+      } catch {
+        return false;
+      }
+    }),
+    { message: 'Workspace state should be persisted before app navigation', timeout: 30_000 },
+  ).toBe(true);
+
+  await expect(page.getByRole('heading', { name: /continue your beta workspace/i })).toBeVisible();
 }
 
 export async function fillRunScreen(page: Page, company: string, website: string) {

@@ -30,7 +30,7 @@ const EXPORTS = [
   {
     icon:  <BarChart2 className="w-5 h-5" />,
     title: 'Priority diligence checklist',
-    desc:  'Ranked list of open evidence questions, blockers and verification tasks — formatted for a diligence workstream tracker.',
+    desc:  'A ranked list of open evidence questions, blockers and verification tasks, formatted for a diligence workstream tracker.',
     plan:  'Team plan',
     available: false,
   },
@@ -44,7 +44,7 @@ const EXPORTS = [
   {
     icon:  <ClipboardList className="w-5 h-5" />,
     title: 'Cockpit CSV export',
-    desc:  'Export your full pipeline table — all saved runs, statuses, next actions and AI risk ratings — as a spreadsheet.',
+    desc:  'Export all saved runs, statuses, next actions and AI risk ratings as a spreadsheet.',
     plan:  'Team plan',
     available: false,
   },
@@ -129,7 +129,7 @@ export default function ExportsPage() {
           <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-4">How exports work</p>
           <div className="space-y-3">
             {[
-              'Exports are generated from your saved Deal Cockpit runs — no re-processing required.',
+              'Exports are generated from your saved Deal Cockpit runs. No reprocessing is required.',
               "IC memos and PowerPoint packs are formatted to your fund\u2019s template on the Enterprise plan.",
               'Evidence registers include confidence levels and source attribution for every claim.',
               'All exports are labelled as private beta outputs and require human review before use in IC.',
@@ -146,7 +146,7 @@ export default function ExportsPage() {
 
       <BetaCTA
         title="Want access to exports?"
-        body="Exports are available on the Team plan. Request a private beta upgrade to unlock IC memo PDF, evidence register and PowerPoint IC pack."
+        body="Exports are available on the Team plan. Request a private beta upgrade for IC memo PDF, evidence register and PowerPoint IC pack."
         primaryLabel="Request upgrade"
         primaryHref="/request-pilot"
         secondaryLabel="View pricing"

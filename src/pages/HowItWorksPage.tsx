@@ -258,8 +258,8 @@ export default function HowItWorksPage() {
   return (
     <div className="flex-1">
       <section className="border-b border-border bg-card/35">
-        <div className="app-container grid gap-10 py-14 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center lg:py-16">
-          <div>
+        <div className="app-container py-16 lg:py-20">
+          <div className="max-w-4xl">
             <SectionLabel>How it works</SectionLabel>
             <h1 className="page-title max-w-3xl">
               How Frontier OS works
@@ -267,7 +267,7 @@ export default function HowItWorksPage() {
             <p className="page-subtitle mt-5">
               Move from target discovery to evidence-backed screening, saved decisions and target comparison.
             </p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/app/run"
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
@@ -280,51 +280,17 @@ export default function HowItWorksPage() {
               >
                 Start with Origination
               </Link>
-              <Link
-                href="/request-pilot"
-                className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
-              >
-                Request private beta access
-              </Link>
-            </div>
-          </div>
-
-          <div className="surface-raised rounded-xl p-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Workflow overview</p>
-                <p className="mt-1 text-xs text-muted-foreground">Lead to screened comparison</p>
-              </div>
-              <Badge tone="info">Evidence-first</Badge>
-            </div>
-            <div className="space-y-3">
-              {WORKFLOW_STEPS.map((step) => (
-                <div key={step.label} className="surface-flat flex items-center gap-3 rounded-lg px-3 py-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    {step.number}
-                  </span>
-                  <p className="text-sm font-semibold text-foreground">{step.label}</p>
-                </div>
-              ))}
             </div>
           </div>
         </div>
       </section>
 
       <section className="app-container py-12">
-        <WorkflowStrip />
-      </section>
-
-      <section className="app-container pb-12">
         <div className="mb-8">
           <SectionLabel>Workflow</SectionLabel>
           <h2 className="section-title">From target universe to screened comparison.</h2>
         </div>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {WORKFLOW_STEPS.map((step) => (
-            <StepCard key={step.label} step={step} />
-          ))}
-        </div>
+        <WorkflowStrip />
       </section>
 
       <section className="border-y border-border bg-muted/35">
@@ -341,23 +307,6 @@ export default function HowItWorksPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="app-container py-12">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <SectionLabel>Sample screens</SectionLabel>
-            <h2 className="section-title">The product follows the same operating model.</h2>
-          </div>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Sample cards are illustrative workflow states. Real runs only show evidence returned by the backend.
-          </p>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {SAMPLE_SCREENS.map((sample) => (
-            <SampleCard key={sample.title} sample={sample} />
-          ))}
         </div>
       </section>
 

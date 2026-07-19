@@ -69,8 +69,8 @@ function gateContent(reason: GateReason): GateContent {
     default:
       return {
         icon: <Lock className="w-5 h-5 text-primary" />,
-        heading: 'Create a free account to unlock the full screen.',
-        body: 'The sample screen shows a partial result. A free account unlocks the full evidence trail, AI disruption detail, buyer-specific fit and saved runs.',
+        heading: 'Create a free account to view the full screen.',
+        body: 'The sample screen shows a partial result. A free account includes the full evidence trail, AI disruption detail, buyer-specific fit and saved runs.',
         primaryLabel: 'Create free account',
         primaryHref: '/request-pilot',
         secondaryLabel: 'View what\'s included',

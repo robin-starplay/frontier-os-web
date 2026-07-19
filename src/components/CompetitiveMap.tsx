@@ -96,7 +96,7 @@ export function CompetitiveMap() {
       </div>
 
       <p className="text-sm text-muted-foreground max-w-2xl">
-        Frontier OS is not trying to replace company databases or data rooms. It sits between public data, uploaded documents and the acquisition decision — focused on whether <em>this</em> target is attractive for <em>this</em> buyer.
+        Frontier OS does not replace company databases or data rooms. It connects public data and uploaded documents to the acquisition decision, assessing whether <em>this</em> target is attractive for <em>this</em> buyer.
       </p>
     </div>
   );

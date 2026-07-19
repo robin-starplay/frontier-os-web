@@ -60,7 +60,7 @@ export default function PublicAIRiskPage() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/run?mode=sample"
+              href="/app/run"
               className="inline-flex items-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors"
             >
               Screen company <ArrowRight className="w-4 h-4" />
@@ -169,7 +169,7 @@ export default function PublicAIRiskPage() {
         title="Screen a target's AI replica risk."
         body="Start a public-source screen to see how Frontier OS assesses AI defensibility, replica risk and inference economics for a real software company."
         primaryLabel="Screen company"
-        primaryHref="/run?mode=sample"
+        primaryHref="/app/run"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"
         eventName="ai_risk_public_bottom"

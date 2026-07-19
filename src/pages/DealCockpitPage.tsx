@@ -762,7 +762,7 @@ function cockpitNextAction(run: RunEntry): string {
 
   // 3. First blocker field formatted as a targeted action (high-severity blocker)
   if (run.blockers && run.blockers.length > 0) {
-    return `${run.company}: ${run.blockers[0]} — verify before IC use.`;
+    return `${run.company}: ${run.blockers[0]}. Verify before IC use.`;
   }
 
   // 4. First unknowns[].next_action — unknown evidence gap
@@ -906,7 +906,7 @@ function CockpitEditSheet({
         ...(evidencePatch ?? {}),
         updated_at: new Date().toISOString(),
       },
-    } as RunEntry['result'];
+    } as unknown as RunEntry['result'];
     const nextRun: RunEntry = {
       ...run,
       ...patch,
@@ -962,7 +962,7 @@ function CockpitEditSheet({
           evidence_status: normalizedWebsite ? 'user_supplied_claim' : 'unknown',
         },
       },
-      normalizedWebsite ? 'Website saved — ready to screen' : 'Target updated',
+      normalizedWebsite ? 'Website saved. Ready to screen.' : 'Target updated',
     );
     onOpenChange(false);
   };
@@ -1643,7 +1643,7 @@ export default function DealCockpitPage() {
         <div className="mb-6 rounded-lg border border-border bg-card/50 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-foreground mb-0.5">Runs are saved locally in this browser.</p>
-            <p className="text-xs text-muted-foreground">Create a workspace to persist runs and unlock the full pipeline.</p>
+            <p className="text-xs text-muted-foreground">Create a workspace to save runs and access the full pipeline.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Link
@@ -1714,7 +1714,7 @@ export default function DealCockpitPage() {
                     <div key={r.id} className="flex items-start gap-3">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
                       <div>
-                        <span className="text-sm font-medium text-foreground">{cockpitShortName(r.company)} — </span>
+                        <span className="text-sm font-medium text-foreground">{cockpitShortName(r.company)}: </span>
                         <span className="text-sm text-muted-foreground">{cockpitNextAction(r)}</span>
                       </div>
                     </div>
