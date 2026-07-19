@@ -172,6 +172,11 @@ export interface StrategicFitDetail {
 export interface AiDisruptionDetail {
   replica_risk: string;
   replica_risk_level: Level;
+  rationale: string;
+  public_signals: string[];
+  risk_statement: string;
+  confidence: Confidence;
+  confidence_note: string;
   moat_evidence: string;
   inference_economics: string;
   product_expansion: string;

@@ -270,6 +270,23 @@ function recommendationLevel(value: unknown): Level {
   return 'blue';
 }
 
+function aiRiskBand(value: unknown): string {
+  const risk = textValue(value, 'Not assessed in this run');
+  const normalized = risk.toLowerCase();
+  if (normalized.includes('high')) return normalized.includes('medium') ? 'Medium-high' : 'High';
+  if (normalized.includes('medium')) return normalized.includes('low') ? 'Low-medium' : 'Medium';
+  if (normalized.includes('low')) return 'Low';
+  return risk;
+}
+
+function aiRiskLevel(value: unknown): Level {
+  const band = aiRiskBand(value).toLowerCase();
+  if (band === 'high' || band === 'medium-high') return 'red';
+  if (band === 'medium' || band === 'low-medium') return 'amber';
+  if (band === 'low') return 'green';
+  return 'grey';
+}
+
 function readinessText(value: unknown, fallback = 'Not verified in this run'): string {
   const s = textValue(value);
   return s ? formatLabel(s) : fallback;
@@ -617,7 +634,7 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
     evidence_confidence: textValue(r.evidence_confidence, '')
       ? confidenceValue(r.evidence_confidence)
       : r.evidence_confidence_score != null ? `${r.evidence_confidence_score}/100` : 'Not verified in this run',
-    ai_replica_risk: textValue(ai.replica_risk, 'Not assessed in this run'),
+    ai_replica_risk: aiRiskBand(ai.replica_risk),
     ai_moat: textValue(ai.moat_evidence, 'Not assessed in this run'),
     next_action: textValue(r.next_action ?? mainBlocker, 'Request source-backed financials and management data.'),
     strategic_fit: {
@@ -630,8 +647,22 @@ function normalizeUrlAnalysisResult(raw: AnalysisResult, fallbackCompany: string
     },
     evidence_cards: evidenceCards,
     ai_disruption: {
-      replica_risk: textValue(ai.replica_risk, 'Not assessed in this run'),
-      replica_risk_level: recommendationLevel(ai.replica_risk),
+      replica_risk: aiRiskBand(ai.replica_risk),
+      replica_risk_level: aiRiskLevel(ai.replica_risk),
+      rationale: textValue(
+        ai.rationale ?? ai.assessment_rationale ?? ai.summary,
+        'The assessment reflects public product positioning and the defensibility evidence available in this run.',
+      ),
+      public_signals: asArray(ai.public_signals ?? ai.evidence_signals ?? ai.risk_factors).map(String),
+      risk_statement: textValue(
+        ai.risk_statement ?? ai.disruption_risk ?? ai.replication_hypothesis,
+        'A capable AI platform could reproduce material parts of the customer workflow unless proprietary data, embedded implementation knowledge or ecosystem advantages are verified.',
+      ),
+      confidence: confidenceValue(ai.confidence ?? r.evidence_confidence),
+      confidence_note: textValue(
+        ai.confidence_note ?? ai.evidence_scope,
+        'Public-source evidence only. Validate with product, customer and technical diligence.',
+      ),
       moat_evidence: textValue(ai.moat_evidence, 'Not assessed in this run'),
       inference_economics: textValue(ai.inference_economics, 'Not assessed in this run'),
       product_expansion: textValue(ai.product_expansion, 'Not assessed in this run'),
@@ -2891,15 +2922,59 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
         )}
       </div>
 
-      {/* ─── 6. AI defensibility ──────────────────────────────────────── */}
+      {/* ─── 6. AI disruption risk ───────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-semibold tracking-normal text-primary">AI defensibility</p>
+          <p className="text-[10px] font-semibold tracking-normal text-primary">AI disruption risk</p>
         </div>
         <div className="p-4 space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[10rem_minmax(0,1fr)]">
+            <div>
+              <p className="mb-1 text-[10px] font-semibold tracking-normal text-muted-foreground">Risk level</p>
+              <span className={cn(
+                'inline-flex items-center rounded border px-2 py-0.5 text-xs font-semibold',
+                levelClass(ai.replica_risk_level),
+              )}>
+                {ai.replica_risk}
+              </span>
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] font-semibold tracking-normal text-muted-foreground">Rationale</p>
+              <p className="text-sm leading-relaxed text-foreground">{ai.rationale}</p>
+            </div>
+          </div>
+
+          {ai.public_signals.length > 0 && (
+            <div>
+              <p className="mb-2 text-[10px] font-semibold tracking-normal text-muted-foreground">Public-source signals</p>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {ai.public_signals.map((signal, index) => (
+                  <li key={`${signal}-${index}`} className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>{signal}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-3">
+            <p className="mb-1 text-[10px] font-semibold tracking-normal text-[var(--semantic-claim-text)]">Disruption case</p>
+            <p className="text-sm leading-relaxed text-foreground">{ai.risk_statement}</p>
+          </div>
+
+          <div className="grid gap-1 border-t border-border pt-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-start sm:gap-4">
+            <div>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground">Confidence</p>
+              <p className={cn('text-sm font-semibold', confidenceColor(ai.confidence))}>{ai.confidence}</p>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">{ai.confidence_note}</p>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="mb-3 text-[10px] font-semibold tracking-normal text-muted-foreground">Supporting assessment</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { label: 'Replica risk',           value: ai.replica_risk,          level: ai.replica_risk_level },
               { label: 'Moat evidence',           value: ai.moat_evidence,         level: ai.moat_evidence === 'None identified' || ai.moat_evidence.startsWith('None') ? 'red' : ai.moat_evidence.startsWith('Partial') ? 'amber' : 'grey' as Level },
               { label: 'Inference economics',     value: ai.inference_economics,   level: 'grey' as Level },
               { label: 'Product expansion',       value: ai.product_expansion,     level: ai.product_expansion.startsWith('Possible') ? 'blue' : ai.product_expansion.startsWith('Unlikely') ? 'red' : 'grey' as Level },
@@ -2910,6 +2985,7 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
                 <p className="text-xs text-foreground leading-snug">{row.value}</p>
               </div>
             ))}
+          </div>
           </div>
 
           {ai.diligence_questions.length > 0 && (
@@ -3854,6 +3930,15 @@ const SAMPLE_RESULT: AnalysisResult = {
   ai_disruption: {
     replica_risk: 'Medium-high. Incumbents may replicate generic AI workflow tooling.',
     replica_risk_level: 'amber',
+    rationale: 'The company appears to deliver workflow software with an AI capability claim, but public sources do not establish a proprietary technical advantage.',
+    public_signals: [
+      'Workflow software is visible in public product positioning',
+      'No proprietary dataset or model advantage verified',
+      'AI adoption and monetisation metrics are not publicly evidenced',
+    ],
+    risk_statement: 'A capable AI platform could reproduce material parts of the workflow unless proprietary data, implementation knowledge or embedded distribution advantages are verified.',
+    confidence: 'Low',
+    confidence_note: 'Public website evidence only. Product and technical diligence required.',
     moat_evidence: 'No proprietary dataset or model identified in public sources',
     inference_economics: 'Unknown. Inference cost per workflow unit is not disclosed.',
     product_expansion: 'AI layer could expand into adjacent workflow verticals if moat is established',

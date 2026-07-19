@@ -3,11 +3,15 @@ import { Link, useLocation } from 'wouter';
 import { Activity, Menu, X, ChevronDown, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FeedbackModal } from './FeedbackModal';
-import { SendFeedbackButton } from './SendFeedbackButton';
 import { ThemeToggle } from './ThemeToggle';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { OptionalUserButton } from '@/lib/optionalClerk';
-import { useUsage } from '@/contexts/UsageContext';
+import {
+  HEADER_ICON_CONTROL_CLASS,
+  HEADER_NAV_ACTIVE_CLASS,
+  HEADER_NAV_INACTIVE_CLASS,
+  HEADER_NAV_ITEM_CLASS,
+} from './headerStyles';
 
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
@@ -63,26 +67,6 @@ const APP_MOBILE_MORE = [
   },
 ];
 
-// ── Trial usage badge ─────────────────────────────────────────────────────────
-
-function TrialBadge() {
-  const usage = useUsage();
-  if (usage.status !== 'ready' || usage.screensRemaining === null || usage.screensLimit === null) return null;
-  const remaining = usage.screensRemaining;
-  const limit = usage.screensLimit;
-  const isLow = remaining <= 1;
-  return (
-    <span className={cn(
-      'hidden lg:inline-flex items-center text-[11px] px-2 py-0.5 rounded-md border whitespace-nowrap',
-      isLow
-        ? 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]'
-        : 'bg-[var(--semantic-verified-bg)] text-[var(--semantic-verified-text)] border-[var(--semantic-verified-border)]',
-    )}>
-      {remaining}/{limit} screens available
-    </span>
-  );
-}
-
 // ── More dropdown ─────────────────────────────────────────────────────────────
 
 function AppMoreDropdown({
@@ -112,14 +96,15 @@ function AppMoreDropdown({
   return (
     <div className="relative" ref={ref}>
       <button
+        data-header-nav-item
         onClick={() => setOpen(o => !o)}
         aria-haspopup="true"
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-1 px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
+          `${HEADER_NAV_ITEM_CLASS} gap-1`,
           anyActive
-            ? 'bg-primary/10 text-primary font-semibold'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
+            ? HEADER_NAV_ACTIVE_CLASS
+            : HEADER_NAV_INACTIVE_CLASS,
         )}
       >
         More <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
@@ -141,6 +126,7 @@ function AppMoreDropdown({
               </a>
             ) : (
               <Link
+                data-header-nav-item
                 key={href}
                 href={href}
                 role="menuitem"
@@ -184,27 +170,28 @@ export function AppNavbar() {
   return (
     <>
       <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 sticky top-0 z-50">
-        <div className="app-container flex h-14 items-center gap-3">
+        <div className="app-container flex h-16 items-center gap-3">
 
           {/* Logo → cockpit */}
           <Link href="/app/cockpit" className="flex items-center gap-2 shrink-0">
             <Activity className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-sm tracking-normal text-foreground">
+            <span className="text-base font-semibold leading-tight tracking-normal text-foreground">
               Frontier OS
             </span>
           </Link>
 
           {/* Desktop product nav */}
-          <div className="hidden lg:flex items-center gap-0.5 ml-4">
+          <div className="ml-7 hidden min-w-0 items-center gap-1 xl:flex">
             {APP_NAV.map(({ label, href }) => (
               <Link
+                data-header-nav-item
                 key={href}
                 href={href}
                 className={cn(
-                  'px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
+                  HEADER_NAV_ITEM_CLASS,
                   isActive(href)
-                    ? 'bg-primary/10 text-primary font-semibold'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
+                    ? HEADER_NAV_ACTIVE_CLASS
+                    : HEADER_NAV_INACTIVE_CLASS,
                 )}
               >
                 {label}
@@ -216,30 +203,25 @@ export function AppNavbar() {
             />
           </div>
 
+          <div className="ml-7 hidden min-w-0 items-center gap-1 lg:flex xl:hidden">
+            {APP_NAV.filter(({ label }) => ['Origination', 'Screen', 'Cockpit', 'Compare'].includes(label)).map(({ label, href }) => (
+              <Link data-header-nav-item key={href} href={href} className={cn(HEADER_NAV_ITEM_CLASS, isActive(href) ? HEADER_NAV_ACTIVE_CLASS : HEADER_NAV_INACTIVE_CLASS)}>
+                {label}
+              </Link>
+            ))}
+            <AppMoreDropdown isActive={isActive} onFeedback={() => setFeedbackOpen(true)} />
+          </div>
+
           {/* Right side */}
-          <div className="ml-auto flex items-center gap-2">
-            <TrialBadge />
-            <ThemeToggle compact className="hidden sm:inline-flex" />
-            <SendFeedbackButton
-              label="Feedback"
-              className="hidden lg:inline-flex items-center gap-1.5 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
-            />
-            <a
-              href={BOOK_INTRO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden lg:inline-flex items-center gap-1.5 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 h-8 px-3 rounded-md transition-colors whitespace-nowrap"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              Intro
-            </a>
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            <ThemeToggle compact className={cn('hidden sm:inline-flex', HEADER_ICON_CONTROL_CLASS)} />
             <div className="flex items-center">
               <OptionalUserButton />
             </div>
 
             {/* Mobile hamburger */}
             <button
-              className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+              className={cn(HEADER_ICON_CONTROL_CLASS, 'rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground lg:hidden')}
               onClick={() => setMobileOpen(o => !o)}
               aria-label="Toggle navigation"
             >

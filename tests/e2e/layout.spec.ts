@@ -87,3 +87,72 @@ test('public header omits the standalone beta badge', async ({ page }) => {
   await expect(header.getByText('BETA', { exact: true })).toHaveCount(0);
   await expect(header.getByRole('link', { name: 'Beta workspace' })).toBeVisible();
 });
+
+test('pricing presents customer-facing beta access copy', async ({ page }) => {
+  await page.goto('/pricing', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('CTA: Stripe link loaded', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Paid beta access is currently activated manually after payment.', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/Stripe checkout|activated manually after payment/i)).toHaveCount(0);
+  await expect(page.getByText('Access origination, company screening, document-assisted review, Deal Cockpit and Compare.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Book intro', { exact: true }).first()).toBeVisible();
+});
+
+for (const width of [1024, 1280, 1366, 1440, 1680, 1920]) {
+  test(`workspace header controls are normalised at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await createTestWorkspace(page);
+    await page.goto('/pricing', { waitUntil: 'domcontentloaded' });
+
+    const header = page.getByRole('navigation').first();
+    const navStyles = await header.locator('[data-header-nav-item]:visible').evaluateAll(items =>
+      items.map(item => {
+        const style = getComputedStyle(item);
+        return { fontSize: style.fontSize, lineHeight: style.lineHeight };
+      }));
+    expect(navStyles.length).toBeGreaterThan(0);
+    expect(new Set(navStyles.map(style => style.fontSize))).toEqual(new Set(['14px']));
+    expect(new Set(navStyles.map(style => style.lineHeight))).toEqual(new Set(['20px']));
+
+    const workspace = header.locator('[data-header-cta="open-workspace"]');
+    const account = header.locator('[data-header-account]');
+    await expect(workspace).toBeVisible();
+    await expect(account).toBeVisible();
+    await expect(workspace).toHaveCSS('white-space', 'nowrap');
+
+    const workspaceBox = await workspace.boundingBox();
+    const accountBox = await account.boundingBox();
+    expect(workspaceBox).not.toBeNull();
+    expect(accountBox).not.toBeNull();
+    expect(workspaceBox!.height).toBeLessThanOrEqual(38);
+    expect(workspaceBox!.height).toBe(36);
+    expect(accountBox!.height).toBe(36);
+    expect(Math.abs(workspaceBox!.y - accountBox!.y)).toBeLessThanOrEqual(1);
+  });
+}
+
+for (const width of [1024, 1280]) {
+  test(`application header uses shared navigation typography at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await createTestWorkspace(page);
+    await page.goto('/app/origination', { waitUntil: 'domcontentloaded' });
+
+    const header = page.getByRole('navigation').first();
+    const navStyles = await header.locator('[data-header-nav-item]:visible').evaluateAll(items =>
+      items.map(item => {
+        const style = getComputedStyle(item);
+        return { fontSize: style.fontSize, lineHeight: style.lineHeight, height: item.getBoundingClientRect().height };
+      }));
+    expect(navStyles.length).toBeGreaterThan(0);
+    expect(new Set(navStyles.map(style => style.fontSize))).toEqual(new Set(['14px']));
+    expect(new Set(navStyles.map(style => style.lineHeight))).toEqual(new Set(['20px']));
+    expect(new Set(navStyles.map(style => style.height))).toEqual(new Set([36]));
+
+    const accountBox = await header.locator('[data-header-account]').boundingBox();
+    const themeBox = await header.getByRole('button', { name: /switch to .* theme/i }).boundingBox();
+    expect(accountBox).not.toBeNull();
+    expect(themeBox).not.toBeNull();
+    expect(accountBox!.height).toBe(36);
+    expect(themeBox!.height).toBe(36);
+    expect(Math.abs(accountBox!.y - themeBox!.y)).toBeLessThanOrEqual(1);
+  });
+}

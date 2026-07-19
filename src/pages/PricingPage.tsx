@@ -20,7 +20,7 @@ interface Tier {
   ctaVariant: 'primary' | 'outline';
   showBookIntro?: boolean;
   bookIntroEvent?: string;
-  manual_activation_note?: string;
+  supporting_copy?: string;
   features: string[];
 }
 
@@ -55,13 +55,13 @@ const STATIC_TIERS: Tier[] = [
     badge: 'Pilot access',
     price_label: '£99/month',
     audience: 'For founders, searchers, independent sponsors and solo operators.',
-    cta_label: 'Start access',
+    cta_label: 'Start beta',
     cta_url: STARTER_GROWTH_STRIPE_FALLBACK,
     payment_mode: 'stripe_payment_link',
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_starter',
-    manual_activation_note: 'Access is currently activated manually after payment.',
+    supporting_copy: 'Access origination, company screening, document-assisted review, Deal Cockpit and Compare.',
     features: [
       'More public-source screens',
       'Compare targets',
@@ -149,7 +149,6 @@ interface BackendPlan {
   payment_url?: string;
   checkout_url?: string;
   payment_mode?: string;
-  manual_activation_note?: string;
 }
 
 interface PricingResponse {
@@ -193,13 +192,15 @@ function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
     badge: tierBadge(plan.plan_id),
     price_label: normalisePriceLabel(plan, currency),
     audience: plan.audience,
-    cta_label: plan.cta_label || (plan.plan_id === 'starter_growth' ? 'Start access' : 'Request pilot'),
+    cta_label: plan.plan_id === 'starter_growth' ? 'Start beta' : (plan.cta_label || 'Request pilot'),
     cta_url: ctaUrl,
     payment_mode: plan.payment_mode,
     ctaVariant: tierVariant(plan.plan_id),
     showBookIntro: plan.plan_id !== 'free_preview',
     bookIntroEvent: bookIntroEvent(plan.plan_id),
-    manual_activation_note: plan.manual_activation_note,
+    supporting_copy: plan.plan_id === 'starter_growth'
+      ? 'Access origination, company screening, document-assisted review, Deal Cockpit and Compare.'
+      : undefined,
     features: Array.isArray(plan.features) ? plan.features : [],
   };
 }
@@ -210,10 +211,6 @@ function resolveCtaHref(url?: string): { href: string; external: boolean } {
     return { href: url, external: true };
   }
   return { href: url, external: false };
-}
-
-function hasLoadedStripeCta(tier: Tier): boolean {
-  return tier.plan_id === 'starter_growth' && tier.cta_url.startsWith('https://');
 }
 
 // ─── Tier card ────────────────────────────────────────────────────────────────
@@ -280,14 +277,9 @@ function TierCard({
           {external && <ExternalLink className="w-3 h-3 shrink-0" />}
           {tier.ctaVariant === 'primary' && !external && <ArrowRight className="w-3.5 h-3.5 shrink-0" />}
         </button>
-        {import.meta.env.DEV && hasLoadedStripeCta(tier) && (
-          <p className="text-[10px] text-muted-foreground/60 text-center leading-snug px-1">
-            CTA: Stripe link loaded
-          </p>
-        )}
-        {tier.manual_activation_note && (
-          <p className="text-[10px] text-muted-foreground/60 text-center leading-snug px-1">
-            {tier.manual_activation_note}
+        {tier.supporting_copy && (
+          <p className="px-2 text-center text-xs leading-relaxed text-muted-foreground">
+            {tier.supporting_copy}
           </p>
         )}
         {tier.showBookIntro && (
@@ -450,8 +442,8 @@ export default function PricingPage() {
                 a: 'No. The free preview includes 5 public-source screens. No payment required.',
               },
               {
-                q: 'What happens after I pay for Starter / Growth?',
-                a: 'Access is activated manually after payment. We will confirm your access within one business day.',
+                q: 'What is included in Starter / Growth?',
+                a: 'Starter / Growth includes expanded screening, document-assisted review, Deal Cockpit and Compare.',
               },
               {
                 q: 'Can I run without uploading documents?',
@@ -459,7 +451,7 @@ export default function PricingPage() {
               },
               {
                 q: 'How do Team and Enterprise plans work?',
-                a: 'Starter / Growth opens the Stripe checkout link provided by pricing. Team and Enterprise route to pilot intake so scope, data handling and workflow requirements can be agreed directly.',
+                a: 'Team and Enterprise plans are configured around workflow scope, data handling and integration requirements.',
               },
             ].map(({ q, a }) => (
               <div key={q}>

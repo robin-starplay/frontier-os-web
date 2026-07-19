@@ -7,6 +7,13 @@ import { ThemeToggle } from './ThemeToggle';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { clerkEnabled, OptionalUserButton, useOptionalUser } from '@/lib/optionalClerk';
 import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
+import {
+  HEADER_ICON_CONTROL_CLASS,
+  HEADER_NAV_ACTIVE_CLASS,
+  HEADER_NAV_INACTIVE_CLASS,
+  HEADER_NAV_ITEM_CLASS,
+  HEADER_UTILITY_CONTROL_CLASS,
+} from './headerStyles';
 
 // ── Public nav ────────────────────────────────────────────────────────────────
 // Always shown on public pages regardless of auth state.
@@ -112,14 +119,15 @@ function MoreDropdown({
   return (
     <div className="relative" ref={ref}>
       <button
+        data-header-nav-item
         onClick={() => setOpen(o => !o)}
         aria-haspopup="true"
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-1 px-2 py-1.5 rounded-md text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors whitespace-nowrap',
+          `${HEADER_NAV_ITEM_CLASS} gap-1`,
           anyActive
-            ? 'bg-primary/10 text-primary font-semibold'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
+            ? HEADER_NAV_ACTIVE_CLASS
+            : HEADER_NAV_INACTIVE_CLASS,
         )}
       >
         More <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
@@ -141,6 +149,7 @@ function MoreDropdown({
               </a>
             ) : (
               <Link
+                data-header-nav-item
                 key={href}
                 href={href}
                 role="menuitem"
@@ -223,16 +232,17 @@ export function Navbar() {
           </Link>
 
           {/* Desktop public nav — always the same set */}
-          <div className="ml-3 hidden items-center gap-1 xl:flex">
+          <div className="ml-7 hidden min-w-0 items-center gap-1 xl:flex">
             {PUBLIC_NAV.map(({ label, href }) => (
               <Link
+                data-header-nav-item
                 key={href}
                 href={href}
                 className={cn(
-                  'whitespace-nowrap rounded-md px-2 py-2 text-sm font-medium leading-tight transition-colors',
+                  HEADER_NAV_ITEM_CLASS,
                   isActive(href)
-                    ? 'bg-primary/10 text-primary font-semibold'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
+                    ? HEADER_NAV_ACTIVE_CLASS
+                    : HEADER_NAV_INACTIVE_CLASS,
                 )}
               >
                 {label}
@@ -245,16 +255,31 @@ export function Navbar() {
             />
           </div>
 
+          <div className="ml-7 hidden min-w-0 items-center gap-1 lg:flex xl:hidden">
+            {PUBLIC_NAV.filter(({ label }) => ['Origination', 'Screen', 'Cockpit', 'Compare'].includes(label)).map(({ label, href }) => (
+              <Link
+                data-header-nav-item
+                key={href}
+                href={href}
+                className={cn(HEADER_NAV_ITEM_CLASS, isActive(href) ? HEADER_NAV_ACTIVE_CLASS : HEADER_NAV_INACTIVE_CLASS)}
+              >
+                {label}
+              </Link>
+            ))}
+            <MoreDropdown items={[...PUBLIC_NAV.filter(({ label }) => !['Origination', 'Screen', 'Cockpit', 'Compare'].includes(label)), ...PUBLIC_MORE]} isActive={isActive} onFeedback={() => setFeedbackOpen(true)} />
+          </div>
+
           {/* Right side */}
           <div className="ml-auto flex min-w-0 items-center gap-2.5">
-            <ThemeToggle compact className="hidden sm:inline-flex" />
+            <ThemeToggle compact className={cn('hidden sm:inline-flex', HEADER_ICON_CONTROL_CLASS)} />
 
             {isLoaded && hasWorkspace && (
               /* Signed-in or local reviewer workspace on a public page — return to workspace */
               <>
                 <Link
+                  data-header-cta="open-workspace"
                   href={workspaceHref}
-                  className="hidden h-10 min-w-max shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium leading-tight text-primary-foreground transition-colors hover:bg-primary/90 sm:inline-flex"
+                  className={cn(HEADER_UTILITY_CONTROL_CLASS, 'hidden gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 sm:inline-flex')}
                 >
                   Open workspace
                 </Link>
@@ -271,20 +296,20 @@ export function Navbar() {
                   href={BOOK_INTRO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden h-10 min-w-max shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-4 text-sm font-medium leading-tight text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground xl:inline-flex"
+                  className={cn(HEADER_UTILITY_CONTROL_CLASS, 'hidden gap-1.5 border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground xl:inline-flex')}
                 >
                   <Calendar className="w-3.5 h-3.5" />
                   Intro
                 </a>
                 <Link
                   href={clerkEnabled ? '/sign-in' : '/create-workspace'}
-                  className="hidden h-10 w-auto min-w-max shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-border px-4 text-sm font-medium leading-tight text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:inline-flex"
+                  className={cn(HEADER_UTILITY_CONTROL_CLASS, 'hidden w-auto border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground sm:inline-flex')}
                 >
                   {clerkEnabled ? 'Sign in' : 'Beta workspace'}
                 </Link>
                 <Link
                   href={clerkEnabled ? '/app/run' : '/create-workspace'}
-                  className="hidden h-10 min-w-max shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 text-sm font-semibold leading-tight text-primary-foreground transition-colors hover:bg-primary/90 sm:inline-flex"
+                  className={cn(HEADER_UTILITY_CONTROL_CLASS, 'hidden bg-primary font-semibold text-primary-foreground hover:bg-primary/90 sm:inline-flex')}
                 >
                   {clerkEnabled ? 'Screen company' : 'Start free'}
                 </Link>
@@ -293,7 +318,7 @@ export function Navbar() {
 
             {/* Mobile hamburger */}
             <button
-              className="min-h-10 min-w-10 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground xl:hidden"
+              className={cn(HEADER_ICON_CONTROL_CLASS, 'rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground lg:hidden')}
               onClick={() => setMobileOpen(o => !o)}
               aria-label="Toggle navigation"
             >
@@ -304,7 +329,7 @@ export function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="xl:hidden border-t border-border bg-background px-4 py-3">
+          <div className="lg:hidden border-t border-border bg-background px-4 py-3">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
               {PUBLIC_MOBILE_PRIMARY.map(({ label, href }) => (
                 <Link

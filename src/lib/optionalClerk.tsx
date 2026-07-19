@@ -115,17 +115,18 @@ function LocalWorkspaceMenu() {
   return (
     <div className="relative" ref={ref}>
       <button
+        data-header-account
         type="button"
         aria-label="Open workspace menu"
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-2 rounded-full border border-border bg-card hover:bg-accent/40 h-8 pl-1 pr-2 transition-colors"
+        className="inline-flex h-9 min-h-9 items-center gap-2 rounded-md border border-border bg-card pl-1 pr-2.5 transition-colors hover:bg-accent/40"
       >
-        <span className="w-6 h-6 rounded-full bg-primary/15 border border-primary/25 text-primary text-[10px] font-bold flex items-center justify-center">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
           {initials}
         </span>
-        {usageAvailable && <span className="hidden sm:inline text-[11px] font-mono text-muted-foreground">
+        {usageAvailable && <span className="hidden text-[13px] leading-5 text-muted-foreground sm:inline">
           {usage.screensRemaining}/{usage.screensLimit}
         </span>}
       </button>
