@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { semanticBadgeClass } from '@/components/SemanticBadge';
+import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="page-eyebrow mb-2">{children}</p>;
@@ -37,37 +38,6 @@ function Badge({
 
   return <span className={semanticBadgeClass(tones[tone])}>{children}</span>;
 }
-
-const WORKFLOW_STEPS = [
-  {
-    number: '1',
-    label: 'Originate',
-    icon: Radar,
-    href: '/app/origination',
-    body: 'Build or paste a source-backed target universe. Broad research results are treated as leads until company websites are confirmed.',
-  },
-  {
-    number: '2',
-    label: 'Screen',
-    icon: FileSearch,
-    href: '/app/run',
-    body: 'Screen one company website at a time. Frontier OS separates verified facts, company claims, unknowns and diligence blockers.',
-  },
-  {
-    number: '3',
-    label: 'Save to Cockpit',
-    icon: FolderKanban,
-    href: '/app/cockpit',
-    body: 'Keep screened targets, recommendations, evidence confidence, blockers and next actions in one place.',
-  },
-  {
-    number: '4',
-    label: 'Compare',
-    icon: GitCompare,
-    href: '/app/compare',
-    body: 'Compare screened candidates side by side. Manual quick compare is available, but evidence-backed comparison works best after individual screens.',
-  },
-];
 
 const EXPECTATIONS = [
   'Origination returns leads and research sources unless confirmed company websites are available.',
@@ -144,59 +114,6 @@ const LIMITED = [
   'Exports / team workflows',
   'Confidential document workflows',
 ];
-
-function WorkflowStrip() {
-  return (
-    <div className="surface-raised rounded-xl p-3">
-      <div className="grid gap-2 md:grid-cols-4">
-        {WORKFLOW_STEPS.map((step, index) => (
-          <Link
-            key={step.label}
-            href={step.href}
-            className="group relative flex min-h-20 items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-accent/45"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
-              {step.number}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-foreground">{step.label}</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">Open workflow step</span>
-            </span>
-            {index < WORKFLOW_STEPS.length - 1 && (
-              <ArrowRight className="absolute right-3 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-muted-foreground/45 md:block" />
-            )}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StepCard({
-  step,
-}: {
-  step: typeof WORKFLOW_STEPS[number];
-}) {
-  const Icon = step.icon;
-  return (
-    <Link
-      href={step.href}
-      className="surface-raised group flex min-h-64 flex-col rounded-xl p-6 transition-colors hover:border-primary/30"
-    >
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
-        </div>
-        <Badge tone="info">Step {step.number}</Badge>
-      </div>
-      <h3 className="text-lg font-semibold text-foreground">{step.label}</h3>
-      <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-      <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary">
-        Open {step.label.toLowerCase()} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-      </span>
-    </Link>
-  );
-}
 
 function SampleCard({
   sample,
@@ -286,11 +203,7 @@ export default function HowItWorksPage() {
       </section>
 
       <section className="app-container py-12">
-        <div className="mb-8">
-          <SectionLabel>Workflow</SectionLabel>
-          <h2 className="section-title">From target universe to screened comparison.</h2>
-        </div>
-        <WorkflowStrip />
+        <ScreeningWorkflowGuide />
       </section>
 
       <section className="border-y border-border bg-muted/35">

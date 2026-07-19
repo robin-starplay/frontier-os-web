@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { CheckCircle2, GitCompare, LayoutDashboard, Search, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle2, GitCompare, LayoutDashboard, Search, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type ScreeningWorkflowStep = 'originate' | 'run' | 'cockpit' | 'compare';
@@ -54,74 +54,64 @@ export function ScreeningWorkflowGuide({
   compact = false,
   originationAvailable = false,
 }: {
-  active: ScreeningWorkflowStep;
+  active?: ScreeningWorkflowStep;
   className?: string;
   compact?: boolean;
   originationAvailable?: boolean;
 }) {
   return (
-    <div className={cn('surface-raised overflow-hidden rounded-xl', className)}>
-      <div className="border-b border-border/70 px-5 py-3">
-        <p className="text-xs font-semibold text-foreground">Screening workflow</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Origination → Screen → Cockpit → Compare.
+    <div className={cn('surface-raised overflow-hidden rounded-2xl', className)}>
+      <div className="border-b border-border/70 px-6 py-6 text-center md:px-8 md:py-8">
+        <p className="page-eyebrow mb-2">Screening workflow</p>
+        <h2 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
+          Origination → Screen → Cockpit → Compare
+        </h2>
+        <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Move from a source-backed target universe to evidence-led screening, decision tracking and comparable candidates.
         </p>
       </div>
-      <div className={cn(
-        'grid gap-0 divide-y divide-border',
-        compact ? 'md:grid-cols-4 md:divide-y-0 md:divide-x' : 'sm:grid-cols-2 lg:grid-cols-4 sm:divide-y-0 sm:divide-x',
-      )}>
+      <div className={cn('relative grid gap-0 divide-y divide-border px-2 py-3 md:divide-y-0 md:px-4 md:py-5', compact ? 'md:grid-cols-4' : 'md:grid-cols-4')}>
+        <div className="pointer-events-none absolute left-[12.5%] right-[12.5%] top-[3.75rem] hidden h-px bg-border md:block" />
         {STEPS.map((step, index) => {
           const Icon = step.icon;
           const isActive = step.id === active;
           const isCompleted = STEPS.findIndex(item => item.id === active) > index;
           return (
-            <div
+            <Link
               key={step.id}
+              href={step.href}
               className={cn(
-                'px-5 py-4 transition-colors',
+                'group relative flex min-h-48 flex-col items-center rounded-xl px-5 py-5 text-center transition-colors hover:bg-accent/35 md:px-6 md:py-6',
                 isActive ? 'surface-selected border-0 shadow-none' : 'bg-transparent',
               )}
             >
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  'inline-flex h-7 w-7 items-center justify-center rounded-full border',
+              <span className={cn(
+                  'relative z-10 inline-flex h-14 w-14 items-center justify-center rounded-full border-2 shadow-sm transition-transform group-hover:scale-105',
                   isActive
                     ? 'border-primary/25 bg-primary/[0.08] text-primary'
                     : isCompleted
                       ? 'border-border bg-muted/40 text-muted-foreground'
                       : 'border-border bg-background text-muted-foreground',
                 )}>
-                  {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                  {isCompleted ? <CheckCircle2 className="h-6 w-6" /> : <Icon className="h-6 w-6" />}
                 </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{step.label}</p>
-                  {isActive && <p className="text-[10px] font-semibold text-primary">Current step</p>}
-                </div>
-              </div>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{step.description}</p>
+              <span className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                Step {index + 1}
+              </span>
+              <p className="mt-1 text-base font-semibold text-foreground">{step.label}</p>
+              {isActive && <p className="mt-1 text-[11px] font-semibold text-primary">Current step</p>}
+              <p className="mt-2 max-w-52 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
               {step.id === 'originate' && originationAvailable && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                   <span className="inline-flex rounded-full border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] px-2 py-1 text-[11px] font-semibold leading-none text-[var(--semantic-info-text)]">
                     Targets available
                   </span>
-                  <Link
-                    href="/app/origination"
-                    className="inline-flex text-xs font-medium text-primary hover:text-primary/80"
-                  >
-                    Choose from Origination
-                  </Link>
                 </div>
               )}
-              {!isActive && (
-                <Link
-                  href={step.href}
-                  className="mt-2 inline-flex text-xs font-medium text-primary hover:text-primary/80"
-                >
-                  {step.cta}
-                </Link>
-              )}
-            </div>
+              <span className="mt-auto inline-flex items-center gap-1 pt-4 text-xs font-semibold text-primary">
+                {isActive ? 'Continue here' : step.cta} <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </Link>
           );
         })}
       </div>
