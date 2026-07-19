@@ -7,6 +7,7 @@ import { hasLocalWorkspaceSession } from '@/lib/trialAccount';
 import { getFeedbackMailto } from '@/components/SendFeedbackButton';
 import { useOptionalUser } from '@/lib/optionalClerk';
 import { SemanticBadge, type LegacyBadgeLevel } from '@/components/SemanticBadge';
+import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 
 // ─── Large acquisition screen card ───────────────────────────────────────────
 
@@ -289,32 +290,9 @@ export default function Landing() {
       </div>
 
       {/* ══════════════════════════════════════════════ WORKFLOW STRIP */}
-      <div className="w-full border-y border-border bg-card/20 py-12">
+      <div className="w-full border-y border-border bg-card/20 py-16">
         <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
-          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2 text-center">How it works</p>
-          <h2 className="text-xl font-bold text-foreground mb-8 text-center">Origination → Screen → Evidence → Compare → Cockpit → IC pack</h2>
-          <div className="relative">
-            {/* connector line — desktop */}
-            <div className="hidden lg:block absolute top-5 left-[8%] right-[8%] h-px bg-border" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-              {[
-                { step: 1, label: 'Origination',  detail: 'Find targets from a buyer thesis.' },
-                { step: 2, label: 'URL screen',   detail: 'Input a company website URL.' },
-                { step: 3, label: 'Evidence',     detail: 'Separate facts, claims and unknowns.' },
-                { step: 4, label: 'Compare',      detail: 'Rank 2–5 targets side by side.' },
-                { step: 5, label: 'Cockpit',      detail: 'Track IC readiness and next actions.' },
-                { step: 6, label: 'IC pack',      detail: 'Evidence register and IC memo export.' },
-              ].map(({ step, label, detail }) => (
-                <div key={step} className="flex flex-col items-center text-center gap-2.5">
-                  <div className="relative z-10 w-10 h-10 rounded-full border border-border bg-background flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-primary">{step}</span>
-                  </div>
-                  <p className="text-sm font-semibold text-foreground leading-snug">{label}</p>
-                  <p className="text-xs text-muted-foreground leading-snug">{detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ScreeningWorkflowGuide />
         </div>
       </div>
 
@@ -461,46 +439,6 @@ export default function Landing() {
                 Screen company <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════ PRIVATE BETA WORKFLOW TEASER */}
-      <div className="w-full border-t border-border py-16">
-        <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
-          <div className="flex flex-col items-center text-center mb-10">
-            <p className="text-[10px] font-semibold tracking-normal text-primary mb-3">Private beta workflow</p>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-              One system. End-to-end acquisition workflow.
-            </h2>
-            <p className="text-base text-muted-foreground max-w-xl">
-              From origination to IC pack. Each step grounded in evidence, not claims.
-            </p>
-          </div>
-
-          {/* Workflow strip */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-0 mb-10 rounded-lg border border-border bg-card overflow-hidden">
-            {[
-              { step: '1', label: 'Origination', desc: 'Find targets from a buyer thesis' },
-              { step: '2', label: 'Screen',         desc: 'Screen a specific company URL' },
-              { step: '3', label: 'Compare',     desc: 'Rank 2–5 targets side-by-side' },
-              { step: '4', label: 'Cockpit',     desc: 'Track IC readiness and gaps' },
-              { step: '5', label: 'Evidence',    desc: 'Review facts, claims, unknowns' },
-              { step: '6', label: 'Exports',     desc: 'IC memo PDF · evidence register' },
-            ].map(({ step, label, desc }, idx, arr) => (
-              <div
-                key={label}
-                className={`flex-1 min-w-0 px-5 py-5 flex flex-col gap-1 border-b sm:border-b-0 sm:border-r border-border last:border-0 ${idx % 2 === 0 ? 'bg-card' : 'bg-muted/10'}`}
-              >
-                <span className="text-[10px] font-medium text-muted-foreground/50">{step}</span>
-                <p className="text-sm font-semibold text-foreground">{label}</p>
-                <p className="text-xs text-muted-foreground leading-snug">{desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-center">
-            <ReviewerStartButton />
           </div>
         </div>
       </div>
