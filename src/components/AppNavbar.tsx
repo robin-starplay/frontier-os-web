@@ -110,7 +110,7 @@ function AppMoreDropdown({
         More <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
-        <div role="menu" className="absolute left-0 top-full mt-1 w-48 rounded-lg border border-border bg-popover shadow-lg py-1 z-50">
+        <div data-app-more-menu role="menu" className="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-border bg-popover p-1.5 shadow-lg">
           {APP_MORE.map(({ label, href, external }) => (
             external ? (
               <a
@@ -119,7 +119,8 @@ function AppMoreDropdown({
                 target="_blank"
                 rel="noopener noreferrer"
                 role="menuitem"
-                className="block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+                data-app-more-item
+                className="flex min-h-9 items-center rounded-md px-3.5 text-sm font-medium leading-5 text-muted-foreground outline-none transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:bg-accent/50 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
                 onClick={() => setOpen(false)}
               >
                 {label}
@@ -130,8 +131,9 @@ function AppMoreDropdown({
                 key={href}
                 href={href}
                 role="menuitem"
+                data-app-more-item
                 className={cn(
-                  'block px-3 py-2 text-[var(--font-size-nav)] font-medium leading-[var(--line-height-compact)] transition-colors',
+                  'flex min-h-9 items-center rounded-md px-3.5 text-sm font-medium leading-5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/30',
                   isActive(href)
                     ? 'text-primary font-semibold bg-primary/10'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/70',
@@ -142,11 +144,12 @@ function AppMoreDropdown({
               </Link>
             )
           ))}
-          <div className="border-t border-border mt-1 pt-1">
+          <div className="mt-1 border-t border-border/70 pt-1">
             <button
               onClick={() => { setOpen(false); onFeedback(); }}
               role="menuitem"
-              className="w-full text-left flex items-center gap-2 px-3 py-2 text-[var(--font-size-nav)] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+              data-app-more-item
+              className="flex min-h-9 w-full items-center rounded-md px-3.5 text-left text-sm font-medium leading-5 text-muted-foreground outline-none transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:bg-accent/50 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
             >
               Feedback
             </button>

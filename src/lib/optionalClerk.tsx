@@ -117,7 +117,9 @@ function LocalWorkspaceMenu() {
       <button
         data-header-account
         type="button"
-        aria-label="Open workspace menu"
+        aria-label={usageAvailable
+          ? `Open workspace menu — ${usage.screensRemaining} of ${usage.screensLimit} company screens remaining`
+          : 'Open workspace menu — company screen usage unavailable'}
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
@@ -126,8 +128,8 @@ function LocalWorkspaceMenu() {
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
           {initials}
         </span>
-        {usageAvailable && <span className="hidden text-[13px] leading-5 text-muted-foreground sm:inline">
-          {usage.screensRemaining}/{usage.screensLimit}
+        {usageAvailable && <span className="hidden whitespace-nowrap text-xs font-medium leading-5 text-muted-foreground sm:inline">
+          {usage.screensRemaining}/{usage.screensLimit} Screens
         </span>}
       </button>
 

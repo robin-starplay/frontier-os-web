@@ -7,6 +7,7 @@ import {
   BookMarked, TrendingUp, AlertTriangle,
   Lock, ArrowRight,
   ExternalLink, Filter, Trash2, PencilLine, Plus,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EvidenceCard } from '@/components/EvidenceCard';
@@ -25,6 +26,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { normalizeWebsiteUrl } from '@/lib/urlUtils';
 import {
   addUserSuppliedEvidence,
@@ -754,15 +762,26 @@ function cockpitNextAction(run: RunEntry): string {
   };
 
   // 1. Direct next_action from backend or save function
-  if (isUsable(run.next_action) && !isGenericFinancialAction(run.next_action)) return run.next_action.trim();
+  const withoutCompanyPrefix = (value: string): string => {
+    let output = value.trim();
+    const company = run.company.trim();
+    const shortName = cockpitShortName(company);
+    for (const prefix of [company, shortName]) {
+      const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      output = output.replace(new RegExp(`^(?:${escaped}\\s*:\\s*)+`, 'i'), '');
+    }
+    return output.trim();
+  };
+
+  if (isUsable(run.next_action) && !isGenericFinancialAction(run.next_action)) return withoutCompanyPrefix(run.next_action);
 
   // 2. First blocking evidence card summary (diligence_blockers[].next_action)
   const blockingCard = run.result?.evidence_cards?.find(c => c.status === 'blocking');
-  if (blockingCard && isUsable(blockingCard.summary)) return blockingCard.summary;
+  if (blockingCard && isUsable(blockingCard.summary)) return withoutCompanyPrefix(blockingCard.summary);
 
   // 3. First blocker field formatted as a targeted action (high-severity blocker)
   if (run.blockers && run.blockers.length > 0) {
-    return `${run.company}: ${run.blockers[0]}. Verify before IC use.`;
+    return `${run.blockers[0]}. Verify before IC use.`;
   }
 
   // 4. First unknowns[].next_action — unknown evidence gap
@@ -770,19 +789,37 @@ function cockpitNextAction(run: RunEntry): string {
   if (Array.isArray(unknowns) && unknowns.length > 0) {
     const firstUnknown = unknowns[0] as Record<string, unknown> | null;
     const unk = firstUnknown?.next_action as string | undefined;
-    if (isUsable(unk)) return unk!.trim();
+    if (isUsable(unk)) return withoutCompanyPrefix(unk!);
   }
 
   // 5. Strategic fit diligence question
   const sfq = run.result?.strategic_fit?.diligence_questions;
-  if (Array.isArray(sfq) && sfq.length > 0 && isUsable(sfq[0])) return sfq[0];
+  if (Array.isArray(sfq) && sfq.length > 0 && isUsable(sfq[0])) return withoutCompanyPrefix(sfq[0]);
 
   if (isGenericFinancialAction(run.next_action)) {
-    return `${run.company}: source-backed financials are incomplete; request management accounts, ARR bridge and customer schedule.`;
+    return 'Request management accounts, ARR bridge and customer schedule.';
   }
 
   // 6. Generic fallback
-  return `${run.company}: review evidence gaps before IC use.`;
+  return 'Review evidence gaps before IC use.';
+}
+
+function cockpitDisplayDomain(value: string): { domain: string; full: string } | null {
+  const full = normalizeRunWebsite(value);
+  if (!full) return null;
+  try {
+    const parsed = new URL(full);
+    if (/^(?:www\.)?google\./i.test(parsed.hostname) && parsed.pathname === '/url') {
+      const target = parsed.searchParams.get('q') || parsed.searchParams.get('url');
+      if (target) {
+        const resolved = new URL(target);
+        return { domain: resolved.hostname.replace(/^www\./, ''), full: resolved.href };
+      }
+    }
+    return { domain: parsed.hostname.replace(/^www\./, ''), full: parsed.href };
+  } catch {
+    return { domain: value.replace(/^https?:\/\//i, '').split('/')[0], full: value };
+  }
 }
 
 const editModeTitle: Record<CockpitEditMode, string> = {
@@ -1247,199 +1284,128 @@ function SavedRunCard({
   const blocker = mainBlocker(run);
   const icReadiness = displayText(run.ic_readiness);
   const confidence = displayText(run.evidence_confidence);
-  const nextAction = cockpitNextAction(run);
+  const derivedNextAction = cockpitNextAction(run);
   const canSelectForCompare = Boolean(onToggleCompare) && !selectionDisabledReason;
   const missingWebsite = !displayText(run.website);
   const missingFinancials = !hasFinancialEvidence(run);
+  const website = cockpitDisplayDomain(run.website);
+  const isOriginationSignal = run.type === 'origination';
+  const isCompareCandidate = run.type === 'compare';
+  const isScreenedTarget = !isOriginationSignal && !isCompareCandidate;
+  const nextAction = isOriginationSignal && missingWebsite
+    ? 'Verify the official company website.'
+    : isCompareCandidate
+      ? 'Run an individual company screen before comparison.'
+      : derivedNextAction;
+  const dateLabel = isOriginationSignal ? 'Discovered' : isCompareCandidate ? 'Imported' : 'Screened';
+  const cardVariant = isOriginationSignal ? 'origination-signal' : isCompareCandidate ? 'individual-screen' : 'screened-target';
+  const primaryState = isOriginationSignal
+    ? 'Signal only'
+    : isCompareCandidate
+      ? 'Individual screen required'
+      : runRecommendation(run);
+  const primaryTone: RecommendationLevel = isOriginationSignal || isCompareCandidate
+    ? 'grey'
+    : safeLevel(run.recommendation_level);
+
+  const compactButtonClass = 'h-9 rounded-md px-3 text-sm leading-5';
 
   return (
     <div
+      data-testid="cockpit-target-card"
+      data-card-variant={cardVariant}
       className={cn(
-        'surface-raised w-full text-left rounded-lg p-4 transition-colors',
+        'surface-raised w-full min-w-0 text-left rounded-lg p-3 transition-colors',
         active ? 'surface-selected' : '',
       )}
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="min-w-0 flex items-start gap-3">
-            {!compact && onToggleCompare && (
-              <div className="pt-1">
+      <div className="flex min-w-0 flex-col gap-2.5">
+        <header className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+            {!compact && onToggleCompare && isScreenedTarget && (
+              <div className="flex shrink-0 items-center">
                 <input
                   type="checkbox"
                   checked={selected}
                   disabled={!canSelectForCompare}
                   onChange={onToggleCompare}
                   aria-label={`Select ${run.company} for compare`}
-                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-4 w-4 rounded border-border text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
                 />
               </div>
             )}
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                <span className={cn(
-                  'inline-flex px-2 py-0.5 rounded bg-[var(--semantic-unknown-bg)] text-[10px] font-medium text-[var(--semantic-unknown-text)] border border-[var(--semantic-unknown-border)]',
-                )}>
-                  {sourceTypeLabel(run.type)}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <Clock className="w-3 h-3" /> {formatTs(run.timestamp)}
-                </span>
-                <SemanticBadge tone={displayText(run.website) ? 'positive' : 'warning'}>
-                  {displayText(run.website) ? 'Ready to screen' : 'Website required'}
-                </SemanticBadge>
-                {!compact && (
-                  <SemanticBadge tone={canSelectForCompare ? 'positive' : 'neutral'}>
-                    {canSelectForCompare ? 'Screened' : selectionDisabledReason || 'Not compare-ready'}
-                  </SemanticBadge>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={onSelect}
-                className="text-left hover:text-primary transition-colors"
-              >
-                <p className="text-base font-semibold text-foreground leading-snug break-words">{run.company}</p>
-              </button>
-              {displayText(run.website) && (
-                <p className="mt-0.5 max-w-full overflow-hidden break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">{run.website}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            {chip(safeLevel(run.recommendation_level), runRecommendation(run))}
+            <button type="button" onClick={onSelect} className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm">
+              <span className="block truncate text-base font-semibold leading-5 text-foreground hover:text-primary">{run.company}</span>
+            </button>
+            {chip(primaryTone, primaryState)}
             {run.blockers.length > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border border-[var(--semantic-blocker-border)] whitespace-nowrap">
+              <span className="inline-flex shrink-0 items-center rounded border border-[var(--semantic-blocker-border)] bg-[var(--semantic-blocker-bg)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--semantic-blocker-text)]">
                 {run.blockers.length} blocker{run.blockers.length === 1 ? '' : 's'}
               </span>
             )}
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          {icReadiness && (
-            <div className="surface-flat rounded-md p-3">
-              <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">IC readiness</p>
-              <p className="text-sm text-foreground leading-snug">{icReadiness}</p>
-            </div>
-          )}
-          {confidence && (
-            <div className="surface-flat rounded-md p-3">
-              <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">Evidence confidence</p>
-              <div>{confidenceChip(confidence)}</div>
-            </div>
-          )}
-          {blocker && (
-            <div className="surface-flat rounded-md p-3 sm:col-span-2 xl:col-span-1">
-              <p className="text-[11px] font-medium text-muted-foreground/60 mb-1">Main blocker</p>
-              <p className="text-sm text-foreground leading-snug">{blocker}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="surface-flat rounded-md p-3 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-medium text-primary mb-1">Next action</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{nextAction}</p>
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {website && (
+              <span className="max-w-[16rem] truncate" title={website.full} aria-label={`Website: ${website.full}`}>{website.domain}</span>
+            )}
+            <span>{sourceTypeLabel(run.type)}</span>
+            <span className="inline-flex items-center gap-1"><Clock className="size-3" /> {dateLabel} {formatTs(run.timestamp)}</span>
+            {confidence && <span>Confidence: <strong className="font-medium text-foreground">{confidence}</strong></span>}
           </div>
-          {!compact && (
-            <button
-              type="button"
-              onClick={onSelect}
-              className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0 mt-0.5"
-              aria-label={`View ${run.company}`}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        </header>
 
-        {!compact && (
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            {missingWebsite && onEdit && (
-              <button
-                type="button"
-                onClick={() => onEdit('website')}
-                className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Add website
-              </button>
-            )}
-            {!missingWebsite && missingFinancials && onAddEvidence && (
-              <button
-                type="button"
-                onClick={() => onAddEvidence('financials')}
-                className="inline-flex h-8 items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-accent transition-colors"
-              >
-                Add financials
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onSelect}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              View
-            </button>
-            {onEdit && (
-              <button
-                type="button"
-                onClick={() => onEdit('target')}
-                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-              >
-                Edit
-              </button>
-            )}
-            {!missingWebsite && onEdit && (
-              <button
-                type="button"
-                onClick={() => onEdit('website')}
-                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-              >
-                Edit website
-              </button>
-            )}
-            {onAddEvidence && (
-              <button
-                type="button"
-                onClick={() => onAddEvidence('evidence')}
-                className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-              >
-                Add evidence
-              </button>
-            )}
-            <Link
-              href={runScreenHref(run)}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              {run.type === 'url' || run.type === 'document' ? 'Re-screen' : 'Screen again'}
-            </Link>
-            {onToggleCompare && (
-              <button
-                type="button"
-                onClick={onToggleCompare}
-                disabled={!canSelectForCompare}
-                className={cn(
-                  'inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors',
-                  canSelectForCompare
-                    ? 'border-border bg-background text-foreground hover:bg-accent'
-                    : 'cursor-not-allowed border-border bg-muted text-muted-foreground opacity-70',
-                )}
-              >
-                {selected ? 'In Compare' : 'Send to Compare'}
-              </button>
-            )}
-            {onRemove && (
-              <button
-                type="button"
-                onClick={onRemove}
-                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Remove
-              </button>
-            )}
-          </div>
+        {isScreenedTarget && (icReadiness || confidence || blocker) && (
+          <dl className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-1.5 border-y border-border/70 py-2 sm:grid-cols-3">
+            <div className="min-w-0"><dt className="text-[11px] text-muted-foreground">IC readiness</dt><dd className="truncate text-sm font-medium text-foreground" title={icReadiness || 'Not assessed'}>{icReadiness || 'Not assessed'}</dd></div>
+            <div className="min-w-0"><dt className="text-[11px] text-muted-foreground">Evidence confidence</dt><dd className="truncate text-sm font-medium text-foreground">{confidence || 'Not scored'}</dd></div>
+            <div className="min-w-0"><dt className="text-[11px] text-muted-foreground">Main blocker</dt><dd className="truncate text-sm font-medium text-foreground" title={blocker || 'No recorded blocker'}>{blocker || 'No recorded blocker'}</dd></div>
+          </dl>
         )}
+
+        <div className="flex min-w-0 items-start justify-between gap-2 border-b border-border/70 pb-2">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-primary">Next action</p>
+            <p className="line-clamp-2 text-sm leading-5 text-muted-foreground" title={nextAction} data-testid="next-action">{nextAction}</p>
+          </div>
+          <button type="button" onClick={onSelect} className="mt-1 shrink-0 rounded-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`View full details for ${run.company}`}>
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+
+        <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="primary-actions">
+          {isOriginationSignal && missingWebsite && onEdit && (
+            <Button type="button" onClick={() => onEdit('website')} className={compactButtonClass}>Add website</Button>
+          )}
+          <Button type="button" variant="outline" onClick={onSelect} className={compactButtonClass}>View</Button>
+          {isCompareCandidate && (
+            <Button asChild className={compactButtonClass}><Link href={runScreenHref(run)}>Individual screen</Link></Button>
+          )}
+          {isScreenedTarget && !missingWebsite && missingFinancials && onAddEvidence && (
+            <Button type="button" onClick={() => onAddEvidence('financials')} className={compactButtonClass}>Add financials</Button>
+          )}
+          {isScreenedTarget && !missingWebsite && !missingFinancials && onAddEvidence && (
+            <Button type="button" variant="outline" onClick={() => onAddEvidence('evidence')} className={compactButtonClass}>Add evidence</Button>
+          )}
+          {isScreenedTarget && onToggleCompare && canSelectForCompare && (
+            <Button type="button" variant="outline" onClick={onToggleCompare} className={compactButtonClass}>{selected ? 'In Compare' : 'Send to Compare'}</Button>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" className={cn(compactButtonClass, 'ml-auto')} aria-label={`More actions for ${run.company}`}>
+                <MoreHorizontal className="size-4" /> <span className="hidden sm:inline">More</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" collisionPadding={8} className="w-48">
+              {onEdit && <DropdownMenuItem onSelect={() => onEdit('target')}>Edit</DropdownMenuItem>}
+              {!missingWebsite && onEdit && <DropdownMenuItem onSelect={() => onEdit('website')}>Edit website</DropdownMenuItem>}
+              {isOriginationSignal && onAddEvidence && <DropdownMenuItem onSelect={() => onAddEvidence('evidence')}>Add evidence</DropdownMenuItem>}
+              {isScreenedTarget && <DropdownMenuItem asChild><Link href={runScreenHref(run)}>Re-screen</Link></DropdownMenuItem>}
+              {onRemove && <DropdownMenuSeparator />}
+              {onRemove && <DropdownMenuItem onSelect={onRemove} className="text-destructive focus:text-destructive"><Trash2 className="size-4" />Remove target</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );
@@ -1569,10 +1535,10 @@ export default function DealCockpitPage() {
   };
 
   return (
-    <div className="app-container flex-1 flex flex-col py-10">
+    <div className="app-container flex-1 flex flex-col py-6 md:py-8">
 
       {/* ── Header ── */}
-      <div className="mb-8">
+      <div className="mb-4">
         <p className="text-xs font-semibold text-primary mb-2">Deal pipeline</p>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
@@ -1595,12 +1561,15 @@ export default function DealCockpitPage() {
         </div>
       </div>
 
-      <ScreeningWorkflowGuide active="cockpit" className="mb-6" />
+      <details className="mb-3 rounded-md border border-border/70 bg-card/40 px-3 py-2">
+        <summary className="cursor-pointer text-xs font-medium text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">How the screening workflow works</summary>
+        <ScreeningWorkflowGuide active="cockpit" className="mt-3" />
+      </details>
 
-      <div className="mb-6 rounded-lg border border-border/80 bg-card/80 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+      <div className="mb-4 rounded-lg border border-border/80 bg-card/80 px-3 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-xs">
         <div>
           <p className="text-sm font-semibold text-foreground">Cockpit keeps screened targets.</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Select two or more saved screens to compare evidence side by side.
           </p>
           {selectedCompareCandidates.length > 0 && (
@@ -1661,20 +1630,20 @@ export default function DealCockpitPage() {
 
       {/* ── Summary strip ── */}
       {hasRealRuns ? (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <dl className="mb-4 grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-5">
           {[
             { label: 'Runs saved',        value: stats.total,      level: 'grey' as RecommendationLevel },
             { label: 'Financial evidence needed', value: stats.financials, level: 'amber' as RecommendationLevel },
             { label: 'High AI risk',       value: stats.highAiRisk, level: 'red' as RecommendationLevel },
             { label: 'Evidence blockers',  value: stats.blockers,   level: 'amber' as RecommendationLevel },
             { label: 'Compared targets',   value: stats.compared,   level: 'blue' as RecommendationLevel },
-          ].map(({ label, value, level }) => (
-            <div key={label} className="rounded-lg border border-border bg-card p-4 flex flex-col gap-2">
-              <span className="text-2xl font-bold text-foreground">{value}</span>
-              {chip(level, label)}
+          ].map(({ label, value }) => (
+            <div key={label} className="flex min-w-0 items-baseline gap-2 border-b border-r border-border/70 px-3 py-2 last:border-r-0 sm:border-b-0">
+              <dd className="text-lg font-bold text-foreground">{value}</dd>
+              <dt className="truncate text-xs text-muted-foreground" title={label}>{label}</dt>
             </div>
           ))}
-        </div>
+        </dl>
       ) : (
         // Greyed-out placeholder — shown while loading or when no saved runs yet
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 opacity-30 pointer-events-none select-none">
@@ -1707,9 +1676,9 @@ export default function DealCockpitPage() {
               return true;
             }).slice(0, 3);
             return (
-              <div className="mb-6 rounded-lg border border-card-border bg-card p-5 shadow-xs">
-                <p className="text-xs font-semibold text-primary mb-4">Priority next actions</p>
-                <div className="space-y-3">
+              <details className="mb-4 rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-xs">
+                <summary className="cursor-pointer text-xs font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Priority next actions ({deduped.length})</summary>
+                <div className="mt-3 space-y-2">
                   {deduped.map(r => (
                     <div key={r.id} className="flex items-start gap-3">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
@@ -1720,12 +1689,12 @@ export default function DealCockpitPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </details>
             );
           })()}
 
           {/* Filter bar */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-md border border-border/70 bg-card/40 p-1.5">
             <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             {FILTERS.map(({ key, label }) => (
               <button

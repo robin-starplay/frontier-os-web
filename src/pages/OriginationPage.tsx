@@ -1938,6 +1938,21 @@ function shortText(value: string, fallback: string, limit = 88): string {
   return text.length > limit ? `${text.slice(0, limit - 1).trim()}…` : text;
 }
 
+function displayDomain(value: string): string {
+  if (!value.trim()) return 'Website not confirmed';
+  try {
+    return new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`).hostname.replace(/^www\./, '');
+  } catch {
+    return value.replace(/^https?:\/\//i, '').replace(/^www\./, '').split('/')[0] || value;
+  }
+}
+
+function savedLeadStatus(lead: StoredCompareCandidate): string {
+  if (!lead.website || lead.run_ready === false) return 'Website required before screening';
+  if (lead.compare_ready === false) return 'Ready to screen · website confirmation needed for comparison';
+  return 'Ready to screen and compare';
+}
+
 function OriginationWorkspacePanel({
   runs,
   savedLeads,
@@ -1968,25 +1983,25 @@ function OriginationWorkspacePanel({
   const researchSources = savedLeads.filter(lead => ['source_page', 'directory_or_listicle', 'news_article', 'research_article', 'forum_thread', 'market_report', 'search_result'].includes(lead.candidate_type || ''));
 
   return (
-    <div className="surface-raised overflow-hidden rounded-xl">
-      <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-3">
+    <div data-origination-workspace className="surface-raised overflow-hidden rounded-xl">
+      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-6">
         <div>
-          <p className="text-sm font-semibold text-foreground">Workspace</p>
-          <p className="text-xs text-muted-foreground">Previous runs, saved leads and compare selections.</p>
+          <p className="text-base font-semibold text-foreground">Workspace</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">Manage discovery, screening and comparison across acquisition targets.</p>
         </div>
         <Link
           href="/app/compare"
-          className={`inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${compareReady.length > 0 ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-border bg-background text-muted-foreground pointer-events-none opacity-60'}`}
+          className={`inline-flex h-8 w-fit items-center justify-center rounded-md border px-3 text-xs font-semibold transition-colors ${compareReady.length > 0 ? 'border-border bg-background text-foreground hover:bg-accent/60' : 'border-border bg-background text-muted-foreground pointer-events-none opacity-60'}`}
         >
           Go to Compare
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border">
-        <section className="p-4 space-y-3">
+      <div data-workspace-grid className="grid grid-cols-1 gap-6 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.75fr)_minmax(0,1.25fr)_minmax(0,1fr)] lg:p-6">
+        <section data-workspace-section="history" className="min-w-0 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">Origination history</p>
-            <span className="text-[10px] text-muted-foreground">{runs.length}</span>
+            <p className="text-sm font-semibold text-foreground">Origination history</p>
+            <span className="text-xs text-muted-foreground">{runs.length}</span>
           </div>
           {runs.length === 0 ? (
             <p className="text-xs text-muted-foreground">No saved origination runs yet.</p>
@@ -1995,23 +2010,23 @@ function OriginationWorkspacePanel({
               {runs.slice(0, 8).map(run => {
                 const summary = asRecord(run.result.candidate_summary);
                 return (
-                  <div key={run.id} className={`rounded-md border px-3 py-2 ${run.id === currentRunId ? 'border-primary/30 bg-primary/5' : 'border-border bg-background/60'}`}>
+                  <div key={run.id} className={`rounded-lg px-3 py-2.5 ${run.id === currentRunId ? 'bg-primary/5 ring-1 ring-primary/20' : 'bg-muted/25'}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold text-foreground">{formatStoredTime(run.created_at)}</p>
+                      <p className="text-xs text-muted-foreground">{formatStoredTime(run.created_at)}</p>
                       {run.id === currentRunId && <SemanticBadge tone="info" className="text-[10px] px-2 py-1">Current</SemanticBadge>}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                    <p className="mt-1 truncate text-sm font-semibold leading-5 text-foreground" title={run.thesis}>
                       {shortText(run.thesis, `${run.geography || 'Any'} / ${run.sector || 'Any'}`)}
                     </p>
-                    <p className="text-[11px] text-muted-foreground/70 mt-1">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {candidateCount(run.result)} candidates
                       {safeStr(summary.discovery_quality) ? ` · ${humanLabel(safeStr(summary.discovery_quality))} quality` : ''}
                     </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <button type="button" onClick={() => onRestoreRun(run)} className="text-[11px] font-medium text-primary hover:underline">
+                    <div className="mt-2 flex flex-wrap gap-3">
+                      <button type="button" onClick={() => onRestoreRun(run)} className="text-xs font-medium text-primary hover:underline">
                         Restore
                       </button>
-                      <button type="button" onClick={() => onDeleteRun(run.id)} className="text-[11px] font-medium text-muted-foreground hover:text-destructive">
+                      <button type="button" onClick={() => onDeleteRun(run.id)} className="text-xs font-medium text-muted-foreground hover:text-destructive">
                         Delete
                       </button>
                     </div>
@@ -2022,47 +2037,35 @@ function OriginationWorkspacePanel({
           )}
         </section>
 
-        <section className="p-4 space-y-3">
+        <section data-workspace-section="saved-leads" className="min-w-0 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">Saved leads</p>
-            <span className="text-[10px] text-muted-foreground">{savedLeads.length}</span>
+            <p className="text-sm font-semibold text-foreground">Saved leads</p>
+            <span className="text-xs text-muted-foreground">{savedLeads.length}</span>
           </div>
           {savedLeads.length === 0 ? (
             <p className="text-xs text-muted-foreground">Save candidates or sources from results to keep them here.</p>
           ) : (
             <div className="space-y-2 max-h-80 overflow-auto pr-1">
               {savedLeads.slice(0, 10).map(lead => (
-                <div key={candidateStorageKey(lead)} className="rounded-md border border-border bg-background/60 px-3 py-2">
-                  <p className="text-xs font-semibold text-foreground">{lead.company_name || lead.source_page_title || 'Saved lead'}</p>
-                  <p className="mt-0.5 max-w-full truncate text-[11px] text-muted-foreground" title={lead.website || lead.source_url || 'Website not confirmed'}>
-                    {lead.website || lead.source_url || 'Website not confirmed'}
+                <div key={candidateStorageKey(lead)} className="rounded-lg bg-muted/25 px-3.5 py-3">
+                  <p className="truncate text-[15px] font-semibold leading-5 text-foreground" title={lead.company_name || lead.source_page_title || 'Saved lead'}>{lead.company_name || lead.source_page_title || 'Saved lead'}</p>
+                  <p data-saved-lead-domain className="mt-0.5 max-w-full truncate text-xs text-muted-foreground" title={lead.website || lead.source_url || 'Website not confirmed'}>
+                    {displayDomain(lead.website || lead.source_url || '')}
                   </p>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    <SemanticBadge tone={['company', 'company_candidate'].includes(lead.candidate_type || '') ? 'info' : 'unknown'} className="text-[10px] px-2 py-1">
-                      {humanLabel(lead.candidate_type || 'company_candidate')}
-                    </SemanticBadge>
-                    <SemanticBadge tone={lead.compare_ready === false ? 'unknown' : 'verified'} className="text-[10px] px-2 py-1">
-                      {lead.compare_ready === false ? 'Not compare-ready' : 'Compare-ready'}
-                    </SemanticBadge>
-                    <SemanticBadge tone={lead.run_ready === false ? 'unknown' : 'verified'} className="text-[10px] px-2 py-1">
-                      {lead.run_ready === false ? 'Screen not ready' : 'Screen-ready'}
-                    </SemanticBadge>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                  <p className="mt-2 text-[13px] font-medium leading-[1.4] text-foreground/80">{savedLeadStatus(lead)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {lead.source_label || 'Origination'} · saved {formatStoredTime(lead.saved_at || '')}
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1.5">
                     {lead.run_ready !== false && lead.website ? (
-                      <button type="button" onClick={() => onRunLead(lead)} className="text-[11px] font-medium text-primary hover:underline">Screen company</button>
+                      <button type="button" onClick={() => onRunLead(lead)} className="text-xs font-semibold text-primary hover:underline">Screen company</button>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground">Find website</span>
+                      <span className="text-xs font-medium text-primary">Find website</span>
                     )}
                     {lead.compare_ready !== false && lead.website ? (
-                      <button type="button" onClick={() => onAddLeadToCompare(lead)} className="text-[11px] font-medium text-primary hover:underline">Add to Compare</button>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">Website/company target required before comparison.</span>
-                    )}
-                    <button type="button" onClick={() => onRemoveLead(lead)} className="text-[11px] font-medium text-muted-foreground hover:text-destructive">Remove</button>
+                      <button type="button" onClick={() => onAddLeadToCompare(lead)} className="text-xs font-medium text-primary hover:underline">Add to Compare</button>
+                    ) : null}
+                    <button type="button" onClick={() => onRemoveLead(lead)} className="text-xs font-medium text-muted-foreground hover:text-destructive">Remove</button>
                   </div>
                 </div>
               ))}
@@ -2070,10 +2073,10 @@ function OriginationWorkspacePanel({
           )}
         </section>
 
-        <section className="p-4 space-y-3">
+        <section data-workspace-section="compare" className="min-w-0 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">Compare selection</p>
-            <span className="text-[10px] text-muted-foreground">{compareCandidates.length}</span>
+            <p className="text-sm font-semibold text-foreground">Compare selection</p>
+            <span className="text-xs text-muted-foreground">{compareCandidates.length}</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Compare selection: {compareReady.length}
@@ -2087,12 +2090,12 @@ function OriginationWorkspacePanel({
           {compareCandidates.length > 0 && (
             <div className="space-y-2 max-h-80 overflow-auto pr-1">
               {compareCandidates.slice(0, 8).map(candidate => (
-                <div key={candidateStorageKey(candidate)} className="rounded-md border border-border bg-background/60 px-3 py-2">
-                  <p className="text-xs font-semibold text-foreground">{candidate.company_name}</p>
-                  <p className="max-w-full truncate text-[11px] text-muted-foreground" title={candidate.website || candidate.source_url || 'Website missing'}>
-                    {candidate.website || candidate.source_url || 'Website missing'}
-                  </p>
-                  <button type="button" onClick={() => onRemoveCompare(candidate)} className="mt-1 text-[11px] font-medium text-muted-foreground hover:text-destructive">
+                <div key={candidateStorageKey(candidate)} className="flex items-center gap-3 rounded-lg bg-muted/25 px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{candidate.company_name}</p>
+                    <p className="truncate text-xs text-muted-foreground" title={candidate.website || candidate.source_url || 'Website missing'}>{displayDomain(candidate.website || candidate.source_url || '')}</p>
+                  </div>
+                  <button type="button" onClick={() => onRemoveCompare(candidate)} className="shrink-0 text-xs font-medium text-muted-foreground hover:text-destructive">
                     Remove
                   </button>
                 </div>
@@ -2104,20 +2107,23 @@ function OriginationWorkspacePanel({
           )}
         </section>
 
-        <section className="p-4 space-y-3">
+        <section data-workspace-section="research" className="min-w-0 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">Research sources</p>
-            <span className="text-[10px] text-muted-foreground">{researchSources.length}</span>
+            <p className="text-sm font-semibold text-foreground">Research sources</p>
+            <span className="text-xs text-muted-foreground">{researchSources.length}</span>
           </div>
           {researchSources.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Source pages/listicles saved from discovery will appear here.</p>
+            <div className="space-y-1 text-sm leading-[1.45] text-muted-foreground">
+              <p>No research sources yet.</p>
+              <p className="text-xs">Source pages and listicles saved during discovery will appear here.</p>
+            </div>
           ) : (
             <div className="space-y-2 max-h-80 overflow-auto pr-1">
               {researchSources.slice(0, 8).map(source => (
-                <div key={candidateStorageKey(source)} className="rounded-md border border-border bg-background/60 px-3 py-2">
-                  <p className="text-xs font-semibold text-foreground">{source.source_page_title || source.company_name}</p>
-                  <p className="max-w-full truncate text-[11px] text-muted-foreground" title={source.source_url}>
-                    {source.source_url}
+                <div key={candidateStorageKey(source)} className="rounded-lg bg-muted/25 px-3 py-2.5">
+                  <p className="truncate text-sm font-semibold text-foreground">{source.source_page_title || source.company_name}</p>
+                  <p className="max-w-full truncate text-xs text-muted-foreground" title={source.source_url}>
+                    {displayDomain(source.source_url || '')}
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {source.source_url && (
@@ -2673,7 +2679,7 @@ export default function OriginationPage() {
         </div>
       </div>
 
-      <div className="app-container flex-1 py-12 space-y-12">
+      <div className="mx-auto w-full max-w-[95rem] flex-1 space-y-12 px-4 py-12 md:px-6 lg:px-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-b border-border pb-8">
           {[
             { icon: <Search className="w-4 h-4" />, step: '1', title: 'Find companies', desc: 'Use sector, geography and optional keywords to build a source-backed lead list.' },
@@ -2693,7 +2699,7 @@ export default function OriginationPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+        <div className="space-y-8">
           {/* Live origination thesis form */}
           <div className="min-w-0">
             <div className="mb-4">
@@ -2706,14 +2712,14 @@ export default function OriginationPage() {
           </div>
 
           {/* Available now in private beta */}
-          <aside className="rounded-lg border border-border/70 bg-card/60 p-5">
-            <p className="text-xs font-semibold text-muted-foreground mb-4">Available now</p>
-            <div className="grid grid-cols-1 gap-2">
+          <aside className="rounded-lg border border-border/70 bg-card/60 p-4 md:p-5">
+            <p className="mb-3 text-xs font-semibold text-muted-foreground">Available now</p>
+            <div className="grid grid-cols-1 gap-1 md:grid-cols-2 xl:grid-cols-5">
               {AVAILABLE_NOW.map(item => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-start gap-3 rounded-md px-3 py-3 hover:bg-accent/40 transition-colors group"
+                  className="group flex min-w-0 items-start gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-accent/40"
                 >
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-foreground mb-0.5">{item.title}</p>
