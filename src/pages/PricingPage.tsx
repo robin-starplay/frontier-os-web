@@ -20,7 +20,6 @@ interface Tier {
   ctaVariant: 'primary' | 'outline';
   showBookIntro?: boolean;
   bookIntroEvent?: string;
-  supporting_copy?: string;
   features: string[];
 }
 
@@ -61,7 +60,6 @@ const STATIC_TIERS: Tier[] = [
     ctaVariant: 'outline',
     showBookIntro: true,
     bookIntroEvent: 'clicked_book_intro_pricing_starter',
-    supporting_copy: 'Access origination, company screening, document-assisted review, Deal Cockpit and Compare.',
     features: [
       'More public-source screens',
       'Compare targets',
@@ -198,9 +196,6 @@ function tierFromBackend(plan: BackendPlan, currency?: string): Tier {
     ctaVariant: tierVariant(plan.plan_id),
     showBookIntro: plan.plan_id !== 'free_preview',
     bookIntroEvent: bookIntroEvent(plan.plan_id),
-    supporting_copy: plan.plan_id === 'starter_growth'
-      ? 'Access origination, company screening, document-assisted review, Deal Cockpit and Compare.'
-      : undefined,
     features: Array.isArray(plan.features) ? plan.features : [],
   };
 }
@@ -261,8 +256,8 @@ function TierCard({
         ))}
       </div>
 
-      {/* CTA block — pinned to card bottom */}
-      <div className="min-w-0 space-y-2">
+      {/* Action rows — pinned to a shared baseline across equal-height cards */}
+      <div className="min-w-0">
         <button
           type="button"
           onClick={() => onPlanCta(tier)}
@@ -277,19 +272,16 @@ function TierCard({
           {external && <ExternalLink className="w-3 h-3 shrink-0" />}
           {tier.ctaVariant === 'primary' && !external && <ArrowRight className="w-3.5 h-3.5 shrink-0" />}
         </button>
-        {tier.supporting_copy && (
-          <p className="px-2 text-center text-xs leading-relaxed text-muted-foreground">
-            {tier.supporting_copy}
-          </p>
-        )}
-        {tier.showBookIntro && (
-          <BookIntroButton
-            eventName={tier.bookIntroEvent ?? 'clicked_book_intro_pricing'}
-            variant="ghost"
-            label="Book intro"
-            className="w-full justify-center text-xs text-muted-foreground hover:text-foreground h-8"
-          />
-        )}
+        <div className="mt-2 h-8">
+          {tier.showBookIntro && (
+            <BookIntroButton
+              eventName={tier.bookIntroEvent ?? 'clicked_book_intro_pricing'}
+              variant="ghost"
+              label="Book intro"
+              className="w-full justify-center text-xs text-muted-foreground hover:text-foreground h-8"
+            />
+          )}
+        </div>
       </div>
     </div>
   );

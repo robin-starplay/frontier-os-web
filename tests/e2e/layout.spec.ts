@@ -68,10 +68,10 @@ test('how it works presents one canonical workflow', async ({ page }) => {
   await page.goto('/how-it-works', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Workflow overview')).toHaveCount(0);
   await expect(page.getByText('Evidence-first', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /Originate Open workflow step/i })).toHaveCount(1);
-  await expect(page.getByRole('link', { name: /Screen Open workflow step/i })).toHaveCount(1);
-  await expect(page.getByRole('link', { name: /Save to Cockpit Open workflow step/i })).toHaveCount(1);
-  await expect(page.getByRole('link', { name: /Compare Open workflow step/i })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Originate — Open workflow step', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Screen — Open workflow step', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Save to Cockpit — Open workflow step', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Compare — Open workflow step', exact: true })).toHaveCount(1);
 });
 
 test('public header omits the standalone beta badge', async ({ page }) => {
@@ -93,8 +93,25 @@ test('pricing presents customer-facing beta access copy', async ({ page }) => {
   await expect(page.getByText('CTA: Stripe link loaded', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Paid beta access is currently activated manually after payment.', { exact: true })).toHaveCount(0);
   await expect(page.getByText(/Stripe checkout|activated manually after payment/i)).toHaveCount(0);
-  await expect(page.getByText('Access origination, company screening, document-assisted review, Deal Cockpit and Compare.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Access origination, company screening, document-assisted review, Deal Cockpit and Compare.', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Book intro', { exact: true }).first()).toBeVisible();
+});
+
+test('pricing card actions share horizontal baselines', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/pricing', { waitUntil: 'domcontentloaded' });
+
+  const primaryTops = await page.getByRole('button', { name: /^(Start free|Start beta|Request pilot|Discuss access)/ }).evaluateAll(
+    buttons => buttons.map(button => Math.round(button.getBoundingClientRect().top)),
+  );
+  expect(primaryTops).toHaveLength(4);
+  expect(new Set(primaryTops).size).toBe(1);
+
+  const secondaryTops = await page.getByText('Book intro', { exact: true }).evaluateAll(
+    links => links.slice(0, 3).map(link => Math.round(link.getBoundingClientRect().top)),
+  );
+  expect(secondaryTops).toHaveLength(3);
+  expect(new Set(secondaryTops).size).toBe(1);
 });
 
 for (const width of [1024, 1280, 1366, 1440, 1680, 1920]) {

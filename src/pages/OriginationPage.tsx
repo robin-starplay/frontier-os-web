@@ -29,7 +29,7 @@ import {
   saveLead,
   type WorkflowTarget,
 } from '@/lib/workflowTargets';
-import { useUsage } from '@/contexts/UsageContext';
+import { OriginationQuotaNotice, useUsage } from '@/contexts/UsageContext';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
@@ -52,8 +52,16 @@ const ORIGINATION_REQUEST_TIMEOUT_MS = 45_000;
 
 interface OriginationRequestDiagnostics {
   endpoint: string;
-  timeout_ms: number;
-  elapsed_ms: number;
+  status?: number;
+  response_body?: OriginationResult | string | null;
+  response_headers?: Record<string, string>;
+  quota_type?: string;
+  error_code?: string;
+  message?: string;
+  raw_json?: string;
+  response_format?: 'json' | 'html' | 'text' | 'empty';
+  timeout_ms?: number;
+  elapsed_ms?: number;
 }
 
 const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
@@ -95,6 +103,31 @@ function originationErrorMessage(body: OriginationResult | null | undefined, sta
     return body.message;
   }
   return `Backend returned status ${status}.`;
+}
+
+function nestedRecord(value: unknown): OriginationResult | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as OriginationResult : null;
+}
+
+function backendField(body: OriginationResult | null, field: string): string {
+  const detail = nestedRecord(body?.detail);
+  const error = nestedRecord(body?.error);
+  if (field === 'message') {
+    return safeStr(body?.message ?? detail?.message ?? error?.message ?? body?.detail);
+  }
+  return safeStr(body?.[field] ?? detail?.[field] ?? error?.[field]);
+}
+
+class OriginationApiError extends Error {
+  backendBody: OriginationResult | null;
+  diagnostics: OriginationRequestDiagnostics;
+
+  constructor(message: string, backendBody: OriginationResult | null, diagnostics: OriginationRequestDiagnostics) {
+    super(message);
+    this.name = 'OriginationApiError';
+    this.backendBody = backendBody;
+    this.diagnostics = diagnostics;
+  }
 }
 
 interface StoredOriginationRun {
@@ -160,11 +193,40 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
       endpoint = runUrl;
       res = await fetch(runUrl, requestInit);
     }
-    const body = await res.json().catch(() => null) as OriginationResult | null;
-    if (!res.ok) {
-      const error = new Error(originationErrorMessage(body, res.status)) as Error & { backendBody?: OriginationResult | null };
-      error.backendBody = body;
-      throw error;
+    const rawBody = await res.text();
+    const contentType = res.headers.get('content-type') || '';
+    const looksLikeHtml = /text\/html/i.test(contentType) || /^\s*<!doctype html|^\s*<html/i.test(rawBody);
+    let body: OriginationResult | null = null;
+    let responseFormat: NonNullable<OriginationRequestDiagnostics['response_format']> = rawBody ? 'text' : 'empty';
+    if (rawBody && !looksLikeHtml) {
+      try {
+        const parsed = JSON.parse(rawBody);
+        body = nestedRecord(parsed);
+        responseFormat = 'json';
+      } catch {
+        responseFormat = 'text';
+      }
+    } else if (looksLikeHtml) {
+      responseFormat = 'html';
+    }
+    const backendMessage = backendField(body, 'message') || originationErrorMessage(body, res.status);
+    const diagnostics: OriginationRequestDiagnostics = {
+      endpoint,
+      status: res.status,
+      response_body: body ?? (rawBody || null),
+      response_headers: Object.fromEntries(res.headers.entries()),
+      quota_type: backendField(body, 'quota_type'),
+      error_code: backendField(body, 'error_code') || (typeof body?.error === 'string' ? body.error : ''),
+      message: backendMessage,
+      raw_json: responseFormat === 'json' ? rawBody : '',
+      response_format: responseFormat,
+    };
+    if (responseFormat === 'html') {
+      console.error('[origination] backend returned HTML instead of JSON', { endpoint, status: res.status, response_body: rawBody });
+    }
+    if (!res.ok || isQuotaExceededResponse(body) || responseFormat !== 'json') {
+      console.error('[origination] backend request failed', diagnostics);
+      throw new OriginationApiError(backendMessage, body, diagnostics);
     }
     return body ?? {};
   })();
@@ -201,8 +263,7 @@ function asList(value: unknown): string[] {
 }
 
 function showDeveloperDiagnostics(): boolean {
-  return import.meta.env.DEV
-    || (typeof window !== 'undefined' && window.localStorage.getItem('frontier_debug_diagnostics') === '1');
+  return import.meta.env.DEV;
 }
 
 function humanLabel(value: string): string {
@@ -510,8 +571,16 @@ function readStoredOriginationResult(): OriginationResult | null {
 
 function storeOriginationRun(form: OriginationFormValues, result: OriginationResult): void {
   if (!storageAvailable()) return;
-  window.localStorage.setItem(LAST_ORIGINATION_FORM_KEY, JSON.stringify(form));
-  window.localStorage.setItem(LAST_ORIGINATION_RESULT_KEY, JSON.stringify(result));
+  try {
+    window.localStorage.setItem(LAST_ORIGINATION_FORM_KEY, JSON.stringify(form));
+    window.localStorage.setItem(LAST_ORIGINATION_RESULT_KEY, JSON.stringify(result));
+  } catch (error) {
+    console.warn('[origination] result received but could not be persisted', {
+      storage: 'localStorage',
+      error_name: error instanceof Error ? error.name : 'UnknownError',
+      error_message: error instanceof Error ? error.message : safeStr(error),
+    });
+  }
 }
 
 function clearStoredOriginationRun(): void {
@@ -537,7 +606,15 @@ function readOriginationRuns(): StoredOriginationRun[] {
 
 function writeOriginationRuns(runs: StoredOriginationRun[]): void {
   if (!storageAvailable()) return;
-  window.localStorage.setItem(ORIGINATION_RUNS_KEY, JSON.stringify(runs.slice(0, 20)));
+  try {
+    window.localStorage.setItem(ORIGINATION_RUNS_KEY, JSON.stringify(runs.slice(0, 20)));
+  } catch (error) {
+    console.warn('[origination] run history could not be persisted', {
+      storage: 'localStorage',
+      error_name: error instanceof Error ? error.name : 'UnknownError',
+      error_message: error instanceof Error ? error.message : safeStr(error),
+    });
+  }
 }
 
 function candidateCount(result: OriginationResult): number {
@@ -2160,7 +2237,7 @@ function OriginationForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    usage.beginUsageRequest();
+    usage.beginUsageRequest('origination');
     setIsSubmitting(true);
     setState({ kind: 'idle' });
     try {
@@ -2209,15 +2286,17 @@ function OriginationForm() {
         ? (err as { backendBody?: OriginationResult | null }).backendBody
         : null;
       await usage.reconcileUsageResponse(backendBody);
-      if (isQuotaExceededResponse(backendBody)) {
-        setState({ kind: 'idle' });
-        return;
-      }
       console.error('[origination] run failed', err);
+      const diagnostics = err instanceof OriginationApiError || err instanceof OriginationTimeoutError
+        ? err.diagnostics
+        : undefined;
+      const message = import.meta.env.DEV && diagnostics?.message
+        ? diagnostics.message
+        : err instanceof Error ? err.message : 'Unexpected error';
       setState({
         kind: 'error',
-        message: err instanceof Error ? err.message : 'Unexpected error',
-        ...(err instanceof OriginationTimeoutError ? { diagnostics: err.diagnostics } : {}),
+        message,
+        ...(diagnostics ? { diagnostics } : {}),
       });
     } finally {
       setIsSubmitting(false);
@@ -2269,6 +2348,7 @@ function OriginationForm() {
   return (
     <div className="space-y-4">
       <ScreeningWorkflowGuide active="originate" />
+      {state.kind !== 'error' && <OriginationQuotaNotice />}
       <form onSubmit={handleSubmit} className="space-y-5 border-t border-border pt-6">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Find acquisition targets</h2>
@@ -2465,22 +2545,34 @@ Example format:
             <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>{state.message}</span>
           </div>
-          {showDeveloperDiagnostics() && state.diagnostics && (
+          {import.meta.env.DEV && state.diagnostics && (
             <details className="rounded-lg border border-border bg-card/40 overflow-hidden">
               <summary className="px-4 py-3 cursor-pointer list-none text-[10px] font-semibold tracking-normal text-muted-foreground">
                 Developer diagnostics
               </summary>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-border px-4 py-3">
-                {[
-                  ['endpoint', state.diagnostics.endpoint],
-                  ['timeout_ms', state.diagnostics.timeout_ms],
-                  ['elapsed_ms', state.diagnostics.elapsed_ms],
-                ].map(([label, value]) => (
-                  <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
-                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-0.5">{String(label)}</p>
-                    <p className="text-xs text-foreground break-words">{safeStr(value)}</p>
+              <div className="space-y-3 border-t border-border px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                  {[
+                    ['endpoint', state.diagnostics.endpoint],
+                    ['status', state.diagnostics.status],
+                    ['quota_type', state.diagnostics.quota_type],
+                    ['error_code', state.diagnostics.error_code],
+                    ['message', state.diagnostics.message],
+                    ['timeout_ms', state.diagnostics.timeout_ms],
+                    ['elapsed_ms', state.diagnostics.elapsed_ms],
+                  ].filter(([, value]) => value !== undefined).map(([label, value]) => (
+                    <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
+                      <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-0.5">{String(label)}</p>
+                      <p className="text-xs text-foreground break-words">{safeStr(value) || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+                {state.diagnostics.raw_json && (
+                  <div className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
+                    <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-1">raw JSON</p>
+                    <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs text-foreground">{state.diagnostics.raw_json}</pre>
                   </div>
-                ))}
+                )}
               </div>
             </details>
           )}

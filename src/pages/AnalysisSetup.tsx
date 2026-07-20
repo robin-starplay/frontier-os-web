@@ -1427,7 +1427,7 @@ function Step1({
 }: Step1Props) {
   const usage = useUsage();
   const [urlError, setUrlError] = React.useState('');
-  const quotaReached = usage.status === 'ready' && usage.quotaExceeded === true && usage.screensRemaining === 0;
+  const quotaReached = usage.status === 'ready' && usage.screenQuotaExceeded === true && usage.screensRemaining === 0;
   const documentAttached = Boolean(documentFile);
   const documentMode = mode === 'doc-assisted';
   const pdfError = documentFile && !documentFile.name.toLowerCase().endsWith('.pdf') && documentFile.type !== 'application/pdf'

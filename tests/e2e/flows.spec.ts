@@ -68,6 +68,70 @@ test('origination known targets rank candidates and preserve Add to Compare hand
   await assertClean();
 });
 
+test('origination preserves backend JSON errors and exposes development diagnostics', async ({ page }) => {
+  const backendError = {
+    status: 'quota_exceeded',
+    quota_type: 'origination_runs',
+    error_code: 'ORIGINATION_MONTHLY_LIMIT',
+    message: 'Your origination allowance is exhausted for this workspace.',
+    screens_used: 10,
+    screen_limit: 10,
+    screens_remaining: 0,
+  };
+  const consoleMessages: string[] = [];
+  page.on('console', message => consoleMessages.push(message.text()));
+  await page.route('**/api/origination/run', route => route.fulfill({
+    status: 429,
+    contentType: 'application/json',
+    headers: { 'x-request-id': 'origination-regression-test' },
+    body: JSON.stringify(backendError),
+  }));
+
+  await createTestWorkspace(page);
+  await page.goto('/app/origination', { waitUntil: 'domcontentloaded' });
+  await page.getByLabel(/describe the companies you want to find/i).fill('UK vertical software targets');
+  await page.getByRole('button', { name: /find companies/i }).click();
+
+  await expect(page.locator('span').getByText(backendError.message, { exact: true })).toBeVisible();
+  await page.getByText('Developer diagnostics', { exact: true }).click();
+  await expect(page.getByText('origination_runs', { exact: true })).toBeVisible();
+  await expect(page.getByText('ORIGINATION_MONTHLY_LIMIT', { exact: true })).toBeVisible();
+  await expect(page.getByText(JSON.stringify(backendError), { exact: true })).toBeVisible();
+  expect(consoleMessages.some(message => message.includes('QuotaExceededError'))).toBe(false);
+});
+
+test('origination keeps a backend result when local storage quota is exceeded', async ({ page }) => {
+  const consoleMessages: string[] = [];
+  page.on('console', message => consoleMessages.push(message.text()));
+  await page.route('**/api/origination/run', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      status: 'ok',
+      summary: 'Backend result survived local storage failure.',
+      targets: [],
+    }),
+  }));
+
+  await createTestWorkspace(page);
+  await page.goto('/app/origination', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function setItem(key: string, value: string) {
+      if (key.startsWith('frontier_last_origination_') || key === 'frontier_origination_runs') {
+        throw new DOMException('Storage capacity exceeded.', 'QuotaExceededError');
+      }
+      return original.call(this, key, value);
+    };
+  });
+  await page.getByLabel(/describe the companies you want to find/i).fill('UK vertical software targets');
+  await page.getByRole('button', { name: /find companies/i }).click();
+
+  await expect(page.getByText('Backend result survived local storage failure.', { exact: true })).toBeVisible();
+  expect(consoleMessages.some(message => message.includes('[origination] run failed'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('QuotaExceededError') && !message.includes('could not be persisted'))).toBe(false);
+});
+
 test('request pilot form submits to a user-facing success or fallback state', async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   const assertClean = installGuardrails(page, testInfo);

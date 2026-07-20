@@ -78,6 +78,35 @@ export async function clickNavLink(page: Page, name: RegExp | string) {
   await assertNoBadPageText(page);
 }
 
+export async function mockWorkspaceApis(page: Page) {
+  await page.route(/\/api\/workspace\/session(?:\?|$)/, route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      status: 'ok',
+      workspace_id: 'e2e-local-workspace',
+      user_id: 'e2e-local-user',
+      plan_id: 'free_trial',
+    }),
+  }));
+  await page.route(/\/api\/cockpit\/runs(?:\?|$)/, route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: '[]',
+  }));
+  await page.route(/\/api\/cockpit\/summary(?:\?|$)/, route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      total_runs: 0,
+      financials_count: 0,
+      high_ai_risk_count: 0,
+      blockers_count: 0,
+      compared_count: 0,
+    }),
+  }));
+}
+
 export async function createTestWorkspace(page: Page) {
   await page.goto('/create-workspace', { waitUntil: 'domcontentloaded' });
 

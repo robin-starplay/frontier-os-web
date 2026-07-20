@@ -72,14 +72,9 @@ export function Footer() {
 
         {/* bottom bar */}
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-muted-foreground/60">
-              © {new Date().getFullYear()} Frontier Intelligence Systems Ltd. All rights reserved.
-            </p>
-            <p className="text-[10px] font-mono text-muted-foreground/30">
-              Build: railway-connected-private-beta-v1
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground/60">
+            © {new Date().getFullYear()} Frontier Intelligence Systems Ltd. All rights reserved.
+          </p>
           <div className="flex flex-wrap items-center gap-4">
             <SendFeedbackButton
               label="Send feedback"

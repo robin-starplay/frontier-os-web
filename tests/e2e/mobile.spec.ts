@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createTestWorkspace, gotoAndAssertUsable, installGuardrails } from './helpers';
+import { createTestWorkspace, gotoAndAssertUsable, installGuardrails, mockWorkspaceApis } from './helpers';
 
 async function openMobileMenu(page: import('@playwright/test').Page) {
   const nav = page.getByRole('navigation').first();
@@ -14,6 +14,7 @@ async function openMobileMenu(page: import('@playwright/test').Page) {
 test('mobile navigation is grouped and reaches key routes', async ({ page }, testInfo) => {
   const assertClean = installGuardrails(page, testInfo);
 
+  await mockWorkspaceApis(page);
   await createTestWorkspace(page);
   await gotoAndAssertUsable(page, '/');
   await openMobileMenu(page);

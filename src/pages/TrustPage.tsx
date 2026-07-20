@@ -79,23 +79,19 @@ export default function TrustPage() {
 
       {/* Page header */}
       <div className="w-full border-b border-border bg-card/30">
-        <div className="max-w-7xl mx-auto px-6 md:px-8 py-16">
+        <div className="max-w-7xl mx-auto px-6 md:px-8 pt-16 pb-12">
           <SectionLabel>Trust & privacy</SectionLabel>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight max-w-xl">
             Designed for careful deal workflows.
           </h1>
-          <p className="text-base text-muted-foreground max-w-2xl leading-relaxed mb-4">
+          <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
             Start URL-only, add documents only when retention, deletion and provider data-use settings are clear. This page explains how Frontier OS is designed around that constraint.
           </p>
-          <div className="inline-flex items-center gap-2 text-sm text-amber-700 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-md">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            Frontier OS is pre-launch software. Controls described here are design intent, not certified guarantees.
-          </div>
         </div>
       </div>
 
       {/* Trust principles */}
-      <div className="max-w-7xl mx-auto px-6 md:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 pt-12 pb-16">
         <SectionLabel>Trust principles</SectionLabel>
         <h2 className="text-xl font-bold text-foreground mb-8">How it is designed</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

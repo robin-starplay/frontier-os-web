@@ -9,12 +9,21 @@ export interface CanonicalUsageState {
   screensUsed: number | null;
   screensLimit: number | null;
   screensRemaining: number | null;
-  quotaExceeded: boolean | null;
+  screenQuotaExceeded: boolean | null;
+  originationUsed: number | null;
+  originationLimit: number | null;
+  originationRemaining: number | null;
+  originationQuotaEnforced: boolean;
+  originationQuotaExceeded: boolean;
+  originationMessage: string | null;
+  originationRecommendedAction: string | null;
 }
+
+type UsageWorkflow = 'screen' | 'origination';
 
 interface UsageContextValue extends CanonicalUsageState {
   refreshUsage: () => Promise<void>;
-  beginUsageRequest: () => void;
+  beginUsageRequest: (workflow?: UsageWorkflow) => void;
   reconcileUsageResponse: (body: unknown) => Promise<void>;
 }
 
@@ -23,7 +32,14 @@ const unavailable: CanonicalUsageState = {
   screensUsed: null,
   screensLimit: null,
   screensRemaining: null,
-  quotaExceeded: null,
+  screenQuotaExceeded: null,
+  originationUsed: null,
+  originationLimit: null,
+  originationRemaining: null,
+  originationQuotaEnforced: false,
+  originationQuotaExceeded: false,
+  originationMessage: null,
+  originationRecommendedAction: null,
 };
 
 const UsageContext = createContext<UsageContextValue | null>(null);
@@ -36,43 +52,97 @@ function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? value as Record<string, unknown> : null;
 }
 
-function parseBackendUsage(body: unknown): CanonicalUsageState | null {
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function hasOwn(recordValue: Record<string, unknown> | null, key: string): boolean {
+  return Boolean(recordValue && Object.prototype.hasOwnProperty.call(recordValue, key));
+}
+
+function nullableNumber(recordValue: Record<string, unknown> | null, key: string): number | null {
+  return finiteNumber(recordValue?.[key]);
+}
+
+type ParsedUsageState = Partial<Omit<CanonicalUsageState, 'status'>>;
+
+function parseBackendUsage(body: unknown): ParsedUsageState | null {
   const root = record(body);
   if (!root) return null;
   const usageSummary = record(root.usage_summary);
   const analysisStart = record(usageSummary?.analysis_start);
   const urlBucket = record(root.url_only_analyses);
-  const remaining = finiteNumber(root.screens_remaining)
+  const screenRemaining = finiteNumber(root.screens_remaining)
     ?? finiteNumber(urlBucket?.remaining)
-    ?? finiteNumber(root.remaining)
     ?? finiteNumber(analysisStart?.remaining);
-  const limit = finiteNumber(root.screen_limit)
+  const screenLimit = finiteNumber(root.screen_limit)
     ?? finiteNumber(urlBucket?.limit)
-    ?? finiteNumber(root.limit)
     ?? finiteNumber(analysisStart?.limit);
-  const used = finiteNumber(root.screens_used)
+  const screenUsed = finiteNumber(root.screens_used)
     ?? finiteNumber(urlBucket?.used)
-    ?? (remaining !== null && limit !== null ? Math.max(0, limit - remaining) : null);
-  if (remaining === null || limit === null || used === null) return null;
-
-  const explicitQuota = typeof root.quota_exceeded === 'boolean'
-    ? root.quota_exceeded
-    : root.error === 'quota_exceeded' || root.status === 'quota_exceeded' || root.status === 'limit_reached'
-      ? true
-      : null;
-  const derivedQuota = remaining <= 0;
-  if (explicitQuota !== null && explicitQuota !== derivedQuota) {
-    if (import.meta.env.DEV) console.error('Inconsistent usage state.');
-    return unavailable;
+    ?? (screenRemaining !== null && screenLimit !== null ? Math.max(0, screenLimit - screenRemaining) : null);
+  const parsed: ParsedUsageState = {};
+  if (screenRemaining !== null && screenLimit !== null && screenUsed !== null) {
+    parsed.screensUsed = screenUsed;
+    parsed.screensLimit = screenLimit;
+    parsed.screensRemaining = screenRemaining;
+    parsed.screenQuotaExceeded = screenRemaining <= 0;
   }
 
-  return {
-    status: 'ready',
-    screensUsed: used,
-    screensLimit: limit,
-    screensRemaining: remaining,
-    quotaExceeded: derivedQuota,
-  };
+  const origination = record(root.origination);
+  const quotaType = stringValue(root.quota_type)?.toLowerCase() || '';
+  const originationQuotaResponse = quotaType === 'origination'
+    || quotaType === 'origination_run'
+    || quotaType === 'origination_runs';
+  const originationFieldsPresent = Boolean(origination)
+    || hasOwn(root, 'origination_limit')
+    || hasOwn(root, 'origination_remaining')
+    || hasOwn(root, 'origination_used')
+    || originationQuotaResponse;
+
+  if (originationFieldsPresent) {
+    const originationLimit = hasOwn(origination, 'limit')
+      ? nullableNumber(origination, 'limit')
+      : hasOwn(root, 'origination_limit')
+        ? nullableNumber(root, 'origination_limit')
+        : originationQuotaResponse ? finiteNumber(root.limit) : null;
+    const originationUsed = finiteNumber(origination?.used)
+      ?? finiteNumber(root.origination_used)
+      ?? (originationQuotaResponse ? finiteNumber(root.used) : null);
+    const explicitRemaining = finiteNumber(origination?.remaining)
+      ?? finiteNumber(root.origination_remaining)
+      ?? (originationQuotaResponse ? finiteNumber(root.remaining) : null);
+    const originationRemaining = explicitRemaining
+      ?? (originationLimit !== null && originationUsed !== null
+        ? Math.max(0, originationLimit - originationUsed)
+        : null);
+    const originationQuotaEnforced = origination?.quota_enforced === true
+      || root.origination_quota_enforced === true
+      || (originationQuotaResponse && originationLimit !== null);
+    const originationQuotaExceeded = originationQuotaEnforced
+      && originationLimit !== null
+      && originationRemaining !== null
+      && originationRemaining <= 0;
+    const detail = record(root.detail);
+    parsed.originationUsed = originationUsed;
+    parsed.originationLimit = originationLimit;
+    parsed.originationRemaining = originationRemaining;
+    parsed.originationQuotaEnforced = originationQuotaEnforced;
+    parsed.originationQuotaExceeded = originationQuotaExceeded;
+    parsed.originationMessage = originationQuotaExceeded
+      ? stringValue(origination?.message)
+        ?? stringValue(root.message)
+        ?? stringValue(detail?.message)
+        ?? stringValue(root.reason)
+      : null;
+    parsed.originationRecommendedAction = originationQuotaExceeded
+      ? stringValue(origination?.recommended_action)
+        ?? stringValue(root.recommended_action)
+        ?? stringValue(root.recommended_next_action)
+      : null;
+  }
+
+  return Object.keys(parsed).length > 0 ? parsed : null;
 }
 
 export function UsageProvider({ children }: { children: React.ReactNode }) {
@@ -90,20 +160,29 @@ export function UsageProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(base ? `${base}${path}` : path);
       if (!response.ok) throw new Error('usage_status_failed');
       const parsed = parseBackendUsage(await response.json());
-      setUsage(parsed ?? unavailable);
+      setUsage(parsed ? { ...unavailable, ...parsed, status: 'ready' } : unavailable);
     } catch {
       setUsage(unavailable);
     }
   }, []);
 
-  const beginUsageRequest = useCallback(() => {
-    setUsage(current => current.quotaExceeded ? { ...current, quotaExceeded: null, status: 'loading' } : current);
+  const beginUsageRequest = useCallback((workflow: UsageWorkflow = 'screen') => {
+    setUsage(current => workflow === 'origination'
+      ? {
+          ...current,
+          originationQuotaExceeded: false,
+          originationMessage: null,
+          originationRecommendedAction: null,
+        }
+      : current.screenQuotaExceeded
+        ? { ...current, screenQuotaExceeded: null, status: 'loading' }
+        : current);
   }, []);
 
   const reconcileUsageResponse = useCallback(async (body: unknown) => {
     const parsed = parseBackendUsage(body);
     if (parsed) {
-      setUsage(parsed);
+      setUsage(current => ({ ...current, ...parsed, status: 'ready' }));
       return;
     }
     await refreshUsage();
@@ -121,19 +200,21 @@ export function useUsage(): UsageContextValue {
   return context;
 }
 
-export function UsageStatusNotice() {
+export function ScreenQuotaNotice() {
   const usage = useUsage();
-  const quotaVisible = usage.status === 'ready' && usage.quotaExceeded === true && usage.screensRemaining === 0;
-
-  useEffect(() => {
-    if (import.meta.env.DEV && usage.screensRemaining !== null && usage.screensRemaining > 0 && quotaVisible) {
-      console.error('Inconsistent usage state.');
-    }
-  }, [quotaVisible, usage.screensRemaining]);
-
-  if (usage.status === 'unavailable') {
-    return <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center text-xs text-amber-800">Usage status temporarily unavailable.</div>;
-  }
+  const quotaVisible = usage.status === 'ready' && usage.screenQuotaExceeded === true && usage.screensRemaining === 0;
   if (!quotaVisible) return null;
-  return <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-2 text-center text-xs text-red-700">The quota has been exceeded.</div>;
+  return <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center text-xs text-amber-800">You have used your beta company screens for this month.</div>;
+}
+
+export function OriginationQuotaNotice() {
+  const usage = useUsage();
+  const quotaVisible = usage.status === 'ready'
+    && usage.originationQuotaEnforced
+    && usage.originationQuotaExceeded
+    && usage.originationLimit !== null
+    && usage.originationRemaining === 0
+    && Boolean(usage.originationMessage);
+  if (!quotaVisible) return null;
+  return <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-800">{usage.originationMessage}</div>;
 }

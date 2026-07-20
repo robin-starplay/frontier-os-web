@@ -7,6 +7,7 @@ export type ScreeningWorkflowStep = 'originate' | 'run' | 'cockpit' | 'compare';
 type StepConfig = {
   id: ScreeningWorkflowStep;
   label: string;
+  accessibleLabel: string;
   description: string;
   href: string;
   cta: string;
@@ -17,6 +18,7 @@ const STEPS: StepConfig[] = [
   {
     id: 'originate',
     label: 'Originate',
+    accessibleLabel: 'Originate — Open workflow step',
     description: 'Build or paste a source-backed target universe.',
     href: '/app/origination',
     cta: 'Open origination',
@@ -25,6 +27,7 @@ const STEPS: StepConfig[] = [
   {
     id: 'run',
     label: 'Screen',
+    accessibleLabel: 'Screen — Open workflow step',
     description: 'Screen one company URL to collect evidence.',
     href: '/app/run',
     cta: 'Screen company',
@@ -33,6 +36,7 @@ const STEPS: StepConfig[] = [
   {
     id: 'cockpit',
     label: 'Cockpit',
+    accessibleLabel: 'Save to Cockpit — Open workflow step',
     description: 'Keep screened targets, decisions and next actions.',
     href: '/app/cockpit',
     cta: 'Open Cockpit',
@@ -41,6 +45,7 @@ const STEPS: StepConfig[] = [
   {
     id: 'compare',
     label: 'Compare',
+    accessibleLabel: 'Compare — Open workflow step',
     description: 'Compare screened candidates side by side.',
     href: '/app/compare',
     cta: 'Compare targets',
@@ -80,6 +85,7 @@ export function ScreeningWorkflowGuide({
             <Link
               key={step.id}
               href={step.href}
+              aria-label={step.accessibleLabel}
               className={cn(
                 'group relative flex min-h-48 flex-col items-center rounded-xl px-5 py-5 text-center transition-colors hover:bg-accent/35 md:px-6 md:py-6',
                 isActive ? 'surface-selected border-0 shadow-none' : 'bg-transparent',
