@@ -211,7 +211,7 @@ export default function Landing() {
               href="/how-it-works"
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
             >
-              View Team / Platform workflow <ArrowRight className="w-3 h-3" />
+              View Team workflow <ArrowRight className="w-3 h-3" />
             </Link>
             <BookIntroButton
               eventName="clicked_book_intro_home_hero"
@@ -456,7 +456,6 @@ export default function Landing() {
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">
                 Preview extraction of claims, metrics and diligence questions from non-confidential PDFs.
-                Confidential workflows require a private pilot setup.
               </p>
             </div>
             <Link

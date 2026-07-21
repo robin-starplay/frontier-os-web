@@ -12,8 +12,9 @@ import { getRuns } from '@/lib/runHistory';
 import { ensureTrialAccount } from '@/lib/trialAccount';
 import { Navbar } from '@/components/Navbar';
 import { AppShell } from '@/components/AppShell';
-import { Activity, BarChart3, ShieldCheck, X } from 'lucide-react';
+import { Activity, BarChart3, ShieldCheck } from 'lucide-react';
 import { Footer } from '@/components/Footer';
+import { EnvironmentBanner } from '@/components/EnvironmentBanner';
 import { GateModal } from '@/components/GateModal';
 import { OAuthButtons } from '@/components/OAuthButtons';
 import { ThemeScript } from '@/components/ThemeToggle';
@@ -496,41 +497,12 @@ function PublicRouter() {
 function PublicShell() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground font-sans selection:bg-primary/30">
-      <PrivateBetaBanner />
       <Navbar />
+      <EnvironmentBanner />
       <main className="flex-1 flex flex-col relative">
         <PublicRouter />
       </main>
       <Footer />
-    </div>
-  );
-}
-
-// ── Private-beta banner ───────────────────────────────────────────────────────
-
-function PrivateBetaBanner() {
-  const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem('fos_beta_banner_dismissed') === '1'; } catch { return false; }
-  });
-
-  if (dismissed) return null;
-
-  return (
-    <div className="w-full bg-primary/10 border-b border-primary/20 px-4 py-2 relative flex items-center justify-center">
-      <p className="text-[11px] font-mono text-primary/90 leading-snug text-center px-8">
-        Private beta preview · Public-source screening only · Do not upload confidential information
-      </p>
-      <button
-        type="button"
-        aria-label="Dismiss banner"
-        onClick={() => {
-          try { localStorage.setItem('fos_beta_banner_dismissed', '1'); } catch { /* quota */ }
-          setDismissed(true);
-        }}
-        className="absolute right-3 text-primary/60 hover:text-primary transition-colors"
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
     </div>
   );
 }

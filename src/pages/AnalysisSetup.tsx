@@ -1663,7 +1663,6 @@ function Step1({
                     {documentFileRequired && (
                       <p className="text-xs text-amber-700">Upload a PDF to run a document-assisted screen.</p>
                     )}
-                    <p className="text-xs text-red-700/80">Do not upload confidential materials in this preview.</p>
                   </div>
                 )}
 
@@ -4837,7 +4836,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                         </div>
                       </div>
                       <p className="text-[10px] text-muted-foreground/50 leading-relaxed px-1">
-                        Team / Platform workflows are designed for higher-volume screening and prioritised review.
+                        Team workflows are designed for higher-volume screening and prioritised review.
                       </p>
                     </div>
 

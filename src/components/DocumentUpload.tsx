@@ -82,7 +82,7 @@ export function DocumentUpload() {
       {/* demo warning — compact amber bar */}
       <div className="flex items-center gap-2 px-3 py-2 rounded bg-amber-500/8 border border-amber-500/20 text-amber-700 text-xs">
         <Info className="w-3.5 h-3.5 shrink-0" />
-        Upload is simulated in the private beta sample workflow. Do not upload confidential documents here.
+        Upload is simulated in the private beta sample workflow. Selected files are not transmitted.
       </div>
 
       {/* drop zone — use label wrapping a hidden input for full keyboard/screen-reader support */}
@@ -202,7 +202,7 @@ export function DocumentUpload() {
         <Link href="/data-processing" className="text-primary/80 hover:text-primary underline underline-offset-2">Data Processing</Link>{' '}
         notes and{' '}
         <Link href="/terms" className="text-primary/80 hover:text-primary underline underline-offset-2">Terms of Use</Link>.
-        Do not upload confidential documents in the private beta sample workflow.
+        Selected files remain local in the private beta sample workflow.
       </p>
     </div>
   );

@@ -61,7 +61,7 @@ export const AI_DILIGENCE_QUESTIONS = [
   'What percentage of revenue is recurring software vs services?',
   'Which AI features are live vs roadmap?',
   'What are monthly inference costs per active customer?',
-  'Is AI priced as a paid module or included in base subscription?',
+  'Is AI offered as a separate module or included in the core product?',
   'What proprietary data improves model output?',
   'Which workflows could a customer rebuild internally with AI tools?',
   'How much implementation work can AI automate?',

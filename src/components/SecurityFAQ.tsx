@@ -18,7 +18,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How should confidential documents be handled?',
-    a: 'Keep documents in a company-specific workspace. Do not use confidential material outside a defined pilot. Deletion and retention rules should be explicit before paid pilots.',
+    a: 'Keep documents in a company-specific workspace. Do not use confidential material outside a defined pilot. Deletion and retention rules should be explicit before a pilot begins.',
   },
   // AI disruption
   {

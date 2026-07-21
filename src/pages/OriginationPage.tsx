@@ -69,7 +69,7 @@ const ORIGINATION_RUNS_KEY = 'frontier_origination_runs';
 
 const FIND_COMPANY_EXAMPLES = [
   { label: 'Software utility / UK', sector: 'Software utility', geo: 'UK', optionalKeywords: '' },
-  { label: 'Energy billing software / UK', sector: 'Energy billing software', geo: 'UK', optionalKeywords: '' },
+  { label: 'Energy operations software / UK', sector: 'Energy operations software', geo: 'UK', optionalKeywords: '' },
   { label: 'Public safety software / UK', sector: 'Public safety software', geo: 'UK', optionalKeywords: '' },
   { label: 'Healthcare workflow software / UK', sector: 'Healthcare workflow software', geo: 'UK', optionalKeywords: '' },
   { label: 'Field service software / UK', sector: 'Field service software', geo: 'UK', optionalKeywords: '' },
@@ -1765,7 +1765,7 @@ function OriginationResultView({
       <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-muted/20 border border-border/60 text-xs text-muted-foreground">
         <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground/50" />
         <span>
-          Private beta preview · Public-source signals only · Results require manual review before outreach or IC use.
+          Results require manual review before outreach or IC use.
         </span>
       </div>
 
@@ -2447,7 +2447,7 @@ function OriginationForm() {
         <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.4fr)_minmax(12rem,0.6fr)] gap-4">
           <div>
             <label className="block text-xs font-medium text-foreground mb-1.5">Keywords <span className="text-muted-foreground font-normal">(optional)</span></label>
-            <input type="text" value={optionalKeywords} onChange={e => { setOptionalKeywords(e.target.value); clearErrorState(); }} placeholder="e.g. billing, smart metering, workflow" className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors" />
+            <input type="text" value={optionalKeywords} onChange={e => { setOptionalKeywords(e.target.value); clearErrorState(); }} placeholder="e.g. metering, operations, workflow" className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors" />
           </div>
           <div>
               <label className="block text-xs font-medium text-foreground mb-1.5">

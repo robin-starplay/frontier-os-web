@@ -108,7 +108,7 @@ export const AGENT_STAGES = [
       "Services mix: estimate unavailable in static sample mode",
       "Adjusted EBITDA bridge: required before IC",
       "Customer concentration: schedule required",
-      "Product defensibility: medium-high due to the telco billing niche",
+      "Product defensibility: medium-high due to the telco operations niche",
     ],
     confidence: "medium",
     summary: "Scorecard: 2 amber flags. Defensibility medium-high.",
@@ -352,7 +352,7 @@ export interface CockpitTarget {
 
 export const DEAL_COCKPIT_TARGETS: CockpitTarget[] = [
   {
-    company: 'LedgerWorks Billing Ltd.',
+    company: 'LedgerWorks Systems Ltd.',
     jurisdiction: 'UK',
     recommendation: 'Request Financials',
     recommendationLevel: 'amber',
@@ -364,8 +364,8 @@ export const DEAL_COCKPIT_TARGETS: CockpitTarget[] = [
     nextAction: 'Request management accounts for ARR bridge.',
     lastRun: '2026-06-25',
     decisionSummary: 'Static example pipeline entry. Revenue, ARR and customer evidence require source-backed validation before IC use.',
-    strategicFit: 'Core: billing infrastructure',
-    aiDisruptionSummary: 'Low AI replica risk. Domain-specific billing logic creates meaningful switching costs. No live AI module identified; AI as a feature rather than a moat.',
+    strategicFit: 'Core: revenue infrastructure',
+    aiDisruptionSummary: 'Low AI replica risk. Domain-specific workflow logic creates meaningful switching costs. No live AI module identified; AI as a feature rather than a moat.',
     score: 82,
     topEvidenceCards: [
       { field: 'Revenue', value: 'Unknown', source: 'Source required', confidence: 'low', status: 'blocking' },
@@ -517,7 +517,7 @@ export interface DecisionHistoryItem {
 
 export const DECISION_HISTORY: DecisionHistoryItem[] = [
   { company: 'DataRoomOps Ltd.', action: 'Evidence pack initiated', date: '2026-06-26', note: 'Registry data complete. ARR confirmation in progress.' },
-  { company: 'LedgerWorks Billing Ltd.', action: 'Marked Request Financials', date: '2026-06-25', note: 'ARR definition blocking IC readiness.' },
+  { company: 'LedgerWorks Systems Ltd.', action: 'Marked Request Financials', date: '2026-06-25', note: 'ARR definition blocking IC readiness.' },
   { company: 'Illustrative Target Co.', action: 'Added diligence question', date: '2026-06-24', note: 'ARR definition and SaaS/services split.' },
   { company: 'VerticalOps CRM GmbH', action: 'Marked Monitor', date: '2026-06-23', note: 'Registry evidence incomplete.' },
   { company: 'SignalDesk Analytics Inc.', action: 'Marked Pass', date: '2026-06-22', note: 'High AI replica risk, no moat evidence.' },
@@ -554,7 +554,7 @@ export interface ComparisonTarget {
 
 export const TARGET_COMPARISON: ComparisonTarget[] = [
   {
-    company: 'LedgerWorks Billing Ltd.',
+    company: 'LedgerWorks Systems Ltd.',
     rank: 1,
     score: 82,
     rankReason: 'Strongest strategic fit and evidence quality in cohort. ARR bridge is the only remaining blocker before IC.',
@@ -562,7 +562,7 @@ export const TARGET_COMPARISON: ComparisonTarget[] = [
     recommendationLevel: 'green',
     icReadiness: 'Partial',
     valuationReadiness: 'Caveated. ARR bridge required.',
-    strategicFit: 'Core: billing infrastructure',
+    strategicFit: 'Core: revenue infrastructure',
     aiReplicaRisk: 'Low',
     aiMoat: 'Partial evidence',
     evidenceConfidence: 'High',

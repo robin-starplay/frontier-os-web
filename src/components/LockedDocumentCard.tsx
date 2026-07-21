@@ -37,8 +37,7 @@ export function LockedDocumentCard({ compact = false, className = '' }: Props) {
       {/* Body */}
       <p className="text-xs text-muted-foreground leading-relaxed">
         Document-assisted review is planned for private beta workflows, but is not enabled in this
-        public-source preview. Use URL-only screening for now. Do not upload confidential
-        information.
+        public-source preview. Use URL-only screening for now.
       </p>
 
       {/* Secondary copy */}

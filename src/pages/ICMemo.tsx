@@ -243,7 +243,7 @@ export default function ICMemo() {
                     </div>
                   </div>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    Target operates in an adjacent vertical (telco billing). While core technology stack shows moderate overlap, customer synergies are present but not fully underwritten due to high switching costs in the sector. Cultural alignment appears average based on public indicators.
+                    Target operates in an adjacent vertical (telco operations). While core technology stack shows moderate overlap, customer synergies are present but not fully underwritten due to high switching costs in the sector. Cultural alignment appears average based on public indicators.
                   </p>
                 </CardContent>
               </Card>
@@ -387,7 +387,7 @@ export default function ICMemo() {
                     'What percentage of revenue is recurring software vs services?',
                     'Which AI features are live vs roadmap?',
                     'What are monthly inference costs per active customer?',
-                    'Is AI priced as a paid module or included in base subscription?',
+                    'Is AI offered as a separate module or included in the core product?',
                     'What proprietary data improves model output?',
                     'Which workflows could a customer rebuild internally with AI tools?',
                     'How much implementation work can AI automate?',

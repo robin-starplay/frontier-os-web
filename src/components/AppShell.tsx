@@ -6,6 +6,7 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { ensureTrialAccount, hasLocalWorkspaceSession } from '@/lib/trialAccount';
 import { useOptionalUser } from '@/lib/optionalClerk';
 import { ScreenQuotaNotice } from '@/contexts/UsageContext';
+import { EnvironmentBanner } from './EnvironmentBanner';
 
 // Pages served inside the app shell
 import AnalysisSetupBase from '@/pages/AnalysisSetup';
@@ -57,7 +58,7 @@ function WorkspaceGate() {
         </h1>
         <p className="text-muted-foreground mb-8 leading-relaxed text-sm">
           Run acquisition screens, compare targets and track IC readiness in the deal pipeline.
-          No payment required. Public-source screening is available immediately.
+          Public-source screening is available immediately in the private beta.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -84,9 +85,6 @@ function WorkspaceGate() {
           </a>
         </div>
 
-        <p className="mt-6 text-xs text-muted-foreground/50">
-          No payment required · public-source screening available immediately
-        </p>
       </div>
     </div>
   );
@@ -117,6 +115,7 @@ export function AppShell() {
     return (
       <div className="min-h-screen flex flex-col bg-background text-foreground font-sans selection:bg-primary/30">
         <AppNavbar />
+        <EnvironmentBanner />
         <main className="flex-1 flex items-center justify-center">
           <div className="w-7 h-7 rounded-full border-2 border-primary/25 border-t-primary animate-spin" />
         </main>
@@ -129,6 +128,7 @@ export function AppShell() {
     return (
       <div className="min-h-screen flex flex-col bg-background text-foreground font-sans selection:bg-primary/30">
         <AppNavbar />
+        <EnvironmentBanner />
         <main className="flex-1 flex flex-col">
           <WorkspaceGate />
         </main>
@@ -140,6 +140,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground font-sans selection:bg-primary/30">
       <AppNavbar />
+      <EnvironmentBanner />
       <main className="flex-1 flex flex-col relative">
         <Switch>
           <Route path="/app/run"         component={AnalysisSetup} />

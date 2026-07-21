@@ -101,7 +101,7 @@ const COCKPIT_TARGETS = [
     nextAction: 'Request ARR definition, SaaS/services split and customer concentration from management.',
   },
   {
-    company: 'LedgerWorks Billing Ltd.',       jurisdiction: 'UK',
+    company: 'LedgerWorks Systems Ltd.',       jurisdiction: 'UK',
     recommendation: 'Request Financials',      recLevel: 'amber' as Level,
     icReadiness: 'Partial',
     valuationReadiness: 'Caveated',
@@ -250,11 +250,11 @@ export default function PlatformDemoPage() {
             From target URL to IC pack.
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl mx-auto mb-2 leading-relaxed">
-            A sample Team / Platform workflow showing how Frontier OS supports software acquisition screening,
+            A sample Team workflow showing how Frontier OS supports software acquisition screening,
             evidence quality, AI disruption analysis and diligence planning.
           </p>
           <p className="text-[11px] font-mono text-muted-foreground/60 mb-8">
-            Team / Platform · 100 deal analyses per month · Private beta pricing on request
+            Team · 100 deal analyses per month · Pricing on request
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -278,7 +278,7 @@ export default function PlatformDemoPage() {
         {/* ── 2. Workflow timeline ─────────────────────────────────────────── */}
         <section>
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Workflow</p>
-          <h2 className="text-xl font-bold text-foreground mb-1.5">Team / Platform workflow preview</h2>
+          <h2 className="text-xl font-bold text-foreground mb-1.5">Team workflow preview</h2>
           <p className="text-sm text-muted-foreground mb-6">
             See how a team would move from target screening to IC pack, using private beta sample data.
           </p>
@@ -574,7 +574,7 @@ export default function PlatformDemoPage() {
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Exports</p>
           <h2 className="text-xl font-bold text-foreground mb-1.5">IC pack and export preview</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Team / Platform includes full export capability. PowerPoint IC pack, Excel diligence tracker, full
+            Team includes full export capability. PowerPoint IC pack, Excel diligence tracker, full
             evidence register and board memo, all generated from the same analysis run.
           </p>
 
@@ -598,7 +598,7 @@ export default function PlatformDemoPage() {
 
                 {/* CTAs */}
                 <div className="space-y-2 mt-auto">
-                  <p className="text-[10px] font-mono text-primary">Included in Team / Platform</p>
+                  <p className="text-[10px] font-mono text-primary">Included in Team</p>
                   <Link
                     href="/request-pilot"
                     className="w-full inline-flex items-center justify-center h-8 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors px-3"
@@ -625,19 +625,19 @@ export default function PlatformDemoPage() {
         {/* ── 8. Pricing tie-in ─────────────────────────────────────────────── */}
         <section>
           <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Pricing</p>
-          <h2 className="text-xl font-bold text-foreground mb-6">Team / Platform tier</h2>
+          <h2 className="text-xl font-bold text-foreground mb-6">Team tier</h2>
 
           <div className="max-w-sm rounded-xl border border-primary/30 bg-card ring-1 ring-primary/20 p-6">
             {/* header */}
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-1.5">
-                <p className="text-sm font-bold text-foreground">Team / Platform</p>
+                <p className="text-sm font-bold text-foreground">Team</p>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary">
                   Private beta
                 </span>
               </div>
               <p className="text-xl font-bold text-foreground">Pricing on request</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Private beta pricing</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Private beta access</p>
             </div>
 
             {/* features */}
@@ -685,7 +685,7 @@ export default function PlatformDemoPage() {
 
       <BetaCTA
         title="See this on your own pipeline."
-        body="Request private beta access to run the Team / Platform workflow on your own acquisition targets."
+        body="Request private beta access to run the Team workflow on your own acquisition targets."
         primaryLabel="Request private beta access"
         primaryHref="/request-pilot"
         secondaryLabel=""

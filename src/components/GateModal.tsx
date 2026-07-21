@@ -30,18 +30,18 @@ function gateContent(reason: GateReason): GateContent {
         primaryHref: '/request-pilot',
         secondaryLabel: 'View pricing',
         secondaryHref: '/pricing',
-        note: 'No payment required during private beta.',
+        note: 'Pilot access is available by request.',
       };
     case 'export':
       return {
         icon: <Lock className="w-5 h-5 text-primary" />,
-        heading: 'Exports require Team / Platform or above.',
-        body: 'Basic exports are available on Starter. PowerPoint IC packs and Excel diligence trackers are available on Team / Platform and above.',
+        heading: 'Exports require Team or above.',
+        body: 'Basic exports are available on Professional. PowerPoint IC packs and Excel diligence trackers are available on Team and above.',
         primaryLabel: 'Request private beta access',
         primaryHref: '/request-pilot',
         secondaryLabel: 'View pricing',
         secondaryHref: '/pricing',
-        note: 'Private beta pricing is available on request.',
+        note: 'Pilot access is available by request.',
       };
     case 'upload':
       return {
@@ -75,7 +75,7 @@ function gateContent(reason: GateReason): GateContent {
         primaryHref: '/request-pilot',
         secondaryLabel: 'View what\'s included',
         secondaryHref: '/pricing',
-        note: 'Free trial: 5 URL-only screens and 2 document-assisted analyses. No payment required.',
+        note: 'Free trial: 5 URL-only screens and 2 document-assisted analyses.',
       };
   }
 }

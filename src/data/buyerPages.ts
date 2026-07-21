@@ -211,7 +211,7 @@ const searchFunds: BuyerPageData = {
     'AI replica risk tests whether the product is defensible without the founder.',
     'Next-action ranking across your shortlist.',
   ],
-  sampleCardTarget: 'LedgerWorks Billing Ltd.',
+  sampleCardTarget: 'LedgerWorks Systems Ltd.',
   sampleRows: [
     { label: 'Search fund fit',       chip: { text: 'Partial',           color: 'amber' } },
     { label: 'Operational complexity',chip: { text: 'Moderate',          color: 'amber' } },

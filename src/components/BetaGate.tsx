@@ -185,7 +185,7 @@ function RunPreview() {
 // ── /cockpit gate preview ─────────────────────────────────────────────────────
 const SAMPLE_TARGETS = [
   {
-    company:     'LedgerWorks Billing Ltd.',
+    company:     'LedgerWorks Systems Ltd.',
     jurisdiction:'UK',
     rec:         'Request Financials',
     recColour:   'amber' as ChipColour,

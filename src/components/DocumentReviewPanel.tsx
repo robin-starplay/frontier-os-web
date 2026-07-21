@@ -8,7 +8,7 @@
  *
  * Safety copy rules enforced here:
  *  - Trust and temporary-processing caveats always visible
- *  - "Do not upload confidential information" always shown
+ *  - page-specific document handling guidance
  *  - Confirmation checkbox required before submit
  *  - Source attribution on every extracted item
  *  - No file content displayed in the result
@@ -184,12 +184,6 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
 
   const idleForm = (
     <div className="space-y-4">
-      {/* Warning */}
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-amber-500/5 border border-amber-500/20 text-xs text-amber-700">
-        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-        <span>Do not upload confidential information in this workspace.</span>
-      </div>
-
       <p className="text-xs text-muted-foreground leading-relaxed">
         Upload one non-confidential PDF. Frontier OS extracts claims, metrics, unknowns
         and diligence questions.
@@ -321,7 +315,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium border border-border bg-white hover:bg-accent transition-colors text-foreground"
         >
-          Book intro for confidential workflows <ExternalLink className="w-3 h-3" />
+          Book intro for document workflows <ExternalLink className="w-3 h-3" />
         </a>
       </div>
     </div>

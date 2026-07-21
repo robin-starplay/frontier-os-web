@@ -95,13 +95,71 @@ test('pricing presents customer-facing beta access copy', async ({ page }) => {
   await expect(page.getByText(/Stripe checkout|activated manually after payment/i)).toHaveCount(0);
   await expect(page.getByText('Access origination, company screening, document-assisted review, Deal Cockpit and Compare.', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Book intro', { exact: true }).first()).toBeVisible();
+  for (const tier of ['Professional', 'Team', 'Enterprise']) {
+    const card = page.locator('div.rounded-xl.border.bg-card').filter({ hasText: tier }).first();
+    await expect(card.getByText('Pricing on request', { exact: true })).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Request pilot', exact: true })).toBeVisible();
+    await expect(card.getByText('Book intro', { exact: true })).toBeVisible();
+  }
+});
+
+const PRODUCT_ROUTES = [
+  '/app/origination',
+  '/app/run',
+  '/app/cockpit',
+  '/app/compare',
+  '/app/ai-risk',
+  '/app/settings',
+  '/pricing',
+  '/trust',
+  '/request-pilot',
+];
+
+const ENVIRONMENT_COPY =
+  'Private beta · Public-source screening only · Do not upload confidential information';
+
+test('every product page renders the canonical environment banner exactly once', async ({ page }) => {
+  await createTestWorkspace(page);
+  for (const path of PRODUCT_ROUTES) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    const banner = page.getByTestId('environment-banner');
+    await expect(banner, `${path} should show the shared environment banner`).toHaveCount(1);
+    await expect(page.getByText(ENVIRONMENT_COPY, { exact: true })).toHaveCount(1);
+    await expect(banner).toHaveText(ENVIRONMENT_COPY);
+  }
+});
+
+for (const width of [390, 768, 1024, 1280, 1440, 1680, 1920]) {
+  test(`environment banner remains contained at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/pricing', { waitUntil: 'domcontentloaded' });
+    const banner = page.getByTestId('environment-banner');
+    await expect(banner).toHaveCount(1);
+    const box = await banner.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+    expect(box!.height).toBeLessThanOrEqual(64);
+    await expect(banner.locator('p')).toHaveCSS('font-size', '13px');
+    await expect(banner.locator('p')).toHaveCSS('font-weight', '500');
+  });
+}
+
+test('product pages contain no purchase language or public monthly prices', async ({ page }) => {
+  await createTestWorkspace(page);
+  for (const path of PRODUCT_ROUTES) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    const body = await page.locator('body').innerText();
+    expect(body, `${path} contains purchase language`).not.toMatch(/\b(?:payment|billing|subscription)\b/i);
+    expect(body, `${path} contains a public monthly price`).not.toMatch(/(?:£|GBP\s*)\s*\d+(?:\.\d+)?\s*\/\s*month/i);
+  }
 });
 
 test('pricing card actions share horizontal baselines', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/pricing', { waitUntil: 'domcontentloaded' });
 
-  const primaryTops = await page.getByRole('button', { name: /^(Start free|Start beta|Request pilot|Discuss access)/ }).evaluateAll(
+  const primaryTops = await page.getByRole('button', { name: /^(Start free|Request pilot)/ }).evaluateAll(
     buttons => buttons.map(button => Math.round(button.getBoundingClientRect().top)),
   );
   expect(primaryTops).toHaveLength(4);

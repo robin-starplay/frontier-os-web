@@ -202,8 +202,7 @@ export default function WorkspaceCreationPage() {
             Create private beta workspace
           </h1>
           <p className="text-base text-muted-foreground leading-relaxed">
-            No payment required. Public-source screening only.<br />
-            Do not upload confidential information.
+            Your private beta workspace starts with public-source screening.
           </p>
         </div>
 

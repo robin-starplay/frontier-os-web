@@ -1281,6 +1281,7 @@ function SavedRunCard({
   onRemove?: () => void;
   compact?: boolean;
 }) {
+  const [, navigate] = useLocation();
   const blocker = mainBlocker(run);
   const icReadiness = displayText(run.ic_readiness);
   const confidence = displayText(run.evidence_confidence);
@@ -1309,6 +1310,7 @@ function SavedRunCard({
     : safeLevel(run.recommendation_level);
 
   const compactButtonClass = 'h-9 rounded-md px-3 text-sm leading-5';
+  const menuButtonClass = 'h-8 w-full justify-start rounded-sm border-transparent px-2 py-1.5 text-sm font-normal leading-5 shadow-none';
 
   return (
     <div
@@ -1396,11 +1398,23 @@ function SavedRunCard({
                 <MoreHorizontal className="size-4" /> <span className="hidden sm:inline">More</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" collisionPadding={8} className="w-48">
-              {onEdit && <DropdownMenuItem onSelect={() => onEdit('target')}>Edit</DropdownMenuItem>}
+            <DropdownMenuContent
+              align="end"
+              collisionPadding={8}
+              className="w-48 data-[state=open]:animate-none data-[state=closed]:animate-none"
+            >
+              {onEdit && (
+                <DropdownMenuItem asChild onSelect={() => onEdit('target')}>
+                  <Button type="button" variant="ghost" size="sm" className={menuButtonClass}>Edit</Button>
+                </DropdownMenuItem>
+              )}
               {!missingWebsite && onEdit && <DropdownMenuItem onSelect={() => onEdit('website')}>Edit website</DropdownMenuItem>}
               {isOriginationSignal && onAddEvidence && <DropdownMenuItem onSelect={() => onAddEvidence('evidence')}>Add evidence</DropdownMenuItem>}
-              {isScreenedTarget && <DropdownMenuItem asChild><Link href={runScreenHref(run)}>Re-screen</Link></DropdownMenuItem>}
+              {isScreenedTarget && (
+                <DropdownMenuItem asChild onSelect={() => navigate(runScreenHref(run))}>
+                  <Button type="button" variant="ghost" size="sm" className={menuButtonClass}>Re-screen</Button>
+                </DropdownMenuItem>
+              )}
               {onRemove && <DropdownMenuSeparator />}
               {onRemove && <DropdownMenuItem onSelect={onRemove} className="text-destructive focus:text-destructive"><Trash2 className="size-4" />Remove target</DropdownMenuItem>}
             </DropdownMenuContent>

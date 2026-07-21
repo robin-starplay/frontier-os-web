@@ -4,7 +4,7 @@ import { createTestWorkspace, gotoAndAssertUsable, mockWorkspaceApis } from './h
 const runs = [
   {
     id: 'screened-1', type: 'url', timestamp: '2026-07-19T12:00:00Z', company: 'Cerillion',
-    website: 'https://www.cerillion.com/products/billing', recommendation: 'Request Financials', recommendation_level: 'amber',
+    website: 'https://www.cerillion.com/products', recommendation: 'Request Financials', recommendation_level: 'amber',
     ic_readiness: 'Conditional', valuation_readiness: '', strategic_fit_label: '', evidence_confidence: 'Medium', ai_replica_risk: 'Low',
     blockers: ['ARR bridge and retention data required'], next_action: 'Cerillion: Cerillion: Request ARR bridge, retention data and customer concentration.', result: null,
   },

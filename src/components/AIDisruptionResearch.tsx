@@ -74,7 +74,7 @@ const PANELS: ResearchPanel[] = [
     evidence:
       'AI could reduce support and implementation effort, improving OPEX margins. However, inference costs may increase COGS, and AI features are not confirmed as priced modules.',
     verifyNext:
-      'Support ticket volume pre/post AI, implementation hours per customer, AI module pricing and whether AI is absorbed in base subscription or charged separately.',
+      'Support ticket volume pre/post AI, implementation hours per customer, AI module packaging and whether AI is included in the core product or offered separately.',
   },
 ];
 
