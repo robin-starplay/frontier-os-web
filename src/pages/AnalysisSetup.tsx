@@ -45,6 +45,7 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { SemanticBadge, semanticBadgeClass } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
+import { FinancialEvidenceGrid, isFinancialEvidenceFact } from '@/components/FinancialEvidenceGrid';
 import {
   getCockpitTargets,
   getCompareCandidates,
@@ -2197,6 +2198,8 @@ function DocumentAssistedResultDisplay({
   const pricingClaims = asArray(result.pricing_claims);
   const teamClaims = asArray(result.team_claims);
   const verifiedFacts = asArray(result.verified_facts);
+  const financialVerifiedFacts = verifiedFacts.map(asRecord).filter(isFinancialEvidenceFact);
+  const otherVerifiedFacts = verifiedFacts.map(asRecord).filter(fact => !isFinancialEvidenceFact(fact));
   const conflicts = asArray(result.conflicts);
   const unknowns = asArray(result.unknowns);
   const blockers = asArray(result.diligence_blockers);
@@ -2355,22 +2358,23 @@ function DocumentAssistedResultDisplay({
               })}
             </div>
           )}
-          {verifiedFacts.length > 0 ? (
-            <div className="space-y-2">
-              {verifiedFacts.map((fact, i) => {
+          {financialVerifiedFacts.length > 0 && <FinancialEvidenceGrid facts={financialVerifiedFacts} />}
+          {otherVerifiedFacts.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              {otherVerifiedFacts.map((fact, i) => {
                 const rec = asRecord(fact);
                 const presentation = verifiedFactPresentation(rec);
                 return (
-                  <div key={i} data-evidence-state={presentation.state} className={`rounded-md border px-3 py-2.5 ${presentation.tone === 'document' ? 'border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)]/40' : 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40'}`}>
+                  <div key={i} data-evidence-state={presentation.state} className={`rounded-md border px-3 py-2 ${presentation.tone === 'document' ? 'border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)]/40' : 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40'}`}>
                     <p className="text-xs text-foreground">{formatLabel(presentation.label)} {rec.value ? `· ${displayValue(rec.value)}` : ''}</p>
                     <p className="text-[10px] text-muted-foreground/60 mt-1">{presentation.sourceCopy}</p>
                   </div>
                 );
               })}
             </div>
-          ) : (
+          ) : financialVerifiedFacts.length === 0 ? (
             <p className="text-xs text-muted-foreground">No verified facts were returned for this document-assisted run.</p>
-          )}
+          ) : null}
         </div>
       </PackSection>
 
