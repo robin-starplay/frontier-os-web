@@ -389,6 +389,22 @@ function PackSection({
   );
 }
 
+function FinancialMetricsTable({ items }: { items: unknown[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[640px] text-left text-xs">
+        <thead><tr className="border-b border-border text-muted-foreground"><th className="py-2 pr-3">Metric</th><th className="py-2 pr-3">Value</th><th className="py-2 pr-3">Period</th><th className="py-2 pr-3">Context</th><th className="py-2">Source</th></tr></thead>
+        <tbody>{items.map((item, i) => {
+          const rec = asRecord(item);
+          const context = textValue(rec.context ?? rec.table_title ?? rec.section_heading ?? rec.source_context, 'Extracted financial context');
+          const page = displayValue(rec.source_page ?? rec.page);
+          return <tr key={textValue(rec.claim_id, `${textValue(rec.canonical_metric_type ?? rec.metric_name)}-${textValue(rec.period)}-${page}-${i}`)} className="border-b border-border/60 last:border-0"><td className="py-2 pr-3 font-medium">{textValue(rec.label, formatLabel(textValue(rec.metric_name, 'Metric')))}</td><td className="py-2 pr-3">{displayValue(rec.value)}</td><td className="py-2 pr-3">{displayValue(rec.period)}</td><td className="py-2 pr-3 text-muted-foreground">{context}</td><td className="py-2 whitespace-nowrap text-muted-foreground">Page {page}</td></tr>;
+        })}</tbody>
+      </table>
+    </div>
+  );
+}
+
 function StatusPill({ label, className }: { label: string; className?: string }) {
   return (
     <span className={semanticBadgeClass(undefined, className, label)}>
@@ -2165,6 +2181,13 @@ function DocumentAssistedResultDisplay({
     : asRecord(result.public_source_checks);
   const extractedClaims = asArray(result.extracted_claims ?? result.claims);
   const financialClaims = asArray(result.financial_claims ?? result.metric_claims);
+  const headlineFinancialMetrics = financialClaims.filter(item => {
+    const group = textValue(asRecord(item).presentation_group, 'headline');
+    return group === 'headline';
+  });
+  const revenueBreakdownMetrics = financialClaims.filter(item => textValue(asRecord(item).presentation_group) === 'revenue_breakdown');
+  const otherExtractedMetrics = financialClaims.filter(item => textValue(asRecord(item).presentation_group) === 'other');
+  const unresolvedFinancialFacts = financialClaims.filter(item => textValue(asRecord(item).presentation_group) === 'unresolved');
   const financialIds = new Set(financialClaims.map(item => textValue(asRecord(item).claim_id ?? claimText(item))));
   const nonFinancialClaims = extractedClaims.filter(item => !financialIds.has(textValue(asRecord(item).claim_id ?? claimText(item))) && textValue(asRecord(item).category) !== 'financial');
   const customerClaims = asArray(result.customer_claims);
@@ -2270,14 +2293,24 @@ function DocumentAssistedResultDisplay({
         <p className="text-xs text-muted-foreground leading-relaxed mt-3">{displayValue(summary.summary, 'Document claims extracted. All document-derived items require independent verification.')}</p>
       </PackSection>
 
-      <PackSection title="Key claimed metrics" empty={financialClaims.length === 0} emptyMessage="No financial or operating metrics extracted. Request current management accounts.">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead><tr className="border-b border-border text-muted-foreground"><th className="py-2 pr-3">Metric</th><th className="py-2 pr-3">Claimed value</th><th className="py-2 pr-3">Period</th><th className="py-2">Source</th></tr></thead>
-            <tbody>{financialClaims.map((item, i) => { const rec = asRecord(item); return <tr key={textValue(rec.claim_id, String(i))} className="border-b border-border/60 last:border-0"><td className="py-2 pr-3 font-medium">{formatLabel(textValue(rec.metric_name ?? rec.label, 'Metric'))}</td><td className="py-2 pr-3">{displayValue(rec.value)}</td><td className="py-2 pr-3">{displayValue(rec.period)}</td><td className="py-2 text-muted-foreground">Page {displayValue(rec.page)}</td></tr>; })}</tbody>
-          </table>
-        </div>
+      <PackSection title="Key financial metrics" empty={headlineFinancialMetrics.length === 0} emptyMessage="No headline financial metrics extracted. Request current management accounts.">
+        <FinancialMetricsTable items={headlineFinancialMetrics} />
       </PackSection>
+
+      <details className="rounded-lg border border-border bg-card/20">
+        <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-primary">Revenue breakdown ({revenueBreakdownMetrics.length})</summary>
+        <div className="border-t border-border p-4"><FinancialMetricsTable items={revenueBreakdownMetrics} /></div>
+      </details>
+
+      {otherExtractedMetrics.length > 0 && <details className="rounded-lg border border-border bg-card/20">
+        <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-primary">Other extracted metrics ({otherExtractedMetrics.length})</summary>
+        <div className="border-t border-border p-4"><FinancialMetricsTable items={otherExtractedMetrics} /></div>
+      </details>}
+
+      {unresolvedFinancialFacts.length > 0 && <details className="rounded-lg border border-border bg-card/20">
+        <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-primary">Unresolved facts ({unresolvedFinancialFacts.length})</summary>
+        <div className="border-t border-border p-4"><FinancialMetricsTable items={unresolvedFinancialFacts} /></div>
+      </details>}
 
       <details className="rounded-lg border border-border bg-card/20">
         <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-primary">Claims by category ({nonFinancialClaims.length})</summary>

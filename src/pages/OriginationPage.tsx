@@ -1094,6 +1094,7 @@ function OriginationResultView({
 
   function renderFullCandidateCard(c: Record<string, unknown>, i: number) {
     const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
+    const productName = safeStr(c.product_name ?? c.product_or_category_name);
     const website = safeStr(c.official_website ?? c.website ?? '');
     const type = candidateType(c);
     const productSignal = productSignalLevel(c);
@@ -1141,6 +1142,9 @@ function OriginationResultView({
             Product signal: {humanLabel(productSignal)}
           </SemanticBadge>
         </div>
+        {productName && productName.toLowerCase() !== name.toLowerCase() && (
+          <p className="mb-2 text-xs text-muted-foreground">Product evidence: {productName}</p>
+        )}
         {(description || website) && (
           <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
             {[description, website].filter(Boolean).join(' · ')}
@@ -1253,6 +1257,7 @@ function OriginationResultView({
 
   function renderCompactCandidateRow(c: Record<string, unknown>, i: number) {
     const name = safeStr(c.company_name ?? c.company ?? c.name) || 'Unnamed candidate';
+    const productName = safeStr(c.product_name ?? c.product_or_category_name);
     const type = candidateType(c);
     const stored = storedCandidateFromOrigination(c);
     const sourceUrl = sourceUrls(c)[0] || '';
@@ -1263,6 +1268,7 @@ function OriginationResultView({
       <div key={`${name}-${i}`} className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr_1.3fr_1.5fr_1fr] gap-2 px-4 py-3 text-xs items-start">
         <div>
           <p className="font-semibold text-foreground">{name}</p>
+          {productName && productName.toLowerCase() !== name.toLowerCase() && <p className="mt-1 text-[11px] text-muted-foreground">Product evidence: {productName}</p>}
           {type === 'extracted_company_candidate' && (
             <SemanticBadge tone="info" className="mt-1 text-[10px] px-2 py-1">Company mention found</SemanticBadge>
           )}

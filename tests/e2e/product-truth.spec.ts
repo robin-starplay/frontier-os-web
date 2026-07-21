@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { verifiedFactPresentation } from '../../src/lib/evidencePresentation';
 import { canonicalCompanyDomain, normalizeWebsiteUrl } from '../../src/lib/urlUtils';
 import { latestScreenRunForIdentity, type RunEntry } from '../../src/lib/runHistory';
+import { createTestWorkspace, gotoAndAssertUsable } from './helpers';
 
 test('verified document facts retain metric, value, source type and page', () => {
   const card = verifiedFactPresentation({ label: 'Revenue', value: '£45.4m', source: 'uploaded_document', source_document: 'Cerillion annual report', page: 5, verification_status: 'audited_primary_source' });
@@ -34,4 +35,35 @@ test('latest completed individual screen supersedes stale compare state', () => 
   expect(selected?.id).toBe('latest');
   expect(selected?.recommendation).toBe('Advance with conditions');
   expect(selected?.evidence_confidence).toBe('high');
+});
+
+test('origination renders company identity as heading and product as supporting evidence', async ({ page }) => {
+  await createTestWorkspace(page);
+  await page.evaluate(() => localStorage.setItem('frontier_last_origination_result', JSON.stringify({
+    status: 'ok',
+    source_backed_target_universe_available: true,
+    targets: [{
+      company_name: 'ESG',
+      product_name: 'Metering Management',
+      candidate_type: 'company_candidate',
+      candidate_quality: 'screenable_now',
+      display_mode: 'full_card',
+      official_website: 'https://esgglobal.com',
+      website: 'https://esgglobal.com',
+      website_status: 'confirmed_official',
+      official_website_confidence: 'high',
+      identity_confidence: 'high',
+      entity_resolution_status: 'resolved',
+      root_company_domain: 'esgglobal.com',
+      source_label: 'Official company product page',
+      source_url: 'https://esgglobal.com/product-pages/metering-management/',
+      source_snippet: 'ESG provides metering management software.',
+      run_ready: true,
+      compare_ready: true,
+    }],
+  })));
+  await gotoAndAssertUsable(page, '/app/origination');
+  await expect(page.getByText('ESG', { exact: true })).toBeVisible();
+  await expect(page.getByText('Product evidence: Metering Management', { exact: true })).toBeVisible();
+  await expect(page.getByText('Metering Management', { exact: true })).toHaveCount(0);
 });
