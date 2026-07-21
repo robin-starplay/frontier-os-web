@@ -22,11 +22,11 @@ import {
   type CompareTargetResult,
   type Level,
 } from '@/lib/frontierApi';
-import { getRuns, saveCompareRun, type RunEntry } from '@/lib/runHistory';
+import { getRuns, latestScreenRunForIdentity, saveCompareRun, type RunEntry } from '@/lib/runHistory';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { SemanticBadge } from '@/components/SemanticBadge';
 import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
-import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
+import { canonicalCompanyDomain, normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
 import {
   readCompareCandidates,
   removeCompareCandidate,
@@ -192,8 +192,8 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function savedTargetKey(target: Pick<SavedCompareTarget, 'companyName' | 'website' | 'jurisdiction'>): string {
-  const website = normalizeWebsiteUrl(target.website || '').trim().toLowerCase();
-  if (website && isValidWebsiteUrl(website)) return `website:${website}`;
+  const domain = canonicalCompanyDomain(target.website || '');
+  if (domain) return `website:${domain}`;
   return `name:${target.companyName.trim().toLowerCase()}|${target.jurisdiction.trim().toLowerCase()}`;
 }
 
@@ -309,9 +309,15 @@ function readSavedCompareTargets(): { screened: SavedCompareTarget[]; needsScree
     ...targetsFromRuns(),
   ];
   const byKey = new Map<string, SavedCompareTarget>();
-  all.forEach(target => {
+  all.sort((a, b) => {
+    const ready = Number(b.compareReady) - Number(a.compareReady);
+    if (ready) return ready;
+    const time = Date.parse(b.savedAt || '') - Date.parse(a.savedAt || '');
+    if (time) return time;
+    return Number(recordValue(b.raw, ['type']) === 'document') - Number(recordValue(a.raw, ['type']) === 'document');
+  }).forEach(target => {
     const existing = byKey.get(target.key);
-    if (!existing || (!existing.compareReady && target.compareReady)) {
+    if (!existing) {
       byKey.set(target.key, target);
     }
   });
@@ -431,24 +437,44 @@ function normalizeComparePayload({
   return {
     buyer_name: buyer.trim() || undefined,
     buyer_thesis: buyerThesis.trim() || undefined,
-    companies: companies.map(company => ({
-      company_name: company.name.trim(),
-      website: normalizeWebsiteUrl(company.url),
-      jurisdiction: company.jurisdiction,
-    })),
+    companies: companies.map(company => {
+      const screen = latestScreenRun(company);
+      return {
+        company_name: company.name.trim(), website: normalizeWebsiteUrl(company.url), jurisdiction: company.jurisdiction,
+        screen_record: screen ? screenRecordForCompare(screen) : undefined,
+      };
+    }),
   };
 }
 
 function compareRowKey(company: Pick<CompanyRow, 'name' | 'url'>): string {
-  const website = normalizeWebsiteUrl(company.url || '').trim().toLowerCase();
-  if (website && isValidWebsiteUrl(website)) return `website:${website}`;
+  const domain = canonicalCompanyDomain(company.url || '');
+  if (domain) return `website:${domain}`;
   return `name:${company.name.trim().toLowerCase()}`;
 }
 
 function runEntryKey(run: RunEntry): string {
-  const website = normalizeWebsiteUrl(run.website || '').trim().toLowerCase();
-  if (website && isValidWebsiteUrl(website)) return `website:${website}`;
+  const domain = canonicalCompanyDomain(run.website || '');
+  if (domain) return `website:${domain}`;
   return `name:${run.company.trim().toLowerCase()}`;
+}
+
+function latestScreenRun(company: Pick<CompanyRow, 'name' | 'url'>): RunEntry | undefined {
+  return latestScreenRunForIdentity(getRuns(), company.name, company.url);
+}
+
+function screenRecordForCompare(run: RunEntry): Record<string, unknown> {
+  const result = asRecord(run.result);
+  return {
+    ...result,
+    run_id: run.id, timestamp: run.timestamp, type: run.type,
+    recommendation: run.recommendation, recommendation_level: run.recommendation_level,
+    ic_readiness: run.ic_readiness, valuation_readiness: run.valuation_readiness,
+    strategic_fit_label: run.strategic_fit_label, evidence_confidence: run.evidence_confidence,
+    ai_replica_risk: run.ai_replica_risk, blockers: run.blockers, next_action: run.next_action,
+    pages_processed: run.documentSummary ? asRecord(run.documentSummary).pages_processed : result.pages_processed,
+    verified_facts: result.verified_facts ?? [], claims: result.claims ?? [], unknowns: result.unknowns ?? [],
+  };
 }
 
 function readScreenedRunKeys(): Set<string> {

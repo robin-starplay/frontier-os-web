@@ -19,6 +19,7 @@ import { useUsage } from '@/contexts/UsageContext';
 import { saveUrlRun, saveDocumentRun, getRuns } from '@/lib/runHistory';
 import { getWorkspaceId, getUserId, createBackendAccount } from '@/lib/trialAccount';
 import { normalizeWebsiteUrl, isValidWebsiteUrl } from '@/lib/urlUtils';
+import { verifiedFactPresentation } from '@/lib/evidencePresentation';
 import {
   runUrlAnalysis,
   runDocumentAssistedAnalysis,
@@ -2285,7 +2286,7 @@ function DocumentAssistedResultDisplay({
         </div>
       </details>
 
-      <PackSection title="Public Verification Checks">
+      <PackSection title="Verification Checks">
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground leading-snug">
             {publicChecks.checked || publicChecks.status === 'completed'
@@ -2325,16 +2326,17 @@ function DocumentAssistedResultDisplay({
             <div className="space-y-2">
               {verifiedFacts.map((fact, i) => {
                 const rec = asRecord(fact);
+                const presentation = verifiedFactPresentation(rec);
                 return (
-                  <div key={i} className="rounded-md border border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40 px-3 py-2.5">
-                    <p className="text-xs text-foreground">{displayValue(rec.field ?? rec.title ?? rec.claim_type)} {rec.value ? `· ${displayValue(rec.value)}` : ''}</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">Public-source verified · {sourceLine(rec)}</p>
+                  <div key={i} data-evidence-state={presentation.state} className={`rounded-md border px-3 py-2.5 ${presentation.tone === 'document' ? 'border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)]/40' : 'border-[var(--semantic-verified-border)] bg-[var(--semantic-verified-bg)]/40'}`}>
+                    <p className="text-xs text-foreground">{formatLabel(presentation.label)} {rec.value ? `· ${displayValue(rec.value)}` : ''}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">{presentation.sourceCopy}</p>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">No public-source verified facts were returned for this document-assisted run.</p>
+            <p className="text-xs text-muted-foreground">No verified facts were returned for this document-assisted run.</p>
           )}
         </div>
       </PackSection>

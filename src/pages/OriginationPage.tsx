@@ -1105,7 +1105,7 @@ function OriginationResultView({
     const sourceLabel = safeStr(c.source_label) || 'Public-source candidate signal';
     const evidenceStatus = safeStr(c.evidence_status ?? c.verification_status ?? 'not_independently_verified');
     const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
-    const fit = safeStr(c.fit_score_100 ?? c.fit_score ?? c.score ?? '');
+    const fit = numericOrNull(c.fit_score_100);
     const fits = safeStr(c.why_it_fits ?? c.why_fits ?? c.rationale ?? c.match_rationale ?? '');
     const action = safeStr(c.next_best_action ?? c.next_action ?? '');
     const description = safeStr(c.one_line_description ?? c.description ?? c.source_snippet ?? '');
@@ -1181,10 +1181,10 @@ function OriginationResultView({
             <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Source confidence</p>
             <p className="font-medium text-muted-foreground">{humanLabel(confidence)}</p>
           </div>
-          {fit && (
+          {fit !== null && (
             <div>
-              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit score 100</p>
-              <p className="font-semibold text-foreground">{fit}</p>
+              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Fit score</p>
+              <p className="font-semibold text-foreground">{Math.max(0, Math.min(100, Math.round(fit)))}/100</p>
             </div>
           )}
           <div>

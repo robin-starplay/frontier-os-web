@@ -101,6 +101,8 @@ export interface CompareCompany {
   company_name: string;
   website: string;
   jurisdiction: string;
+  company_number?: string;
+  screen_record?: Record<string, unknown>;
 }
 
 export interface ComparePayload {
@@ -239,6 +241,17 @@ export interface CompareTargetResult {
   blockers: string[];
   next_action: string;
   rank_reason: string;
+  canonical_company_id?: string;
+  canonical_domain?: string;
+  latest_screen_run_id?: string;
+  screen_completed?: boolean;
+  screen_type?: string;
+  screen_completed_at?: string;
+  evidence_coverage?: unknown;
+  financial_readiness?: string;
+  main_blocker?: string;
+  identity_quality?: string;
+  data_quality_notes?: string[];
 }
 
 export interface CompareResult {
@@ -250,6 +263,12 @@ export interface CompareResult {
   fast_compare_mode?: boolean;
   evidence_backed_differentiation_available?: boolean;
   comparison_summary?: string;
+  comparison_mode?: 'evidence_backed_target_comparison' | 'mixed_readiness_comparison';
+  strongest_evidence_base?: string;
+  weakest_evidence_base?: string;
+  key_differentiators?: string[];
+  comparability_gaps?: string[];
+  recommended_next_steps?: string[];
   targets: CompareTargetResult[];
   compare_runtime_ms?: number;
   compare_timed_out?: boolean;

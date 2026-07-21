@@ -9,6 +9,7 @@
 
 import type { AnalysisResult, CompareResult } from './frontierApi';
 import { COCKPIT_TARGETS_KEY, saveCockpitTarget, workflowTargetKey } from './workflowTargets';
+import { canonicalCompanyDomain } from './urlUtils';
 
 /** Structured summary saved when a document review is stored in the Cockpit.
  *  Does NOT include raw file content — only extracted structured data. */
@@ -160,6 +161,22 @@ export function getRuns(): RunEntry[] {
   } catch {
     return [];
   }
+}
+
+export function latestScreenRunForIdentity(runs: RunEntry[], company: string, website: string): RunEntry | undefined {
+  const domain = canonicalCompanyDomain(website);
+  const name = company.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const confidenceRank = (value: string) => ({ high: 3, medium: 2, low: 1 }[value.toLowerCase()] ?? 0);
+  return runs
+    .filter(run => run.type === 'url' || run.type === 'document')
+    .filter(run => (domain && canonicalCompanyDomain(run.website) === domain)
+      || (!domain && run.company.trim().toLowerCase().replace(/[^a-z0-9]+/g, '') === name))
+    .sort((a, b) => {
+      const completedAt = Date.parse(b.timestamp) - Date.parse(a.timestamp);
+      if (completedAt) return completedAt;
+      const documentDepth = Number(b.type === 'document') - Number(a.type === 'document');
+      return documentDepth || confidenceRank(b.evidence_confidence) - confidenceRank(a.evidence_confidence);
+    })[0];
 }
 
 function persistRuns(entries: RunEntry[]): void {
