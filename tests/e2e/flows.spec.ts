@@ -80,6 +80,7 @@ test('origination preserves backend JSON errors and exposes development diagnost
   };
   const consoleMessages: string[] = [];
   page.on('console', message => consoleMessages.push(message.text()));
+  await page.route('**/api/origination/jobs', route => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }));
   await page.route('**/api/origination/run', route => route.fulfill({
     status: 429,
     contentType: 'application/json',
@@ -103,6 +104,7 @@ test('origination preserves backend JSON errors and exposes development diagnost
 test('origination keeps a backend result when local storage quota is exceeded', async ({ page }) => {
   const consoleMessages: string[] = [];
   page.on('console', message => consoleMessages.push(message.text()));
+  await page.route('**/api/origination/jobs', route => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }));
   await page.route('**/api/origination/run', route => route.fulfill({
     status: 200,
     contentType: 'application/json',

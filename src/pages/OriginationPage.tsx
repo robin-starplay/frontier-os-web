@@ -30,11 +30,12 @@ import {
   type WorkflowTarget,
 } from '@/lib/workflowTargets';
 import { OriginationQuotaNotice, useUsage } from '@/contexts/UsageContext';
-import { getUserId, getWorkspaceId } from '@/lib/trialAccount';
+import { createBackendAccount, getUserId, getWorkspaceId } from '@/lib/trialAccount';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
 interface OriginationRequest {
+  run_id?: string;
   origination_mode?: 'candidate_discovery' | 'thesis_research' | 'target_universe_ranking';
   buyer_type?: 'pe_platform' | 'corporate_development' | 'independent_sponsor' | 'strategic_acquirer' | 'operating_partner' | 'search_fund';
   buyer_thesis: string;
@@ -48,6 +49,11 @@ interface OriginationRequest {
   workspace_id?: string;
   user_id?: string;
   save_to_cockpit?: boolean;
+}
+
+interface WorkspacePersistenceResult {
+  record: Record<string, unknown>;
+  idempotent_replay?: boolean;
 }
 
 type OriginationResult = Record<string, unknown>;
@@ -104,11 +110,12 @@ function backendProgressStages(data: OriginationResult): OriginationProgressStag
   return raw.flatMap((item, index) => {
     if (!item || typeof item !== 'object') return [];
     const stage = item as Record<string, unknown>;
-    const status = safeStr(stage.status).toLowerCase();
+    const rawStatus = safeStr(stage.status).toLowerCase();
+    const status = rawStatus === 'running' ? 'active' : rawStatus === 'completed' ? 'complete' : rawStatus;
     if (!['pending', 'active', 'complete', 'warning', 'failed'].includes(status)) return [];
     return [{
-      id: safeStr(stage.id, `stage-${index}`),
-      label: safeStr(stage.label ?? stage.name, `Stage ${index + 1}`),
+      id: safeStr(stage.id ?? stage.stage, `stage-${index}`),
+      label: humanLabel(safeStr(stage.label ?? stage.name ?? stage.stage, `Stage ${index + 1}`)),
       status: status as OriginationProgressStage['status'],
       item_count: numericOrNull(stage.item_count ?? stage.count) ?? undefined,
       explanation: safeStr(stage.explanation ?? stage.message),
@@ -232,13 +239,15 @@ class OriginationTimeoutError extends Error {
   }
 }
 
-async function runOrigination(req: OriginationRequest): Promise<OriginationResult> {
+async function runOrigination(
+  req: OriginationRequest,
+  onProgress?: (job: OriginationResult) => void,
+): Promise<OriginationResult> {
   const base = getBackendBaseUrl();
-  const thesisUrl = base ? `${base}/api/origination/thesis` : '/api/origination/thesis';
-  const runUrl = base ? `${base}/api/origination/run` : '/api/origination/run';
+  const jobsUrl = base ? `${base}/api/origination/jobs` : '/api/origination/jobs';
   const controller = new AbortController();
   const startedAt = Date.now();
-  let endpoint = req.origination_mode ? runUrl : req.targets && req.targets.length > 0 ? runUrl : thesisUrl;
+  let endpoint = jobsUrl;
   let timeout: number | undefined;
   const requestInit: RequestInit = {
     method:  'POST',
@@ -259,13 +268,13 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
   });
 
   const requestPromise = (async () => {
-    let res = await fetch(endpoint, requestInit);
-    if (res.status === 404) {
-      endpoint = runUrl;
-      res = await fetch(runUrl, requestInit);
+    let startResponse = await fetch(endpoint, requestInit);
+    if (startResponse.status === 404) {
+      endpoint = base ? `${base}/api/origination/run` : '/api/origination/run';
+      startResponse = await fetch(endpoint, requestInit);
     }
-    const rawBody = await res.text();
-    const contentType = res.headers.get('content-type') || '';
+    const rawBody = await startResponse.text();
+    const contentType = startResponse.headers.get('content-type') || '';
     const looksLikeHtml = /text\/html/i.test(contentType) || /^\s*<!doctype html|^\s*<html/i.test(rawBody);
     let body: OriginationResult | null = null;
     let responseFormat: NonNullable<OriginationRequestDiagnostics['response_format']> = rawBody ? 'text' : 'empty';
@@ -280,40 +289,62 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
     } else if (looksLikeHtml) {
       responseFormat = 'html';
     }
-    const backendMessage = backendField(body, 'message') || originationErrorMessage(body, res.status);
+    const backendMessage = backendField(body, 'message') || originationErrorMessage(body, startResponse.status);
     const diagnostics: OriginationRequestDiagnostics = {
       endpoint,
-      status: res.status,
+      status: startResponse.status,
       response_body: body ?? (rawBody || null),
-      response_headers: Object.fromEntries(res.headers.entries()),
+      response_headers: Object.fromEntries(startResponse.headers.entries()),
       quota_type: backendField(body, 'quota_type'),
-      error_code: backendField(body, 'error_code') || (typeof body?.error === 'string' ? body.error : ''),
+      error_code: backendField(body, 'error_code') || backendField(body, 'code') || (typeof body?.error === 'string' ? body.error : ''),
       message: backendMessage,
       raw_json: responseFormat === 'json' ? rawBody : '',
       response_format: responseFormat,
     };
     if (responseFormat === 'html') {
-      console.error('[origination] backend returned HTML instead of JSON', { endpoint, status: res.status, response_body: rawBody });
+      console.error('[origination] backend returned HTML instead of JSON', { endpoint, status: startResponse.status, response_body: rawBody });
     }
-    if (!res.ok || isQuotaExceededResponse(body) || responseFormat !== 'json') {
+    if (!startResponse.ok || isQuotaExceededResponse(body) || responseFormat !== 'json') {
       console.error('[origination] backend request failed', diagnostics);
       throw new OriginationApiError(backendMessage, body, diagnostics);
     }
-    if (import.meta.env.DEV && req.save_to_cockpit) {
-      console.info('[origination] persistence response', {
-        request_url: endpoint,
-        method: 'POST',
-        workspace_id: req.workspace_id,
-        run_id: safeStr(body?.origination_id),
-        http_status: res.status,
-        raw_response_body: rawBody,
-        parsed_response: body,
-        save_duration_ms: Date.now() - startedAt,
-        error_code: '',
-        error_message: '',
-      });
+    if (!backendField(body, 'job_id')) {
+      return body ?? {};
     }
-    return body ?? {};
+    const jobId = backendField(body, 'job_id');
+    if (!jobId) throw new OriginationApiError('Backend did not return an Origination job ID.', body, { ...diagnostics, error_code: 'ORIGINATION_JOB_ID_MISSING' });
+    endpoint = `${jobsUrl}/${encodeURIComponent(jobId)}`;
+    while (true) {
+      const statusResponse = await fetch(endpoint, { signal: controller.signal });
+      const job = nestedRecord(await statusResponse.json());
+      if (!statusResponse.ok || !job) {
+        const errorCode = backendField(job, 'error_code') || backendField(job, 'code') || 'ORIGINATION_JOB_STATUS_FAILED';
+        throw new OriginationApiError(backendField(job, 'message') || `Backend returned status ${statusResponse.status}.`, job, {
+          endpoint, status: statusResponse.status, response_body: job, error_code: errorCode,
+        });
+      }
+      onProgress?.(job);
+      if (job.status === 'failed') {
+        const failure = nestedRecord(job.error);
+        throw new OriginationApiError(backendField(failure, 'message') || 'Origination job failed.', job, {
+          endpoint, status: statusResponse.status, response_body: job,
+          error_code: backendField(failure, 'error_code') || 'ORIGINATION_JOB_FAILED',
+        });
+      }
+      if (job.status === 'completed') {
+        const result = nestedRecord(job.result) || {};
+        if (import.meta.env.DEV && req.save_to_cockpit) {
+          console.info('[origination] persistence response', {
+            request_url: jobsUrl, method: 'POST', workspace_id: req.workspace_id,
+            run_id: safeStr(result.origination_id), http_status: statusResponse.status,
+            parsed_response: result, save_duration_ms: Date.now() - startedAt,
+            error_code: '', error_message: '',
+          });
+        }
+        return result;
+      }
+      await new Promise<void>(resolve => window.setTimeout(resolve, 150));
+    }
   })();
 
   try {
@@ -333,6 +364,43 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
   } finally {
     if (timeout !== undefined) window.clearTimeout(timeout);
   }
+}
+
+async function workspaceRequest(path: string, init?: RequestInit): Promise<OriginationResult> {
+  const base = getBackendBaseUrl();
+  const endpoint = base ? `${base}${path}` : path;
+  const response = await fetch(endpoint, init);
+  const body = nestedRecord(await response.json().catch(() => null));
+  if (!response.ok || !body) {
+    const errorCode = backendField(body, 'error_code') || backendField(body, 'code') || 'WORKSPACE_REQUEST_FAILED';
+    const diagnostics = { endpoint, status: response.status, response_body: body, error_code: errorCode, message: backendField(body, 'message') };
+    if (import.meta.env.DEV) console.error('[origination] workspace contract failed', diagnostics);
+    throw new OriginationApiError(diagnostics.message || `Workspace request failed (${errorCode}).`, body, diagnostics);
+  }
+  return body;
+}
+
+async function persistOriginationRun(
+  workspaceId: string,
+  userId: string,
+  runId: string,
+  result: OriginationResult,
+  retry = false,
+): Promise<WorkspacePersistenceResult> {
+  const path = retry
+    ? `/api/workspace/origination-runs/${encodeURIComponent(runId)}/retry`
+    : '/api/workspace/origination-runs';
+  const body = await workspaceRequest(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ workspace_id: workspaceId, user_id: userId, run_id: runId, result: { ...result, run_id: runId } }),
+  });
+  return { record: asRecord(body.record), idempotent_replay: body.idempotent_replay === true };
+}
+
+async function retrieveOriginationRuns(workspaceId: string): Promise<Record<string, unknown>[]> {
+  const body = await workspaceRequest(`/api/workspace/origination-runs?workspace_id=${encodeURIComponent(workspaceId)}`);
+  return Array.isArray(body.records) ? body.records.filter(item => item && typeof item === 'object') as Record<string, unknown>[] : [];
 }
 
 function safeStr(v: unknown, fallback = ''): string {
@@ -775,16 +843,20 @@ function candidateCount(result: OriginationResult): number {
   return raw.filter(item => item && typeof item === 'object' && !isSyntheticReferenceCandidate(item as Record<string, unknown>)).length;
 }
 
-function saveOriginationRunToHistory(form: OriginationFormValues, result: OriginationResult): { run: StoredOriginationRun; persisted: boolean } {
+function saveOriginationRunToHistory(
+  form: OriginationFormValues,
+  result: OriginationResult,
+  options: { workspaceId?: string; runId?: string; synced?: boolean } = {},
+): { run: StoredOriginationRun; persisted: boolean } {
   const createdAt = new Date().toISOString();
   const groups = candidateGroups(((result.ranked_targets ?? result.targets ?? result.candidates) as Record<string, unknown>[] | undefined) || []);
   const summary = asRecord(result.candidate_summary);
-  const backendRunId = safeStr(result.origination_id);
+  const backendRunId = safeStr(options.runId ?? result.origination_id ?? result.run_id);
   const runId = backendRunId || `orig_${createdAt}_${Math.random().toString(36).slice(2, 8)}`;
   const run: StoredOriginationRun = {
     id: runId,
     run_id: runId,
-    workspace_id: getWorkspaceId() || '',
+    workspace_id: options.workspaceId ?? getWorkspaceId() ?? '',
     run_type: 'origination',
     created_at: createdAt,
     completed_at: validIsoTimestamp(result.completed_at) || createdAt,
@@ -805,7 +877,7 @@ function saveOriginationRunToHistory(form: OriginationFormValues, result: Origin
     source_links: groups.researchSources.flatMap(candidate => sourceUrls(candidate)).filter((url, index, urls) => urls.indexOf(url) === index).slice(0, 20),
     diagnostics_summary: asRecord(result.diagnostics_summary ?? result.execution_manifest),
     schema_version: '1.0',
-    sync_state: result.saved_to_cockpit === true && Boolean(backendRunId) ? 'synced' : 'pending',
+    sync_state: (options.synced ?? result.saved_to_cockpit === true) && Boolean(backendRunId) ? 'synced' : 'pending',
     thesis: form.buyerThesis,
     sector: form.sector,
     geography: form.geo,
@@ -1915,7 +1987,7 @@ function OriginationResultView({
             className="w-full flex items-center justify-between px-4 py-3 bg-card/40 text-left hover:bg-card/60 transition-colors"
           >
             <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60">
-              Excluded targets ({rejected.length}): reasons
+              Excluded or adjacent results ({rejected.length})
             </p>
             <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/40 transition-transform ${showRejected ? 'rotate-90' : ''}`} />
           </button>
@@ -1927,7 +1999,8 @@ function OriginationResultView({
                     {safeStr(r.company_name ?? r.company ?? r.name) || 'Excluded candidate'}
                   </p>
                   <p className="text-xs text-muted-foreground/60 leading-snug">
-                    {safeStr(r.reason ?? r.exclusion_reason ?? '')}
+                    <span className="font-semibold">Key mismatch: </span>
+                    {safeStr(r.key_mismatch ?? r.reason ?? r.exclusion_reason, 'Excluded by a required thesis criterion.')}
                   </p>
                 </div>
               ))}
@@ -2425,7 +2498,7 @@ function ThesisInterpretation({ form, onEdit }: { form: OriginationFormValues; o
 function OriginationProgressPanel({ loading, result }: { loading: boolean; result?: OriginationResult }) {
   const stages = result ? backendProgressStages(result) : [];
   if (!loading && stages.length === 0) return null;
-  if (loading) {
+  if (loading && stages.length === 0) {
     return (
       <section aria-label="Origination progress" aria-live="polite" className="rounded-lg border border-card-border bg-card px-4 py-3 shadow-xs">
         <div className="flex items-start gap-3">
@@ -2436,8 +2509,8 @@ function OriginationProgressPanel({ loading, result }: { loading: boolean; resul
     );
   }
   return (
-    <details className="rounded-lg border border-border bg-card/50">
-      <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Run details</summary>
+    <details open={loading} className="rounded-lg border border-border bg-card/50">
+      <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{loading ? 'Origination progress' : 'Run details'}</summary>
       <ol className="space-y-2 border-t border-border p-4" aria-label="Backend-reported Origination stages">
         {stages.map(stage => <li key={stage.id} className="flex gap-3 text-xs"><span aria-hidden>{stage.status === 'complete' ? '✓' : stage.status === 'warning' ? '!' : stage.status === 'failed' ? '×' : stage.status === 'active' ? '●' : '○'}</span><div><p className="font-medium text-foreground">{stage.label}{stage.item_count !== undefined ? ` · ${stage.item_count}` : ''}</p>{stage.explanation && <p className="text-muted-foreground">{stage.explanation}</p>}<span className="sr-only">Status: {stage.status}</span></div></li>)}
       </ol>
@@ -2458,6 +2531,7 @@ function OriginationForm() {
   const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
   const [targetUniverse, setTargetUniverse] = useState(storedForm.targetUniverse);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [liveProgress, setLiveProgress] = useState<OriginationResult | null>(null);
   const [saveNotice, setSaveNotice] = useState<{ tone: 'success' | 'warning'; message: string } | null>(null);
   const [pendingLocalSave, setPendingLocalSave] = useState<{ form: OriginationFormValues; result: OriginationResult; run: StoredOriginationRun } | null>(null);
   const [runs, setRuns] = useState<StoredOriginationRun[]>(() => readOriginationRuns());
@@ -2486,22 +2560,43 @@ function OriginationForm() {
     setCompareCandidates(readCompareCandidates());
   }
 
-  function retryPendingSave() {
+  async function retryPendingSave() {
     if (!pendingLocalSave) return;
-    const resultPersisted = storeOriginationRun(pendingLocalSave.form, pendingLocalSave.result);
-    const existing = readOriginationRuns().filter(item => item.run_id !== pendingLocalSave.run.run_id);
-    const historyPersisted = writeOriginationRuns([pendingLocalSave.run, ...existing]);
-    refreshWorkspace();
-    if (resultPersisted && historyPersisted) {
-      setSaveNotice({ tone: 'warning', message: 'Run retained locally. Backend synchronisation remains pending.' });
+    const workspaceId = pendingLocalSave.run.workspace_id;
+    const userId = getUserId() || '';
+    try {
+      if (!workspaceId || !userId) throw new Error('Stable Workspace identity is unavailable.');
+      await persistOriginationRun(workspaceId, userId, pendingLocalSave.run.run_id, pendingLocalSave.result, true);
+      const syncedResult = { ...pendingLocalSave.result, saved_to_cockpit: true, origination_id: pendingLocalSave.run.run_id };
+      storeOriginationRun(pendingLocalSave.form, syncedResult);
+      saveOriginationRunToHistory(pendingLocalSave.form, syncedResult, { workspaceId, runId: pendingLocalSave.run.run_id, synced: true });
+      refreshWorkspace();
+      setSaveNotice({ tone: 'success', message: 'Run saved to Workspace.' });
       setPendingLocalSave(null);
-    } else {
-      setSaveNotice({ tone: 'warning', message: 'The run is still visible, but browser storage could not retain it. Check available storage and retry.' });
+    } catch (error) {
+      const code = error instanceof OriginationApiError ? error.diagnostics.error_code : 'WORKSPACE_RETRY_FAILED';
+      if (import.meta.env.DEV) console.error('[origination] retry save failed', { error_code: code, workspace_id: workspaceId, run_id: pendingLocalSave.run.run_id });
+      setSaveNotice({ tone: 'warning', message: 'Workspace save retry failed. The local copy remains available.' });
     }
   }
 
   useEffect(() => {
     refreshWorkspace();
+    const workspaceId = getWorkspaceId();
+    if (workspaceId) {
+      void retrieveOriginationRuns(workspaceId).then(records => {
+        records.forEach(record => {
+          const result = asRecord(record.result_payload);
+          const runId = safeStr(record.run_id ?? record.origination_id);
+          if (!runId || !Object.keys(result).length) return;
+          const form = readStoredOriginationForm();
+          saveOriginationRunToHistory(form, { ...result, saved_to_cockpit: true, origination_id: runId }, { workspaceId, runId, synced: true });
+        });
+        refreshWorkspace();
+      }).catch(error => {
+        if (import.meta.env.DEV) console.error('[origination] workspace history retrieval failed', error);
+      });
+    }
     const refresh = () => refreshWorkspace();
     window.addEventListener('focus', refresh);
     window.addEventListener('storage', refresh);
@@ -2567,6 +2662,7 @@ function OriginationForm() {
     e.preventDefault();
     usage.beginUsageRequest('origination');
     setIsSubmitting(true);
+    setLiveProgress(null);
     setSaveNotice(null);
     setState({ kind: 'idle' });
     try {
@@ -2586,9 +2682,22 @@ function OriginationForm() {
         buyerThesis,
         targetUniverse,
       };
-      const workspaceId = getWorkspaceId();
-      const userId = getUserId();
+      const existingWorkspaceId = getWorkspaceId();
+      const existingUserId = getUserId();
+      const account = existingWorkspaceId && existingUserId
+        ? { workspace_id: existingWorkspaceId, user_id: existingUserId }
+        : await createBackendAccount(undefined, buyerThesis);
+      if (!account?.workspace_id?.trim() || !account?.user_id?.trim()) {
+        throw new OriginationApiError('A stable Workspace identity could not be established.', null, {
+          endpoint: '/api/trial/create-account', error_code: 'WORKSPACE_ID_UNAVAILABLE',
+          message: 'workspace_id and user_id are required before Origination can run.',
+        });
+      }
+      const workspaceId = account.workspace_id.trim();
+      const userId = account.user_id.trim();
+      const stableRunId = `org_${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`}`;
       const data = await runOrigination({
+        run_id: stableRunId,
         origination_mode: targets.length > 0 ? 'target_universe_ranking' : mode,
         buyer_type: buyerMandate,
         buyer_thesis: buyerThesis,
@@ -2598,13 +2707,11 @@ function OriginationForm() {
         optional_keywords: optionalKeywords,
         size_criteria: sizeCriteria,
         strategic_rationale: rationale,
-        ...(workspaceId && userId ? {
-          workspace_id: workspaceId,
-          user_id: userId,
-          save_to_cockpit: true,
-        } : {}),
+        workspace_id: workspaceId,
+        user_id: userId,
+        save_to_cockpit: true,
         ...(targets.length > 0 ? { targets } : {}),
-      });
+      }, job => setLiveProgress({ progress_stages: job.events }));
       await usage.reconcileUsageResponse(data);
       if (isQuotaExceededResponse(data)) {
         setState({ kind: 'idle' });
@@ -2613,10 +2720,21 @@ function OriginationForm() {
       if (safeStr(data.status).toLowerCase() === 'ok') {
         setState({ kind: 'idle' });
       }
+      let backendConfirmed = false;
+      let backendSaveError: unknown = null;
+      try {
+        await persistOriginationRun(workspaceId, userId, stableRunId, data);
+        backendConfirmed = true;
+        data.saved_to_cockpit = true;
+        data.origination_id = stableRunId;
+      } catch (error) {
+        backendSaveError = error;
+      }
       const resultPersisted = storeOriginationRun(formValues, data);
-      const { run: storedRun, persisted: historyPersisted } = saveOriginationRunToHistory(formValues, data);
+      const { run: storedRun, persisted: historyPersisted } = saveOriginationRunToHistory(formValues, data, {
+        workspaceId: workspaceId || '', runId: stableRunId, synced: backendConfirmed,
+      });
       refreshWorkspace();
-      const backendConfirmed = data.saved_to_cockpit === true && Boolean(safeStr(data.origination_id));
       if (backendConfirmed && resultPersisted && historyPersisted) {
         setSaveNotice({ tone: 'success', message: 'Run saved to Workspace.' });
         setPendingLocalSave(null);
@@ -2625,7 +2743,7 @@ function OriginationForm() {
         setPendingLocalSave({ form: formValues, result: data, run: storedRun });
         if (import.meta.env.DEV) {
           console.warn('[origination] save incomplete', {
-            endpoint: getBackendBaseUrl() ? `${getBackendBaseUrl()}/api/origination/run` : '/api/origination/run',
+            endpoint: getBackendBaseUrl() ? `${getBackendBaseUrl()}/api/workspace/origination-runs` : '/api/workspace/origination-runs',
             method: 'POST',
             workspace_id: workspaceId,
             run_id: safeStr(data.origination_id, storedRun.run_id),
@@ -2633,7 +2751,9 @@ function OriginationForm() {
             parsed_response: { saved_to_cockpit: data.saved_to_cockpit, origination_id: data.origination_id },
             local_result_persisted: resultPersisted,
             local_history_persisted: historyPersisted,
-            error_code: backendConfirmed ? 'local_persistence_failed' : 'backend_save_not_confirmed',
+            error_code: backendSaveError instanceof OriginationApiError
+              ? backendSaveError.diagnostics.error_code
+              : backendConfirmed ? 'local_persistence_failed' : 'backend_save_not_confirmed',
           });
         }
       }
@@ -2657,6 +2777,7 @@ function OriginationForm() {
       });
     } finally {
       setIsSubmitting(false);
+      setLiveProgress(null);
     }
   }
 
@@ -2882,7 +3003,7 @@ Example format:
           )}
         </button>
 
-        <OriginationProgressPanel loading={isSubmitting && state.kind !== 'result'} result={state.kind === 'result' ? state.data : undefined} />
+        <OriginationProgressPanel loading={isSubmitting && state.kind !== 'result'} result={liveProgress ?? (state.kind === 'result' ? state.data : undefined)} />
       </form>
 
       {state.kind === 'result' && state.restored && (

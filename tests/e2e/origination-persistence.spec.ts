@@ -41,6 +41,7 @@ test('completed 21 July origination run is saved, shown immediately and survives
     user_id: 'e2e-local-user',
     save_to_cockpit: true,
   });
+  expect(submittedBody.run_id).toMatch(/^org_/);
 
   await page.reload();
   await expect(page.getByTitle('UK operational software')).toBeVisible();
@@ -69,6 +70,11 @@ test('21 July runs precede legacy dates, duplicate run ids merge, and deletion p
 
 test('missing backend save confirmation is reported honestly', async ({ page }) => {
   await prepare(page);
+  await page.route('**/api/workspace/origination-runs*', route => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({ detail: { status: 'error', error_code: 'PERSISTENCE_UNAVAILABLE', message: 'Workspace persistence is temporarily unavailable.' } }),
+  }));
   await page.route('**/api/origination/run', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -81,7 +87,7 @@ test('missing backend save confirmation is reported honestly', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Retry save' })).toBeVisible();
   await expect(page.getByText(/Pending sync/)).toBeVisible();
   await page.getByRole('button', { name: 'Retry save' }).click();
-  await expect(page.getByRole('status')).toContainText('Backend synchronisation remains pending');
+  await expect(page.getByRole('status')).toContainText('Run saved to Workspace');
 });
 
 test('interpreted thesis exposes criteria conflicts before execution', async ({ page }) => {

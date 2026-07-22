@@ -79,6 +79,25 @@ export async function clickNavLink(page: Page, name: RegExp | string) {
 }
 
 export async function mockWorkspaceApis(page: Page) {
+  await page.route('**/api/origination/jobs', route => route.fulfill({
+    status: 404,
+    contentType: 'application/json',
+    body: JSON.stringify({ detail: 'Compatibility fallback for browser-contract tests.' }),
+  }));
+  const originationRecords = new Map<string, Record<string, unknown>>();
+  await page.route(/\/api\/workspace\/origination-runs(?:\/[^?]+\/retry)?(?:\?|$)/, async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ok', workspace_id: 'e2e-local-workspace', records: Array.from(originationRecords.values()) }) });
+      return;
+    }
+    const payload = route.request().postDataJSON() as Record<string, unknown>;
+    const result = payload.result && typeof payload.result === 'object' ? payload.result as Record<string, unknown> : payload;
+    const runId = String(payload.run_id || result.run_id || 'e2e-run');
+    const record = { run_id: runId, origination_id: runId, workspace_id: payload.workspace_id, result_payload: result };
+    const replay = originationRecords.has(runId);
+    originationRecords.set(runId, record);
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ok', record, idempotent_replay: replay }) });
+  });
   await page.route(/\/api\/workspace\/session(?:\?|$)/, route => route.fulfill({
     status: 200,
     contentType: 'application/json',

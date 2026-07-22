@@ -71,6 +71,7 @@ test('Origination shows a backend message only for an enforced reached Originati
 test('Origination provider errors retain provider copy without screen quota wording', async ({ page }) => {
   const providerMessage = 'The discovery provider is temporarily rate limited. Try again shortly.';
   await mockUsageStatus(page, usageResponse());
+  await page.route('**/api/origination/jobs', route => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }));
   await page.route('**/api/origination/run', route => route.fulfill({
     status: 429,
     contentType: 'application/json',
