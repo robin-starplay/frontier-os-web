@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import {
   ArrowRight, Search, Target, ChevronRight,
@@ -30,6 +30,7 @@ import {
   type WorkflowTarget,
 } from '@/lib/workflowTargets';
 import { OriginationQuotaNotice, useUsage } from '@/contexts/UsageContext';
+import { getUserId, getWorkspaceId } from '@/lib/trialAccount';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
@@ -44,6 +45,9 @@ interface OriginationRequest {
   size_criteria: string;
   strategic_rationale: string;
   targets?: KnownTarget[];
+  workspace_id?: string;
+  user_id?: string;
+  save_to_cockpit?: boolean;
 }
 
 type OriginationResult = Record<string, unknown>;
@@ -132,7 +136,26 @@ class OriginationApiError extends Error {
 
 interface StoredOriginationRun {
   id: string;
+  run_id: string;
+  workspace_id: string;
+  run_type: 'origination';
   created_at: string;
+  completed_at: string;
+  status: string;
+  quality_state: string;
+  discovery_quality: string;
+  execution_mode: string;
+  source_count: number;
+  candidate_count: number;
+  confirmed_company_count: number;
+  possible_lead_count: number;
+  research_source_count: number;
+  top_candidates: string[];
+  candidate_identities: Array<{ company_name: string; website: string }>;
+  source_links: string[];
+  diagnostics_summary: Record<string, unknown>;
+  schema_version: '1.0';
+  sync_state: 'synced' | 'pending';
   thesis: string;
   sector: string;
   geography: string;
@@ -227,6 +250,20 @@ async function runOrigination(req: OriginationRequest): Promise<OriginationResul
     if (!res.ok || isQuotaExceededResponse(body) || responseFormat !== 'json') {
       console.error('[origination] backend request failed', diagnostics);
       throw new OriginationApiError(backendMessage, body, diagnostics);
+    }
+    if (import.meta.env.DEV && req.save_to_cockpit) {
+      console.info('[origination] persistence response', {
+        request_url: endpoint,
+        method: 'POST',
+        workspace_id: req.workspace_id,
+        run_id: safeStr(body?.origination_id),
+        http_status: res.status,
+        raw_response_body: rawBody,
+        parsed_response: body,
+        save_duration_ms: Date.now() - startedAt,
+        error_code: '',
+        error_message: '',
+      });
     }
     return body ?? {};
   })();
@@ -569,17 +606,19 @@ function readStoredOriginationResult(): OriginationResult | null {
   }
 }
 
-function storeOriginationRun(form: OriginationFormValues, result: OriginationResult): void {
-  if (!storageAvailable()) return;
+function storeOriginationRun(form: OriginationFormValues, result: OriginationResult): boolean {
+  if (!storageAvailable()) return false;
   try {
     window.localStorage.setItem(LAST_ORIGINATION_FORM_KEY, JSON.stringify(form));
     window.localStorage.setItem(LAST_ORIGINATION_RESULT_KEY, JSON.stringify(result));
+    return window.localStorage.getItem(LAST_ORIGINATION_RESULT_KEY) !== null;
   } catch (error) {
     console.warn('[origination] result received but could not be persisted', {
       storage: 'localStorage',
       error_name: error instanceof Error ? error.name : 'UnknownError',
       error_message: error instanceof Error ? error.message : safeStr(error),
     });
+    return false;
   }
 }
 
@@ -594,27 +633,88 @@ function readOriginationRuns(): StoredOriginationRun[] {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(ORIGINATION_RUNS_KEY) || '[]');
     if (!Array.isArray(parsed)) return [];
-    return parsed
+    const activeWorkspaceId = getWorkspaceId() || '';
+    const migrationRequired = parsed.some(item => item && typeof item === 'object' && (
+      item.schema_version !== '1.0' || !item.run_id || !item.workspace_id || !item.completed_at
+    ));
+    const normalized = parsed
       .filter(item => item && typeof item === 'object')
-      .map(item => item as StoredOriginationRun)
-      .filter(item => item.id && item.result && typeof item.result === 'object')
-      .sort((a, b) => safeStr(b.created_at).localeCompare(safeStr(a.created_at)));
+      .map(item => {
+        const legacy = item as Partial<StoredOriginationRun>;
+        const createdAt = validIsoTimestamp(legacy.created_at) || new Date(0).toISOString();
+        return {
+          ...legacy,
+          id: safeStr(legacy.id ?? legacy.run_id),
+          run_id: safeStr(legacy.run_id ?? legacy.id),
+          workspace_id: safeStr(legacy.workspace_id, activeWorkspaceId),
+          run_type: 'origination' as const,
+          created_at: createdAt,
+          completed_at: validIsoTimestamp(legacy.completed_at) || createdAt,
+          status: safeStr(legacy.status, 'completed'),
+          quality_state: safeStr(legacy.quality_state, 'unknown'),
+          discovery_quality: safeStr(legacy.discovery_quality ?? legacy.quality_state, 'unknown'),
+          execution_mode: safeStr(legacy.execution_mode, 'legacy'),
+          source_count: Number(legacy.source_count ?? 0),
+          candidate_count: Number(legacy.candidate_count ?? candidateCount(legacy.result || {})),
+          confirmed_company_count: Number(legacy.confirmed_company_count ?? 0),
+          possible_lead_count: Number(legacy.possible_lead_count ?? 0),
+          research_source_count: Number(legacy.research_source_count ?? 0),
+          top_candidates: Array.isArray(legacy.top_candidates) ? legacy.top_candidates : [],
+          candidate_identities: Array.isArray(legacy.candidate_identities) ? legacy.candidate_identities : [],
+          source_links: Array.isArray(legacy.source_links) ? legacy.source_links : [],
+          diagnostics_summary: legacy.diagnostics_summary || {},
+          schema_version: '1.0' as const,
+          sync_state: legacy.sync_state === 'synced' ? 'synced' as const : 'pending' as const,
+        } as StoredOriginationRun;
+      })
+      .filter(item => item.id && item.result && typeof item.result === 'object');
+    const reconciled = new Map<string, StoredOriginationRun>();
+    normalized.forEach(item => {
+      if (item.workspace_id && activeWorkspaceId && item.workspace_id !== activeWorkspaceId) return;
+      const existing = reconciled.get(item.run_id);
+      if (!existing
+        || item.sync_state === 'synced' && existing.sync_state !== 'synced'
+        || timestampValue(item.completed_at) > timestampValue(existing.completed_at)) {
+        reconciled.set(item.run_id, item);
+      }
+    });
+    const runs = Array.from(reconciled.values())
+      .sort((a, b) => {
+        const priority = (run: StoredOriginationRun) => ['completed', 'partial', 'partial_success'].includes(safeStr(run.status).toLowerCase()) ? 1 : 0;
+        return priority(b) - priority(a) || timestampValue(b.completed_at) - timestampValue(a.completed_at);
+      });
+    if (migrationRequired) writeOriginationRuns(runs);
+    return runs;
   } catch {
     return [];
   }
 }
 
-function writeOriginationRuns(runs: StoredOriginationRun[]): void {
-  if (!storageAvailable()) return;
+function writeOriginationRuns(runs: StoredOriginationRun[]): boolean {
+  if (!storageAvailable()) return false;
   try {
     window.localStorage.setItem(ORIGINATION_RUNS_KEY, JSON.stringify(runs.slice(0, 20)));
+    const confirmed = JSON.parse(window.localStorage.getItem(ORIGINATION_RUNS_KEY) || '[]');
+    return Array.isArray(confirmed) && confirmed.some(item => item?.run_id === runs[0]?.run_id || item?.id === runs[0]?.id);
   } catch (error) {
     console.warn('[origination] run history could not be persisted', {
       storage: 'localStorage',
       error_name: error instanceof Error ? error.name : 'UnknownError',
       error_message: error instanceof Error ? error.message : safeStr(error),
     });
+    return false;
   }
+}
+
+function validIsoTimestamp(value: unknown): string {
+  const text = safeStr(value);
+  const parsed = Date.parse(text);
+  return text && Number.isFinite(parsed) ? new Date(parsed).toISOString() : '';
+}
+
+function timestampValue(value: unknown): number {
+  const parsed = Date.parse(safeStr(value));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function candidateCount(result: OriginationResult): number {
@@ -627,11 +727,37 @@ function candidateCount(result: OriginationResult): number {
   return raw.filter(item => item && typeof item === 'object' && !isSyntheticReferenceCandidate(item as Record<string, unknown>)).length;
 }
 
-function saveOriginationRunToHistory(form: OriginationFormValues, result: OriginationResult): StoredOriginationRun {
+function saveOriginationRunToHistory(form: OriginationFormValues, result: OriginationResult): { run: StoredOriginationRun; persisted: boolean } {
   const createdAt = new Date().toISOString();
+  const groups = candidateGroups(((result.ranked_targets ?? result.targets ?? result.candidates) as Record<string, unknown>[] | undefined) || []);
+  const summary = asRecord(result.candidate_summary);
+  const backendRunId = safeStr(result.origination_id);
+  const runId = backendRunId || `orig_${createdAt}_${Math.random().toString(36).slice(2, 8)}`;
   const run: StoredOriginationRun = {
-    id: `orig_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
+    id: runId,
+    run_id: runId,
+    workspace_id: getWorkspaceId() || '',
+    run_type: 'origination',
     created_at: createdAt,
+    completed_at: validIsoTimestamp(result.completed_at) || createdAt,
+    status: safeStr(result.status, 'completed'),
+    quality_state: safeStr(summary.discovery_quality ?? result.quality_state, 'unknown'),
+    discovery_quality: safeStr(summary.discovery_quality ?? result.quality_state, 'unknown'),
+    execution_mode: safeStr(result.analysis_mode ?? result.normalized_mode ?? result.requested_mode, form.mode),
+    source_count: Number(summary.research_sources_count ?? groups.researchSources.length),
+    candidate_count: candidateCount(result),
+    confirmed_company_count: Number(summary.confirmed_company_candidates ?? groups.confirmed.length),
+    possible_lead_count: Number(summary.possible_leads_count ?? groups.needsWebsite.length),
+    research_source_count: Number(summary.research_sources_count ?? groups.researchSources.length),
+    top_candidates: groups.confirmed.slice(0, 5).map(candidate => safeStr(candidate.company_name ?? candidate.name)).filter(Boolean),
+    candidate_identities: [...groups.confirmed, ...groups.needsWebsite].slice(0, 20).map(candidate => ({
+      company_name: safeStr(candidate.company_name ?? candidate.name),
+      website: safeStr(candidate.official_website ?? candidate.website),
+    })).filter(candidate => candidate.company_name),
+    source_links: groups.researchSources.flatMap(candidate => sourceUrls(candidate)).filter((url, index, urls) => urls.indexOf(url) === index).slice(0, 20),
+    diagnostics_summary: asRecord(result.diagnostics_summary ?? result.execution_manifest),
+    schema_version: '1.0',
+    sync_state: result.saved_to_cockpit === true && Boolean(backendRunId) ? 'synced' : 'pending',
     thesis: form.buyerThesis,
     sector: form.sector,
     geography: form.geo,
@@ -642,8 +768,9 @@ function saveOriginationRunToHistory(form: OriginationFormValues, result: Origin
     form,
   };
   const existing = readOriginationRuns();
-  writeOriginationRuns([run, ...existing]);
-  return run;
+  const reconciled = [run, ...existing.filter(item => item.run_id !== run.run_id)]
+    .sort((a, b) => timestampValue(b.completed_at) - timestampValue(a.completed_at));
+  return { run, persisted: writeOriginationRuns(reconciled) };
 }
 
 function deleteOriginationRun(id: string): StoredOriginationRun[] {
@@ -1984,9 +2111,20 @@ function OriginationWorkspacePanel({
   onRemoveCompare: (lead: StoredCompareCandidate) => void;
   onClearCompare: () => void;
 }) {
+  const [historyFilter, setHistoryFilter] = useState<'active' | 'all' | 'completed' | 'partial' | 'failed'>('active');
+  const [showAllHistory, setShowAllHistory] = useState(false);
   const compareReady = compareCandidates.filter(candidate => candidate.compare_ready !== false && candidate.website);
   const comparePending = compareCandidates.filter(candidate => candidate.compare_ready === false || !candidate.website);
   const researchSources = savedLeads.filter(lead => ['source_page', 'directory_or_listicle', 'news_article', 'research_article', 'forum_thread', 'market_report', 'search_result'].includes(lead.candidate_type || ''));
+  const runStatus = (run: StoredOriginationRun) => safeStr(run.status, 'completed').toLowerCase();
+  const filteredRuns = runs.filter(run => {
+    const status = runStatus(run);
+    if (historyFilter === 'all') return true;
+    if (historyFilter === 'active') return status === 'completed' || status === 'partial' || status === 'partial_success';
+    if (historyFilter === 'partial') return status === 'partial' || status === 'partial_success';
+    return status === historyFilter;
+  });
+  const visibleRuns = filteredRuns.slice(0, showAllHistory ? 20 : 5);
 
   return (
     <div data-origination-workspace className="surface-raised overflow-hidden rounded-xl">
@@ -1997,28 +2135,62 @@ function OriginationWorkspacePanel({
         </div>
         <Link
           href="/app/compare"
-          className={`inline-flex h-8 w-fit items-center justify-center rounded-md border px-3 text-xs font-semibold transition-colors ${compareReady.length > 0 ? 'border-border bg-background text-foreground hover:bg-accent/60' : 'border-border bg-background text-muted-foreground pointer-events-none opacity-60'}`}
+          aria-disabled={compareReady.length < 2}
+          className={`inline-flex h-8 w-fit items-center justify-center rounded-md border px-3 text-xs font-semibold transition-colors ${compareReady.length >= 2 ? 'border-border bg-background text-foreground hover:bg-accent/60' : 'border-border bg-background text-muted-foreground pointer-events-none opacity-60'}`}
         >
           Go to Compare
         </Link>
       </div>
 
-      <div data-workspace-grid className="grid grid-cols-1 gap-6 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.75fr)_minmax(0,1.25fr)_minmax(0,1fr)] lg:p-6">
+      <div aria-label="Workspace summary" className="grid grid-cols-2 gap-px border-b border-border bg-border sm:grid-cols-4">
+        {[
+          ['Origination runs', runs.length],
+          ['Saved leads', savedLeads.length],
+          ['Compare selection', compareCandidates.length],
+          ['Research sources', researchSources.length],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="bg-background px-4 py-3 lg:px-6">
+            <p className="text-xl font-semibold tabular-nums text-foreground">{value}</p>
+            <p className="text-xs text-muted-foreground">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div data-workspace-grid className="grid grid-cols-1 gap-6 p-5 md:grid-cols-2 lg:p-6">
         <section data-workspace-section="history" className="min-w-0 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-foreground">Origination history</p>
             <span className="text-xs text-muted-foreground">{runs.length}</span>
           </div>
-          {runs.length === 0 ? (
+          <div aria-label="Filter origination history" className="flex flex-wrap gap-1">
+            {([
+              ['active', 'Completed + Partial'],
+              ['all', 'All'],
+              ['completed', 'Completed'],
+              ['partial', 'Partial'],
+              ['failed', 'Failed'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={historyFilter === value}
+                onClick={() => { setHistoryFilter(value); setShowAllHistory(false); }}
+                className={`rounded-md border px-2 py-1 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${historyFilter === value ? 'border-primary/30 bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {visibleRuns.length === 0 ? (
             <p className="text-xs text-muted-foreground">No saved origination runs yet.</p>
           ) : (
-            <div className="space-y-2 max-h-80 overflow-auto pr-1">
-              {runs.slice(0, 8).map(run => {
+            <div className="space-y-2">
+              {visibleRuns.map(run => {
                 const summary = asRecord(run.result.candidate_summary);
                 return (
                   <div key={run.id} className={`rounded-lg px-3 py-2.5 ${run.id === currentRunId ? 'bg-primary/5 ring-1 ring-primary/20' : 'bg-muted/25'}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs text-muted-foreground">{formatStoredTime(run.created_at)}</p>
+                      <p className="text-xs text-muted-foreground">{formatStoredTime(run.completed_at)}</p>
                       {run.id === currentRunId && <SemanticBadge tone="info" className="text-[10px] px-2 py-1">Current</SemanticBadge>}
                     </div>
                     <p className="mt-1 truncate text-sm font-semibold leading-5 text-foreground" title={run.thesis}>
@@ -2027,18 +2199,28 @@ function OriginationWorkspacePanel({
                     <p className="mt-1 text-xs text-muted-foreground">
                       {candidateCount(run.result)} candidates
                       {safeStr(summary.discovery_quality) ? ` · ${humanLabel(safeStr(summary.discovery_quality))} quality` : ''}
+                      {` · ${humanLabel(runStatus(run))}`}
+                      {run.sync_state === 'pending' ? ' · Pending sync' : ' · Saved'}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-3">
+                      <button type="button" onClick={() => onRestoreRun(run)} className="text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                        Open
+                      </button>
                       <button type="button" onClick={() => onRestoreRun(run)} className="text-xs font-medium text-primary hover:underline">
                         Restore
                       </button>
-                      <button type="button" onClick={() => onDeleteRun(run.id)} className="text-xs font-medium text-muted-foreground hover:text-destructive">
+                      <button type="button" aria-label={`Delete origination run ${run.thesis || run.id}`} onClick={() => onDeleteRun(run.id)} className="text-xs font-medium text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         Delete
                       </button>
                     </div>
                   </div>
                 );
               })}
+              {filteredRuns.length > 5 && (
+                <button type="button" onClick={() => setShowAllHistory(value => !value)} className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {showAllHistory ? 'Show recent history' : 'View all history'}
+                </button>
+              )}
             </div>
           )}
         </section>
@@ -2051,8 +2233,8 @@ function OriginationWorkspacePanel({
           {savedLeads.length === 0 ? (
             <p className="text-xs text-muted-foreground">Save candidates or sources from results to keep them here.</p>
           ) : (
-            <div className="space-y-2 max-h-80 overflow-auto pr-1">
-              {savedLeads.slice(0, 10).map(lead => (
+            <div className="space-y-2">
+              {savedLeads.slice(0, 5).map(lead => (
                 <div key={candidateStorageKey(lead)} className="rounded-lg bg-muted/25 px-3.5 py-3">
                   <p className="truncate text-[15px] font-semibold leading-5 text-foreground" title={lead.company_name || lead.source_page_title || 'Saved lead'}>{lead.company_name || lead.source_page_title || 'Saved lead'}</p>
                   <p data-saved-lead-domain className="mt-0.5 max-w-full truncate text-xs text-muted-foreground" title={lead.website || lead.source_url || 'Website not confirmed'}>
@@ -2084,6 +2266,14 @@ function OriginationWorkspacePanel({
             <p className="text-sm font-semibold text-foreground">Compare selection</p>
             <span className="text-xs text-muted-foreground">{compareCandidates.length}</span>
           </div>
+          <Link
+            href="/app/compare"
+            aria-disabled={compareReady.length < 2}
+            className={`inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-semibold ${compareReady.length >= 2 ? 'border-border text-foreground hover:bg-accent' : 'pointer-events-none border-border text-muted-foreground opacity-60'}`}
+          >
+            Compare selected targets
+          </Link>
+          {compareReady.length < 2 && <p className="text-xs text-muted-foreground">Select at least two screened company targets to compare.</p>}
           <p className="text-xs text-muted-foreground">
             Compare selection: {compareReady.length}
             {comparePending.length > 0 ? ` · ${comparePending.length} pending` : ''}
@@ -2094,8 +2284,8 @@ function OriginationWorkspacePanel({
             </p>
           )}
           {compareCandidates.length > 0 && (
-            <div className="space-y-2 max-h-80 overflow-auto pr-1">
-              {compareCandidates.slice(0, 8).map(candidate => (
+            <div className="space-y-2">
+              {compareCandidates.slice(0, 5).map(candidate => (
                 <div key={candidateStorageKey(candidate)} className="flex items-center gap-3 rounded-lg bg-muted/25 px-3 py-2.5">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">{candidate.company_name}</p>
@@ -2120,12 +2310,12 @@ function OriginationWorkspacePanel({
           </div>
           {researchSources.length === 0 ? (
             <div className="space-y-1 text-sm leading-[1.45] text-muted-foreground">
-              <p>No research sources yet.</p>
-              <p className="text-xs">Source pages and listicles saved during discovery will appear here.</p>
+              <p>No saved research sources</p>
+              <p className="text-xs">Source pages saved during discovery will appear here.</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-80 overflow-auto pr-1">
-              {researchSources.slice(0, 8).map(source => (
+            <div className="space-y-2">
+              {researchSources.slice(0, 5).map(source => (
                 <div key={candidateStorageKey(source)} className="rounded-lg bg-muted/25 px-3 py-2.5">
                   <p className="truncate text-sm font-semibold text-foreground">{source.source_page_title || source.company_name}</p>
                   <p className="max-w-full truncate text-xs text-muted-foreground" title={source.source_url}>
@@ -2169,6 +2359,8 @@ function OriginationForm() {
   const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
   const [targetUniverse, setTargetUniverse] = useState(storedForm.targetUniverse);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveNotice, setSaveNotice] = useState<{ tone: 'success' | 'warning'; message: string } | null>(null);
+  const [pendingLocalSave, setPendingLocalSave] = useState<{ form: OriginationFormValues; result: OriginationResult; run: StoredOriginationRun } | null>(null);
   const [runs, setRuns] = useState<StoredOriginationRun[]>(() => readOriginationRuns());
   const [savedLeads, setSavedLeads] = useState<StoredCompareCandidate[]>(() => readSavedLeads());
   const [compareCandidates, setCompareCandidates] = useState<StoredCompareCandidate[]>(() => readCompareCandidates());
@@ -2194,6 +2386,31 @@ function OriginationForm() {
     setSavedLeads(readSavedLeads());
     setCompareCandidates(readCompareCandidates());
   }
+
+  function retryPendingSave() {
+    if (!pendingLocalSave) return;
+    const resultPersisted = storeOriginationRun(pendingLocalSave.form, pendingLocalSave.result);
+    const existing = readOriginationRuns().filter(item => item.run_id !== pendingLocalSave.run.run_id);
+    const historyPersisted = writeOriginationRuns([pendingLocalSave.run, ...existing]);
+    refreshWorkspace();
+    if (resultPersisted && historyPersisted) {
+      setSaveNotice({ tone: 'warning', message: 'Run retained locally. Backend synchronisation remains pending.' });
+      setPendingLocalSave(null);
+    } else {
+      setSaveNotice({ tone: 'warning', message: 'The run is still visible, but browser storage could not retain it. Check available storage and retry.' });
+    }
+  }
+
+  useEffect(() => {
+    refreshWorkspace();
+    const refresh = () => refreshWorkspace();
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
 
   function navigateRunLead(lead: StoredCompareCandidate) {
     if (!lead.website || lead.run_ready === false) return;
@@ -2251,6 +2468,7 @@ function OriginationForm() {
     e.preventDefault();
     usage.beginUsageRequest('origination');
     setIsSubmitting(true);
+    setSaveNotice(null);
     setState({ kind: 'idle' });
     try {
       const targets = parseKnownTargetUniverse(targetUniverse);
@@ -2269,6 +2487,8 @@ function OriginationForm() {
         buyerThesis,
         targetUniverse,
       };
+      const workspaceId = getWorkspaceId();
+      const userId = getUserId();
       const data = await runOrigination({
         origination_mode: targets.length > 0 ? 'target_universe_ranking' : mode,
         buyer_type: buyerMandate,
@@ -2279,6 +2499,11 @@ function OriginationForm() {
         optional_keywords: optionalKeywords,
         size_criteria: sizeCriteria,
         strategic_rationale: rationale,
+        ...(workspaceId && userId ? {
+          workspace_id: workspaceId,
+          user_id: userId,
+          save_to_cockpit: true,
+        } : {}),
         ...(targets.length > 0 ? { targets } : {}),
       });
       await usage.reconcileUsageResponse(data);
@@ -2289,9 +2514,30 @@ function OriginationForm() {
       if (safeStr(data.status).toLowerCase() === 'ok') {
         setState({ kind: 'idle' });
       }
-      storeOriginationRun(formValues, data);
-      const storedRun = saveOriginationRunToHistory(formValues, data);
+      const resultPersisted = storeOriginationRun(formValues, data);
+      const { run: storedRun, persisted: historyPersisted } = saveOriginationRunToHistory(formValues, data);
       refreshWorkspace();
+      const backendConfirmed = data.saved_to_cockpit === true && Boolean(safeStr(data.origination_id));
+      if (backendConfirmed && resultPersisted && historyPersisted) {
+        setSaveNotice({ tone: 'success', message: 'Run saved to Workspace.' });
+        setPendingLocalSave(null);
+      } else {
+        setSaveNotice({ tone: 'warning', message: 'Results generated, but this run could not be fully saved to Workspace.' });
+        setPendingLocalSave({ form: formValues, result: data, run: storedRun });
+        if (import.meta.env.DEV) {
+          console.warn('[origination] save incomplete', {
+            endpoint: getBackendBaseUrl() ? `${getBackendBaseUrl()}/api/origination/run` : '/api/origination/run',
+            method: 'POST',
+            workspace_id: workspaceId,
+            run_id: safeStr(data.origination_id, storedRun.run_id),
+            http_status: 200,
+            parsed_response: { saved_to_cockpit: data.saved_to_cockpit, origination_id: data.origination_id },
+            local_result_persisted: resultPersisted,
+            local_history_persisted: historyPersisted,
+            error_code: backendConfirmed ? 'local_persistence_failed' : 'backend_save_not_confirmed',
+          });
+        }
+      }
       setState({ kind: 'result', data, restored: false, runId: storedRun.id });
     } catch (err) {
       const backendBody = err && typeof err === 'object' && 'backendBody' in err
@@ -2359,6 +2605,16 @@ function OriginationForm() {
 
   return (
     <div className="space-y-4">
+      {saveNotice && (
+        <div role="status" aria-live="polite" className={`rounded-lg border px-4 py-3 text-sm ${saveNotice.tone === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-foreground' : 'border-amber-500/40 bg-amber-500/10 text-foreground'}`}>
+          {saveNotice.message}
+          {saveNotice.tone === 'warning' && pendingLocalSave && (
+            <button type="button" onClick={retryPendingSave} className="ml-3 font-semibold text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Retry save
+            </button>
+          )}
+        </div>
+      )}
       <ScreeningWorkflowGuide active="originate" />
       {state.kind !== 'error' && <OriginationQuotaNotice />}
       <form onSubmit={handleSubmit} className="space-y-5 border-t border-border pt-6">

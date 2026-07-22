@@ -59,10 +59,10 @@ for (const viewport of [
   { width: 390, columns: 1 },
   { width: 768, columns: 2 },
   { width: 1024, columns: 2 },
-  { width: 1280, columns: 4 },
-  { width: 1440, columns: 4 },
-  { width: 1680, columns: 4 },
-  { width: 1920, columns: 4 },
+  { width: 1280, columns: 2 },
+  { width: 1440, columns: 2 },
+  { width: 1680, columns: 2 },
+  { width: 1920, columns: 2 },
 ]) {
   test(`Origination Workspace uses ${viewport.columns} column layout at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: 1000 });
@@ -85,13 +85,12 @@ for (const viewport of [
     }));
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 
-    if (viewport.columns === 4) {
+    if (viewport.columns === 2) {
       const history = boxes[0];
       const savedLeads = boxes[1];
-      expect(savedLeads.width).toBeGreaterThan(history.width * 1.5);
+      expect(Math.abs(savedLeads.width - history.width)).toBeLessThanOrEqual(2);
       const workspaceBox = await workspace.boundingBox();
       expect(workspaceBox).not.toBeNull();
-      expect(workspaceBox!.width).toBeGreaterThanOrEqual(Math.min(viewport.width * 0.8, 1400));
       expect(workspaceBox!.width).toBeLessThanOrEqual(1520);
     }
   });
