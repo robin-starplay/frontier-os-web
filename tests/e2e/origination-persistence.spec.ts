@@ -83,3 +83,48 @@ test('missing backend save confirmation is reported honestly', async ({ page }) 
   await page.getByRole('button', { name: 'Retry save' }).click();
   await expect(page.getByRole('status')).toContainText('Backend synchronisation remains pending');
 });
+
+test('interpreted thesis exposes criteria conflicts before execution', async ({ page }) => {
+  await prepare(page);
+  await page.goto('/app/origination');
+  await page.getByLabel('Describe the companies you want to find').fill('UK FinTech SaaS companies excluding utilities');
+  await page.getByText('Refine criteria', { exact: true }).click();
+  await page.getByLabel('Sector / vertical').fill('Software');
+
+  await expect(page.getByRole('heading', { name: 'Interpreted acquisition thesis' })).toBeVisible();
+  await expect(page.getByText(/Target: Software/)).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('Criteria conflict');
+  await expect(page.getByText(/• utilities/)).toBeVisible();
+});
+
+test('backend progress and candidate score detail render without simulated stages', async ({ page }) => {
+  await prepare(page);
+  await page.route('**/api/origination/run', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      status: 'completed', saved_to_cockpit: true, origination_id: 'org_guided',
+      progress_stages: [
+        { id: 'thesis', label: 'Thesis structured', status: 'complete' },
+        { id: 'sources', label: 'Public sources reviewed', status: 'complete', item_count: 138 },
+        { id: 'fit', label: 'Thesis fit checked', status: 'warning', explanation: 'Category match requires review.' },
+      ],
+      candidate_summary: { discovery_quality: 'medium', confirmed_company_candidates: 1 },
+      ranked_targets: [{
+        rank: 1, company_name: 'Decision Systems', official_website: 'https://decision.example',
+        candidate_type: 'company_candidate', candidate_quality: 'screenable_now', identity_validation_status: 'passed',
+        identity_confidence: 'high', official_website_confidence: 'high', website_status: 'confirmed_official', fit_score_100: 72, why_it_fits: 'Vertical software and UK relevance.',
+        key_mismatch: 'Scale is not yet verified.', evidence_status: 'verified_public_source', run_ready: true,
+      }],
+    }),
+  }));
+  await page.goto('/app/origination');
+  await page.getByLabel('Describe the companies you want to find').fill('UK vertical software');
+  await page.getByRole('button', { name: 'Find companies' }).click();
+  await expect(page.getByText('Fit 72/100')).toBeVisible();
+  await expect(page.getByText('Scale is not yet verified.')).toBeVisible();
+  await page.getByText('View evidence and score breakdown').click();
+  await page.getByText('Run details').click();
+  await expect(page.getByText('Public sources reviewed · 138')).toBeVisible();
+  await expect(page.getByText('Category match requires review.')).toBeVisible();
+});

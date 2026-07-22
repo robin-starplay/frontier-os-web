@@ -1515,7 +1515,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
           onClick={onReset}
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          ← Screen another comparison
+          ← Start another comparison
         </button>
         <Link
           href="/app/cockpit"
@@ -1659,7 +1659,7 @@ export default function CompareTargetsPage() {
     if (unscreenedSubmittedCompanies.length > 0 && !forceManualQuickCompare) {
       setManualQuickCompare(false);
       setInvalidCompareRows([]);
-      setError('These targets have not been individually screened yet. Screen companys first for stronger comparison.');
+      setError('These targets have not been individually screened yet. Screen the companies first for a stronger comparison.');
       setPhase('form');
       return;
     }
@@ -1868,7 +1868,7 @@ export default function CompareTargetsPage() {
                       These targets have not been individually screened yet.
                     </p>
                     <p className="text-xs text-[var(--semantic-claim-text)]/90 mb-3">
-                      Screen companys first for stronger comparison.
+                      Screen the companies first for a stronger comparison.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Link

@@ -68,6 +68,54 @@ interface OriginationRequestDiagnostics {
   elapsed_ms?: number;
 }
 
+interface OriginationProgressStage {
+  id: string;
+  label: string;
+  status: 'pending' | 'active' | 'complete' | 'warning' | 'failed';
+  item_count?: number;
+  explanation?: string;
+}
+
+function interpretedThesis(form: OriginationFormValues) {
+  const target = [form.geo, form.sector || form.buyerThesis].filter(Boolean).join(' ') || 'Acquisition targets matching the written thesis';
+  const mustMatch = [
+    form.sector && `${form.sector} relevance`,
+    form.geo && `${form.geo} relevance`,
+    form.optionalKeywords && `Keywords: ${form.optionalKeywords}`,
+    form.sizeCriteria && `Size: ${form.sizeCriteria}`,
+  ].filter(Boolean) as string[];
+  const preferred = [form.rationale, form.buyerMandate === 'operating_partner' ? 'Portfolio add-on fit' : 'Acquisition mandate fit'].filter(Boolean);
+  const exclusionMatch = form.buyerThesis.match(/(?:exclude|excluding|not\s+)([^.;]+)/i);
+  const excluded = exclusionMatch ? exclusionMatch[1].split(/,|\band\b/i).map(item => item.trim()).filter(Boolean) : [];
+  const specialistTerms = ['fintech', 'healthcare', 'utilities', 'public safety', 'cyber', 'industrial', 'govtech'];
+  const excludedText = excluded.join(' ').toLowerCase();
+  const thesisTerms = specialistTerms.filter(term => form.buyerThesis.toLowerCase().includes(term) && !excludedText.includes(term));
+  const refinements = `${form.sector} ${form.optionalKeywords}`.toLowerCase();
+  const unreflected = thesisTerms.filter(term => !refinements.includes(term));
+  const conflicts = unreflected.length && form.sector
+    ? [`Your written thesis includes ${unreflected.join(', ')}, while the sector field is “${form.sector}”. The written terms will remain required criteria.`]
+    : [];
+  return { target, mustMatch, preferred, excluded, conflicts };
+}
+
+function backendProgressStages(data: OriginationResult): OriginationProgressStage[] {
+  const raw = data.progress_stages ?? data.pipeline_stages ?? data.stages;
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const stage = item as Record<string, unknown>;
+    const status = safeStr(stage.status).toLowerCase();
+    if (!['pending', 'active', 'complete', 'warning', 'failed'].includes(status)) return [];
+    return [{
+      id: safeStr(stage.id, `stage-${index}`),
+      label: safeStr(stage.label ?? stage.name, `Stage ${index + 1}`),
+      status: status as OriginationProgressStage['status'],
+      item_count: numericOrNull(stage.item_count ?? stage.count) ?? undefined,
+      explanation: safeStr(stage.explanation ?? stage.message),
+    }];
+  });
+}
+
 const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
 const ORIGINATION_RUNS_KEY = 'frontier_origination_runs';
 
@@ -1235,6 +1283,7 @@ function OriginationResultView({
     const verdict = safeStr(c.verdict ?? c.recommendation ?? '');
     const fit = numericOrNull(c.fit_score_100);
     const fits = safeStr(c.why_it_fits ?? c.why_fits ?? c.rationale ?? c.match_rationale ?? '');
+    const mismatch = safeStr(c.key_mismatch ?? c.mismatch ?? c.why_wrong ?? c.negative_rationale ?? 'No material mismatch reported.');
     const action = safeStr(c.next_best_action ?? c.next_action ?? '');
     const description = safeStr(c.one_line_description ?? c.description ?? c.source_snippet ?? '');
     const risk = safeStr(c.ai_risk ?? c.ai_risk_view ?? c.ai_rebuild_risk_signal ?? '');
@@ -1261,6 +1310,7 @@ function OriginationResultView({
           </button>
           <span className="text-[11px] font-medium text-muted-foreground/50">#{rank}</span>
           <p className="text-sm font-semibold text-foreground">{name}</p>
+          {fit !== null && <SemanticBadge tone="info">Fit {Math.max(0, Math.min(100, Math.round(fit)))}/100</SemanticBadge>}
           {type === 'extracted_company_candidate' && (
             <SemanticBadge tone="info">Company mention found</SemanticBadge>
           )}
@@ -1272,11 +1322,13 @@ function OriginationResultView({
         {productName && productName.toLowerCase() !== name.toLowerCase() && (
           <p className="mb-2 text-xs text-muted-foreground">Product evidence: {productName}</p>
         )}
-        {(description || website) && (
-          <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
-            {[description, website].filter(Boolean).join(' · ')}
-          </p>
-        )}
+        <div className="grid gap-2 text-xs sm:grid-cols-2">
+          <div className="rounded-md bg-muted/25 px-3 py-2"><p className="font-semibold text-foreground">Key thesis match</p><p className="mt-0.5 text-muted-foreground">{shortText(fits || description, 'No supported match rationale returned.', 180)}</p></div>
+          <div className="rounded-md bg-muted/25 px-3 py-2"><p className="font-semibold text-foreground">Key mismatch</p><p className="mt-0.5 text-muted-foreground">{shortText(mismatch, 'No material mismatch reported.', 180)}</p></div>
+        </div>
+        <details className="mt-3 rounded-md border border-border bg-background/40">
+          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">View evidence and score breakdown</summary>
+          <div className="border-t border-border p-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
           <div>
             <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-0.5">Official website</p>
@@ -1336,6 +1388,8 @@ function OriginationResultView({
           </div>
         )}
         {renderEvidenceCards(c)}
+          </div>
+        </details>
         <div className="flex flex-wrap items-center gap-2 mt-3">
           <button
             type="button"
@@ -1909,7 +1963,7 @@ function OriginationResultView({
           onClick={onReset}
           className="inline-flex items-center gap-1.5 text-xs font-medium border border-input bg-white hover:bg-accent h-8 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         >
-          Screen another origination screen
+          Start another Origination run
         </button>
         <Link
           href="/app/run"
@@ -2346,6 +2400,51 @@ type FormState =
   | { kind: 'result'; data: OriginationResult; restored?: boolean; runId?: string }
   | { kind: 'error'; message: string; diagnostics?: OriginationRequestDiagnostics };
 
+function ThesisInterpretation({ form, onEdit }: { form: OriginationFormValues; onEdit: () => void }) {
+  const thesis = interpretedThesis(form);
+  if (!form.buyerThesis.trim() && !form.sector.trim() && !form.geo.trim()) return null;
+  return (
+    <section aria-labelledby="interpreted-thesis-title" className="rounded-lg border border-border bg-card/60 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 id="interpreted-thesis-title" className="text-sm font-semibold text-foreground">Interpreted acquisition thesis</h3>
+          <p className="mt-1 text-sm text-foreground">Target: {thesis.target}</p>
+        </div>
+        <button type="button" onClick={onEdit} className="shrink-0 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Edit criteria</button>
+      </div>
+      <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+        <div><p className="font-semibold text-foreground">Must match</p><ul className="mt-1 space-y-1 text-muted-foreground">{(thesis.mustMatch.length ? thesis.mustMatch : ['Written acquisition thesis']).map(item => <li key={item}>• {item}</li>)}</ul></div>
+        <div><p className="font-semibold text-foreground">Preferred</p><ul className="mt-1 space-y-1 text-muted-foreground">{thesis.preferred.map(item => <li key={item}>• {item}</li>)}{thesis.preferred.length === 0 && <li>None specified</li>}</ul></div>
+        <div><p className="font-semibold text-foreground">Excluded</p><ul className="mt-1 space-y-1 text-muted-foreground">{thesis.excluded.map(item => <li key={item}>• {item}</li>)}{thesis.excluded.length === 0 && <li>None specified</li>}</ul></div>
+      </div>
+      {thesis.conflicts.map(conflict => <p key={conflict} role="alert" className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-foreground">Criteria conflict: {conflict}</p>)}
+    </section>
+  );
+}
+
+function OriginationProgressPanel({ loading, result }: { loading: boolean; result?: OriginationResult }) {
+  const stages = result ? backendProgressStages(result) : [];
+  if (!loading && stages.length === 0) return null;
+  if (loading) {
+    return (
+      <section aria-label="Origination progress" aria-live="polite" className="rounded-lg border border-card-border bg-card px-4 py-3 shadow-xs">
+        <div className="flex items-start gap-3">
+          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-primary" />
+          <div><p className="text-xs font-semibold text-foreground">Origination request in progress</p><p className="mt-1 text-xs text-muted-foreground">Waiting for verified pipeline telemetry. Frontier OS will not simulate stage completion.</p></div>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <details className="rounded-lg border border-border bg-card/50">
+      <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Run details</summary>
+      <ol className="space-y-2 border-t border-border p-4" aria-label="Backend-reported Origination stages">
+        {stages.map(stage => <li key={stage.id} className="flex gap-3 text-xs"><span aria-hidden>{stage.status === 'complete' ? '✓' : stage.status === 'warning' ? '!' : stage.status === 'failed' ? '×' : stage.status === 'active' ? '●' : '○'}</span><div><p className="font-medium text-foreground">{stage.label}{stage.item_count !== undefined ? ` · ${stage.item_count}` : ''}</p>{stage.explanation && <p className="text-muted-foreground">{stage.explanation}</p>}<span className="sr-only">Status: {stage.status}</span></div></li>)}
+      </ol>
+    </details>
+  );
+}
+
 function OriginationForm() {
   const usage = useUsage();
   const storedForm = readStoredOriginationForm();
@@ -2675,10 +2774,11 @@ function OriginationForm() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1.5">
+            <label htmlFor="origination-sector" className="block text-xs font-medium text-foreground mb-1.5">
               Sector / vertical
             </label>
             <input
+              id="origination-sector"
               type="text"
               value={sector}
               onChange={e => {
@@ -2690,10 +2790,11 @@ function OriginationForm() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1.5">
+            <label htmlFor="origination-geography" className="block text-xs font-medium text-foreground mb-1.5">
               Geography
             </label>
             <input
+              id="origination-geography"
               type="text"
               value={geo}
               onChange={e => {
@@ -2708,8 +2809,8 @@ function OriginationForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.4fr)_minmax(12rem,0.6fr)] gap-4">
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1.5">Keywords <span className="text-muted-foreground font-normal">(optional)</span></label>
-            <input type="text" value={optionalKeywords} onChange={e => { setOptionalKeywords(e.target.value); clearErrorState(); }} placeholder="e.g. metering, operations, workflow" className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors" />
+            <label htmlFor="origination-keywords" className="block text-xs font-medium text-foreground mb-1.5">Keywords <span className="text-muted-foreground font-normal">(optional)</span></label>
+            <input id="origination-keywords" type="text" value={optionalKeywords} onChange={e => { setOptionalKeywords(e.target.value); clearErrorState(); }} placeholder="e.g. metering, operations, workflow" className="w-full h-9 px-3 text-sm bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors" />
           </div>
           <div>
               <label className="block text-xs font-medium text-foreground mb-1.5">
@@ -2764,6 +2865,11 @@ Example format:
           {statusCopy}
         </p>
 
+        <ThesisInterpretation
+          form={{ mode, buyerMandate, sector, geo, optionalKeywords, sizeCriteria, rationale, buyerThesis, targetUniverse }}
+          onEdit={() => document.getElementById('company-search-thesis')?.focus()}
+        />
+
         <button
           type="submit"
           disabled={isSubmitting}
@@ -2776,17 +2882,7 @@ Example format:
           )}
         </button>
 
-        {isSubmitting && state.kind !== 'result' && (
-          <div className="rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 shadow-xs">
-            <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-semibold text-foreground">{loadingLabel}</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Frontier OS will not invent acquisition targets.
-              </p>
-            </div>
-          </div>
-        )}
+        <OriginationProgressPanel loading={isSubmitting && state.kind !== 'result'} result={state.kind === 'result' ? state.data : undefined} />
       </form>
 
       {state.kind === 'result' && state.restored && (
