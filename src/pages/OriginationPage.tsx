@@ -30,6 +30,13 @@ import {
 } from '@/lib/workflowTargets';
 import { OriginationQuotaNotice, useUsage } from '@/contexts/UsageContext';
 import { createBackendAccount, getUserId, getWorkspaceId } from '@/lib/trialAccount';
+import {
+  ORIGINATION_STAGE_IDS,
+  mergeOriginationExecution,
+  parseOriginationExecution,
+  type OriginationExecution,
+  type OriginationStageId,
+} from '@/lib/originationExecution';
 
 // ─── Origination API call ─────────────────────────────────────────────────────
 
@@ -73,14 +80,6 @@ interface OriginationRequestDiagnostics {
   elapsed_ms?: number;
 }
 
-interface OriginationProgressStage {
-  id: string;
-  label: string;
-  status: 'pending' | 'active' | 'complete' | 'warning' | 'failed';
-  item_count?: number;
-  explanation?: string;
-}
-
 function interpretedThesis(form: OriginationFormValues) {
   const target = [form.geo, form.sector || form.buyerThesis].filter(Boolean).join(' ') || 'Acquisition targets matching the written thesis';
   const mustMatch = [
@@ -101,25 +100,6 @@ function interpretedThesis(form: OriginationFormValues) {
     ? [`Your written thesis includes ${unreflected.join(', ')}, while the sector field is “${form.sector}”. The written terms will remain required criteria.`]
     : [];
   return { target, mustMatch, preferred, excluded, conflicts };
-}
-
-function backendProgressStages(data: OriginationResult): OriginationProgressStage[] {
-  const raw = data.progress_stages ?? data.pipeline_stages ?? data.stages;
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((item, index) => {
-    if (!item || typeof item !== 'object') return [];
-    const stage = item as Record<string, unknown>;
-    const rawStatus = safeStr(stage.status).toLowerCase();
-    const status = rawStatus === 'running' ? 'active' : rawStatus === 'completed' ? 'complete' : rawStatus;
-    if (!['pending', 'active', 'complete', 'warning', 'failed'].includes(status)) return [];
-    return [{
-      id: safeStr(stage.id ?? stage.stage, `stage-${index}`),
-      label: humanLabel(safeStr(stage.label ?? stage.name ?? stage.stage, `Stage ${index + 1}`)),
-      status: status as OriginationProgressStage['status'],
-      item_count: numericOrNull(stage.item_count ?? stage.count) ?? undefined,
-      explanation: safeStr(stage.explanation ?? stage.message),
-    }];
-  });
 }
 
 const LAST_ORIGINATION_FORM_KEY = 'frontier_last_origination_form';
@@ -243,10 +223,11 @@ async function runOrigination(
   onProgress?: (job: OriginationResult) => void,
 ): Promise<OriginationResult> {
   const base = getBackendBaseUrl();
+  const thesisUrl = base ? `${base}/api/origination/thesis` : '/api/origination/thesis';
   const jobsUrl = base ? `${base}/api/origination/jobs` : '/api/origination/jobs';
   const controller = new AbortController();
   const startedAt = Date.now();
-  let endpoint = jobsUrl;
+  let endpoint = thesisUrl;
   let timeout: number | undefined;
   const requestInit: RequestInit = {
     method:  'POST',
@@ -267,11 +248,7 @@ async function runOrigination(
   });
 
   const requestPromise = (async () => {
-    let startResponse = await fetch(endpoint, requestInit);
-    if (startResponse.status === 404) {
-      endpoint = base ? `${base}/api/origination/run` : '/api/origination/run';
-      startResponse = await fetch(endpoint, requestInit);
-    }
+    const startResponse = await fetch(endpoint, requestInit);
     const rawBody = await startResponse.text();
     const contentType = startResponse.headers.get('content-type') || '';
     const looksLikeHtml = /text\/html/i.test(contentType) || /^\s*<!doctype html|^\s*<html/i.test(rawBody);
@@ -308,11 +285,13 @@ async function runOrigination(
       throw new OriginationApiError(backendMessage, body, diagnostics);
     }
     if (!backendField(body, 'job_id')) {
+      onProgress?.(body ?? {});
       return body ?? {};
     }
     const jobId = backendField(body, 'job_id');
     if (!jobId) throw new OriginationApiError('Backend did not return an Origination job ID.', body, { ...diagnostics, error_code: 'ORIGINATION_JOB_ID_MISSING' });
     endpoint = `${jobsUrl}/${encodeURIComponent(jobId)}`;
+    const accumulatedEvents = new Map<string, unknown>();
     while (true) {
       const statusResponse = await fetch(endpoint, { signal: controller.signal });
       const job = nestedRecord(await statusResponse.json());
@@ -321,6 +300,13 @@ async function runOrigination(
         throw new OriginationApiError(backendField(job, 'message') || `Backend returned status ${statusResponse.status}.`, job, {
           endpoint, status: statusResponse.status, response_body: job, error_code: errorCode,
         });
+      }
+      const jobExecution = nestedRecord(job.execution);
+      const jobEvents = Array.isArray(jobExecution?.events) ? jobExecution.events : [];
+      for (const event of jobEvents) {
+        const eventRecord = nestedRecord(event);
+        const eventId = safeStr(eventRecord?.event ?? eventRecord?.stage ?? eventRecord?.id);
+        if (eventId) accumulatedEvents.set(eventId, event);
       }
       onProgress?.(job);
       if (job.status === 'failed') {
@@ -332,6 +318,20 @@ async function runOrigination(
       }
       if (job.status === 'completed') {
         const result = nestedRecord(job.result) || {};
+        const resultExecution = nestedRecord(result.execution);
+        const finalEvents = Array.isArray(resultExecution?.events) ? resultExecution.events : [];
+        for (const event of finalEvents) {
+          const eventRecord = nestedRecord(event);
+          const eventId = safeStr(eventRecord?.event ?? eventRecord?.stage ?? eventRecord?.id);
+          if (eventId) accumulatedEvents.set(eventId, event);
+        }
+        if (accumulatedEvents.size > 0) {
+          result.execution = {
+            ...(jobExecution ?? {}),
+            ...(resultExecution ?? {}),
+            events: Array.from(accumulatedEvents.values()),
+          };
+        }
         if (import.meta.env.DEV && req.save_to_cockpit) {
           console.info('[origination] persistence response', {
             request_url: jobsUrl, method: 'POST', workspace_id: req.workspace_id,
@@ -2494,25 +2494,95 @@ function ThesisInterpretation({ form, onEdit }: { form: OriginationFormValues; o
   );
 }
 
-function OriginationProgressPanel({ loading, result }: { loading: boolean; result?: OriginationResult }) {
-  const stages = result ? backendProgressStages(result) : [];
-  if (!loading && stages.length === 0) return null;
+const ORIGINATION_STAGE_LABELS: Record<OriginationStageId, string> = {
+  structuring_thesis: 'Structuring thesis',
+  expanding_queries: 'Expanding queries',
+  searching_sources: 'Searching sources',
+  resolving_identities: 'Resolving identities',
+  ranking_candidates: 'Ranking candidates',
+  quality_check: 'Quality check',
+  saving_workspace: 'Saving workspace',
+};
+
+function stageCountDescription(id: OriginationStageId, stage: NonNullable<OriginationExecution['stages'][OriginationStageId]>): string {
+  const details = stage.details ?? {};
+  if (id === 'resolving_identities') {
+    const mentions = numericOrNull(details.company_mentions);
+    if (mentions && stage.count) return `${mentions} company mentions, ${stage.count} confirmed identities`;
+    if (mentions) return `${mentions} company ${mentions === 1 ? 'mention' : 'mentions'}`;
+    if (stage.count) return `${stage.count} confirmed ${stage.count === 1 ? 'identity' : 'identities'}`;
+    return '';
+  }
+  if (id === 'quality_check') {
+    const rejected = numericOrNull(details.rejected_candidates);
+    if (stage.count && rejected) return `${stage.count} accepted, ${rejected} rejected`;
+    if (stage.count) return `${stage.count} accepted ${stage.count === 1 ? 'candidate' : 'candidates'}`;
+    if (rejected) return `${rejected} rejected ${rejected === 1 ? 'candidate' : 'candidates'}`;
+    return '';
+  }
+  if (!stage.count) return '';
+  if (id === 'structuring_thesis') return `${stage.count} structured thesis`;
+  if (id === 'expanding_queries') return `${stage.count} ${stage.count === 1 ? 'query' : 'queries'}`;
+  if (id === 'searching_sources') return `${stage.count} ${stage.count === 1 ? 'source' : 'sources'}`;
+  if (id === 'ranking_candidates') return `${stage.count} ranked ${stage.count === 1 ? 'candidate' : 'candidates'}`;
+  return `${stage.count} saved ${stage.count === 1 ? 'run' : 'runs'}`;
+}
+
+function OriginationProgressPanel({
+  loading,
+  execution,
+  historical = false,
+}: {
+  loading: boolean;
+  execution: OriginationExecution | null;
+  historical?: boolean;
+}) {
+  const stages = execution
+    ? ORIGINATION_STAGE_IDS.flatMap(id => execution.stages[id] ? [execution.stages[id]!] : [])
+    : [];
+  if (!loading && !historical && stages.length === 0) return null;
   if (loading && stages.length === 0) {
     return (
       <section aria-label="Origination progress" aria-live="polite" className="rounded-lg border border-card-border bg-card px-4 py-3 shadow-xs">
         <div className="flex items-start gap-3">
           <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-primary" />
-          <div><p className="text-xs font-semibold text-foreground">Origination request in progress</p><p className="mt-1 text-xs text-muted-foreground">Waiting for verified pipeline telemetry. Frontier OS will not simulate stage completion.</p></div>
+          <div><p className="text-xs font-semibold text-foreground">Origination request submitted</p><p className="mt-1 text-xs text-muted-foreground">Waiting for backend execution telemetry.</p></div>
         </div>
       </section>
     );
   }
   return (
     <details open={loading} className="rounded-lg border border-border bg-card/50">
-      <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{loading ? 'Origination progress' : 'Run details'}</summary>
-      <ol className="space-y-2 border-t border-border p-4" aria-label="Backend-reported Origination stages">
-        {stages.map(stage => <li key={stage.id} className="flex gap-3 text-xs"><span aria-hidden>{stage.status === 'complete' ? '✓' : stage.status === 'warning' ? '!' : stage.status === 'failed' ? '×' : stage.status === 'active' ? '●' : '○'}</span><div><p className="font-medium text-foreground">{stage.label}{stage.item_count !== undefined ? ` · ${stage.item_count}` : ''}</p>{stage.explanation && <p className="text-muted-foreground">{stage.explanation}</p>}<span className="sr-only">Status: {stage.status}</span></div></li>)}
-      </ol>
+      <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {loading ? 'Origination progress' : 'Run details'}
+        {execution?.status && execution.status !== 'idle' ? ` · ${humanLabel(execution.status)}` : ''}
+      </summary>
+      <div className="border-t border-border p-4">
+        {historical && !execution?.hasDetailedTelemetry && (
+          <p className="mb-3 text-xs text-muted-foreground">Historical result. Detailed execution data is unavailable.</p>
+        )}
+        <ol className="space-y-2" aria-label="Backend-reported Origination stages">
+          {stages.map(stage => {
+            const count = stageCountDescription(stage.id, stage);
+            return (
+              <li key={stage.id} className="flex gap-3 text-xs">
+                <span aria-hidden>{stage.status === 'completed' ? '✓' : stage.status === 'warning' ? '!' : stage.status === 'failed' ? '×' : stage.status === 'running' ? '●' : '○'}</span>
+                <div>
+                  <p className="font-medium text-foreground">{ORIGINATION_STAGE_LABELS[stage.id]}{count ? ` · ${count}` : ''}</p>
+                  {stage.message && <p className="text-muted-foreground">{stage.message}</p>}
+                  <span className="sr-only">Status: {stage.status}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+        {execution?.finalEvent && (
+          <div className="mt-3 border-t border-border pt-3 text-xs">
+            <p className="font-medium text-foreground">Outcome · {humanLabel(execution.status)}</p>
+            {execution.finalEvent.message && <p className="text-muted-foreground">{execution.finalEvent.message}</p>}
+          </div>
+        )}
+      </div>
     </details>
   );
 }
@@ -2530,7 +2600,7 @@ function OriginationForm() {
   const [buyerThesis, setBuyerThesis] = useState(storedForm.buyerThesis);
   const [targetUniverse, setTargetUniverse] = useState(storedForm.targetUniverse);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [liveProgress, setLiveProgress] = useState<OriginationResult | null>(null);
+  const [liveProgress, setLiveProgress] = useState<OriginationExecution | null>(null);
   const [saveNotice, setSaveNotice] = useState<{ tone: 'success' | 'warning'; message: string } | null>(null);
   const [pendingLocalSave, setPendingLocalSave] = useState<{ form: OriginationFormValues; result: OriginationResult; run: StoredOriginationRun } | null>(null);
   const [runs, setRuns] = useState<StoredOriginationRun[]>(() => readOriginationRuns());
@@ -2659,6 +2729,7 @@ function OriginationForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSubmitting) return;
     usage.beginUsageRequest('origination');
     setIsSubmitting(true);
     setLiveProgress(null);
@@ -2710,7 +2781,10 @@ function OriginationForm() {
         user_id: userId,
         save_to_cockpit: true,
         ...(targets.length > 0 ? { targets } : {}),
-      }, job => setLiveProgress({ progress_stages: job.events }));
+      }, job => {
+        const incoming = parseOriginationExecution(job);
+        if (incoming) setLiveProgress(current => mergeOriginationExecution(current, incoming));
+      });
       await usage.reconcileUsageResponse(data);
       if (isQuotaExceededResponse(data)) {
         setState({ kind: 'idle' });
@@ -3001,12 +3075,20 @@ Example format:
           )}
         </button>
 
-        <OriginationProgressPanel loading={isSubmitting && state.kind !== 'result'} result={liveProgress ?? (state.kind === 'result' ? state.data : undefined)} />
+        <OriginationProgressPanel
+          loading={isSubmitting && state.kind !== 'result'}
+          execution={liveProgress ?? (state.kind === 'result' ? parseOriginationExecution(state.data) : null)}
+          historical={state.kind === 'result' && state.restored === true}
+        />
       </form>
 
       {state.kind === 'result' && state.restored && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
-          <span>Previous origination result available</span>
+          <span>
+            {parseOriginationExecution(state.data)?.hasDetailedTelemetry
+              ? 'Saved historical origination result available'
+              : 'Historical result available. Detailed execution data is unavailable.'}
+          </span>
           <div className="flex flex-wrap items-center gap-3">
             <a href="#origination-result" className="font-medium text-primary hover:text-primary/80">
               View result

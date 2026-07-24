@@ -72,7 +72,7 @@ test('Origination provider errors retain provider copy without screen quota word
   const providerMessage = 'The discovery provider is temporarily rate limited. Try again shortly.';
   await mockUsageStatus(page, usageResponse());
   await page.route('**/api/origination/jobs', route => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }));
-  await page.route('**/api/origination/run', route => route.fulfill({
+  await page.route('**/api/origination/thesis', route => route.fulfill({
     status: 429,
     contentType: 'application/json',
     body: JSON.stringify({
