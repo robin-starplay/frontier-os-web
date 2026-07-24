@@ -4,24 +4,26 @@ import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--feds-radius-6)] text-sm font-semibold leading-5 transition-colors duration-[var(--feds-motion-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:bg-muted disabled:text-text-disabled disabled:opacity-100 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground border border-primary/80 shadow-xs hover:bg-primary/90',
+          'bg-accent-primary text-white border border-accent-primary shadow-none hover:bg-accent-hover',
         destructive:
           'bg-destructive text-destructive-foreground shadow-sm border border-destructive-border hover:bg-destructive/90',
         outline:
           'border [border-color:var(--button-outline)] bg-card text-foreground shadow-xs hover:bg-accent/70 hover:border-primary/35',
         secondary:
-          'border bg-secondary text-secondary-foreground border-secondary-border hover:bg-secondary/80',
+          'border bg-surface-primary text-text-primary border-border-strong hover:bg-surface-secondary',
+        tertiary: 'border border-transparent bg-transparent text-accent-primary hover:bg-accent-soft',
+        quiet: 'border border-transparent bg-transparent text-text-secondary hover:bg-surface-secondary hover:text-text-primary',
         ghost: 'border border-transparent hover:bg-accent/60',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
         // @replit changed sizes
-        default: 'h-9 px-4',
+        default: 'h-10 px-4',
         sm: 'min-h-8 rounded-md px-3 text-xs',
         lg: 'min-h-10 rounded-md px-8',
         icon: 'h-9 w-9',

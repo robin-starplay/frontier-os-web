@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle, CheckCircle2, CircleHelp, LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { semanticBadgeClass, type SemanticBadgeTone } from '@/components/SemanticBadge';
 
@@ -18,15 +19,23 @@ export function StatusChip({ status, variant, className }: StatusChipProps) {
     variant === 'blocking' ? 'danger' :
     'unknown'
   );
+  const Icon = variant === 'verified' || variant === 'completed'
+    ? CheckCircle2
+    : variant === 'blocking' || variant === 'warning'
+      ? AlertTriangle
+      : variant === 'running'
+        ? LoaderCircle
+        : CircleHelp;
   return (
     <span
       className={cn(
         semanticBadgeClass(tone, undefined, status),
-        variant === 'running' && 'animate-pulse',
         className
       )}
+      role="status"
+      aria-label={`${status} status`}
     >
-      {variant === "running" && <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />}
+      <Icon className={cn('h-3 w-3', variant === 'running' && 'animate-spin')} aria-hidden="true" />
       {status}
     </span>
   );

@@ -98,7 +98,7 @@ test('screen quota notice does not persist when navigating to Origination', asyn
   await page.goto('/app/run', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText(SCREEN_QUOTA_COPY, { exact: true })).toBeVisible();
 
-  await page.getByRole('navigation').first().getByRole('link', { name: 'Origination' }).click();
+  await page.getByRole('navigation').first().getByRole('link', { name: 'Discover' }).click();
   await expect(page).toHaveURL(/\/app\/origination/);
   await expect(page.getByText(SCREEN_QUOTA_COPY, { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /find companies/i })).toBeEnabled();

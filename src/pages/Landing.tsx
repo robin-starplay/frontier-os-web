@@ -184,24 +184,24 @@ export default function Landing() {
           {/* Left: headline + CTAs */}
           <div className="flex flex-col justify-center">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-5 text-foreground leading-tight">
-              Software acquisition screening before diligence gets expensive.
+              Make investment decisions from evidence, not fragmented information.
             </h1>
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
-              Frontier OS helps investors screen software targets, separate verified facts from claims, assess AI defensibility, compare buyer-thesis fit and track next actions in a Deal Cockpit.
+              Frontier structures company, market and deal evidence into a reviewable investment view—showing what is known, what is inferred and what must be proven next.
             </p>
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <Link
                 href="/app/run"
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-7 rounded-md group transition-colors"
               >
-                Screen company
+                Review an opportunity
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
-                href="/request-pilot"
+                href="/how-it-works"
                 className="inline-flex items-center justify-center gap-2 text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-7 rounded-md transition-colors text-foreground"
               >
-                Request private beta access
+                Explore the workflow
               </Link>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
@@ -211,7 +211,7 @@ export default function Landing() {
               href="/how-it-works"
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
             >
-              View Team workflow <ArrowRight className="w-3 h-3" />
+              See how evidence becomes a decision <ArrowRight className="w-3 h-3" />
             </Link>
             <BookIntroButton
               eventName="clicked_book_intro_home_hero"
@@ -298,34 +298,34 @@ export default function Landing() {
 
       {/* ══════════════════════════════════════════════ SCREEN ONE · COMPARE MANY */}
       <div className="w-full max-w-6xl mx-auto px-4 md:px-8 py-16">
-        <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Core features</p>
-        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 leading-tight">Screen one target. Compare many.</h2>
+        <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Investment workflow</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 leading-tight">From opportunity discovery to a reviewable decision.</h2>
         <p className="text-base text-muted-foreground mb-10 max-w-2xl">
-          Frontier OS is not just a report generator. Screen URL-only acquisition targets, compare targets against a buyer thesis, and build a pipeline of evidence-backed next actions.
+          Keep the current view, its evidence, unresolved questions and next action connected throughout the deal lifecycle.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
           {[
             {
               icon: <Search className="w-5 h-5 text-primary" />,
-              title: 'Screen a company',
-              desc: 'Input a company URL and get an IC-readiness view: recommendation, strategic fit, AI risk, evidence confidence and diligence blockers.',
-              href: '/run',
-              action: 'Screen company',
+              title: 'Find relevant opportunities',
+              desc: 'Build a qualified target universe against a structured investment thesis.',
+              href: '/app/origination',
+              action: 'Discover opportunities',
             },
             {
               icon: <GitCompare className="w-5 h-5 text-primary" />,
-              title: 'Compare targets',
-              desc: 'Rank 2–5 companies by strategic fit, evidence quality, AI replica risk and blockers. See which target is most IC-ready at a glance.',
-              href: '/compare',
-              action: 'Compare screened targets',
+              title: 'Form an investment view',
+              desc: 'Combine financial, commercial and strategic evidence without hiding uncertainty.',
+              href: '/app/run',
+              action: 'Review an opportunity',
               highlight: true,
             },
             {
               icon: <Layers className="w-5 h-5 text-primary" />,
-              title: 'Build deal cockpit',
-              desc: 'Save screened targets into a pipeline, track IC readiness, evidence quality and next actions across your deal team.',
-              href: '/cockpit',
-              action: 'View Deal Cockpit',
+              title: 'Preserve decision context',
+              desc: 'Carry evidence, rationale and next actions through the deal lifecycle.',
+              href: '/app/cockpit',
+              action: 'Open pipeline',
             },
           ].map(({ icon, title, desc, href, action, highlight }) => (
             <div

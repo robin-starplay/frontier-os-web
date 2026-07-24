@@ -12,6 +12,7 @@ const forbidden = [
   ['payment language', /\b(?:payment|billing|subscription)\b/i],
   ['public monthly price', /(?:£|GBP\s*)\s*\d+(?:\.\d+)?\s*\/\s*month/i],
   ['legacy tier name', /Starter\s*\/\s*Growth|Team\s*\/\s*Platform/i],
+  ['prohibited competitor wording', /right-hand system|speed of judgement|investment DNA|applied specialised intelligence|decision infrastructure/i],
 ];
 
 function visit(path) {

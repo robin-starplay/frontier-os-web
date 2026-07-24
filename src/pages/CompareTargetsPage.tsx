@@ -25,7 +25,6 @@ import {
 import { getRuns, latestScreenRunForIdentity, saveCompareRun, type RunEntry } from '@/lib/runHistory';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { SemanticBadge } from '@/components/SemanticBadge';
-import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import { canonicalCompanyDomain, normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
 import {
   readCompareCandidates,
@@ -935,21 +934,21 @@ function CompareTargetSelector({
         <div className="px-5 py-6">
           <p className="text-sm font-semibold text-foreground">No screened targets saved yet.</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Screen a company URL and save it to Cockpit before comparing.
+            Review an opportunity and add it to Pipeline before comparing.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/app/run" className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
-              Screen company
+              Review opportunity
             </Link>
             <Link href="/app/cockpit" className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors">
-              Open Cockpit
+              Open Pipeline
             </Link>
             <button
               type="button"
               onClick={onManualOpen}
               className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent transition-colors"
             >
-              Manual quick compare
+              Preliminary comparison
             </button>
           </div>
         </div>
@@ -1011,7 +1010,7 @@ function CompareLoading({ stages, manualQuickCompare }: { stages: ProgressStage[
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-card/50">
           {manualQuickCompare && (
-            <p className="mb-1 text-[11px] font-semibold text-primary">Manual quick compare · public-source preview</p>
+            <p className="mb-1 text-[11px] font-semibold text-primary">Preliminary comparison · public-source preview</p>
           )}
           <p className="text-xs text-muted-foreground">Comparing companies and checking public evidence...</p>
         </div>
@@ -1074,11 +1073,15 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
   const previewRows = fastPreviewRows(result);
   const lacksDifferentiation = isFastPreview && result.evidence_backed_differentiation_available === false;
   const top = result.targets[0];
-  const second = result.targets[1];
   const strongestEvidence = [...result.targets].sort(
     (a, b) => evidenceScore(b.evidence_confidence) - evidenceScore(a.evidence_confidence),
   )[0]?.company ?? '—';
   const mostBlockers = [...result.targets].sort((a, b) => b.blockers.length - a.blockers.length)[0];
+  const evidenceMaturity = result.targets.map(target => ({
+    company: target.company,
+    maturity: target.screen_completed ? (target.screen_type || 'Reviewed opportunity') : 'Preliminary public-source preview',
+  }));
+  const mixedMaturity = new Set(evidenceMaturity.map(item => item.maturity)).size > 1;
 
 	  return (
 	    <div className="w-full space-y-6">
@@ -1088,8 +1091,8 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 	          <div className="px-5 py-4 border-b border-border bg-muted/20">
 	            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
 	              <div>
-	                <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Manual quick compare</p>
-	                <h2 className="text-xl font-semibold text-foreground">Manual quick compare completed</h2>
+	                <p className="text-[10px] font-semibold tracking-normal text-primary mb-1">Preliminary comparison</p>
+	                <h2 className="text-xl font-semibold text-foreground">Preliminary comparison completed</h2>
 	              </div>
 	              <SemanticBadge tone="info">Public-source preview</SemanticBadge>
 	            </div>
@@ -1097,7 +1100,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 	          <div className="px-5 py-4 space-y-3">
 	            <div className="flex items-start gap-2 rounded-md border border-[var(--semantic-claim-border)] bg-[var(--semantic-claim-bg)] px-3 py-2 text-xs text-[var(--semantic-claim-text)]">
 	              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-	              Manual quick compare completed. Screen one company for evidence-backed ranking.
+	              Preliminary comparison completed. Review each opportunity before relying on relative ranking.
 	            </div>
 	            {lacksDifferentiation && (
 	              <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -1122,7 +1125,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 	      {!isFastPreview && manualQuickCompare && (
 	        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-[var(--semantic-info-bg)] border border-[var(--semantic-info-border)] text-xs text-[var(--semantic-info-text)]">
 	          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-	          Manual quick compare · public-source preview.
+	          Preliminary comparison · public-source preview.
 	        </div>
 	      )}
 
@@ -1164,22 +1167,35 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 	      </div>
 	      )}
 
-	      {/* Comparison verdict */}
+	      {/* Comparison summary */}
 	      {!isFastPreview && (
 	      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-          <p className="text-[10px] font-semibold tracking-normal text-primary">Comparison verdict</p>
+          <p className="text-xs font-semibold text-primary">Current comparison view</p>
         </div>
-        <div className="px-5 py-4">
-          {top && second ? (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-semibold text-foreground">{top.company}</span> ranks first because it has stronger evidence confidence and fewer blocker signals in the preview screen.{' '}
-              <span className="font-semibold text-foreground">{second.company}</span> remains reviewable, but needs more proof around{' '}
-              {second.blockers.length > 0 ? second.blockers.slice(0, 2).join(', ').toLowerCase() : 'ARR quality, revenue mix and AI defensibility'}.
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Ranking complete. See targets below.</p>
-          )}
+        <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
+          <div>
+            <p className="text-[11px] text-muted-foreground">Strongest current case</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{mixedMaturity ? 'Not reliable across different evidence maturity' : top?.company || 'Not established'}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-muted-foreground">Why</p>
+            <p className="mt-1 text-sm text-foreground">{result.comparison_summary || top?.rank_reason || 'No evidence-backed differentiation was returned.'}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-muted-foreground">Evidence that could change the ranking</p>
+            <p className="mt-1 text-sm text-foreground">{result.comparability_gaps?.join(' · ') || 'Comparable financial, customer and ownership evidence.'}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-muted-foreground">Where comparison is not reliable</p>
+            <p className="mt-1 text-sm text-foreground">{mixedMaturity ? 'Opportunities have different evidence maturity.' : result.limitation || 'Any dimension without disclosed supporting evidence.'}</p>
+          </div>
+          <div className="md:col-span-2 border-t border-border pt-3">
+            <p className="text-[11px] text-muted-foreground">Evidence maturity</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {evidenceMaturity.map(item => <span key={item.company} className="rounded border border-border bg-muted/25 px-2 py-1 text-xs text-foreground">{item.company}: {item.maturity}</span>)}
+            </div>
+          </div>
 	        </div>
 	      </div>
 	      )}
@@ -1778,13 +1794,13 @@ export default function CompareTargetsPage() {
 
   const pageHeader = (
     <div className="w-full border-b border-border bg-card/30">
-      <div className="app-container py-10">
-        <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Target comparison</p>
+        <div className="app-container py-7">
+        <p className="text-xs font-semibold text-primary mb-2">Compare</p>
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-          Compare software acquisition targets.
+          Compare opportunities
         </h1>
         <p className="text-base text-muted-foreground">
-          Compare works best with screened targets saved from Screen or Cockpit.
+          Compare investment opportunities on a consistent evidence and thesis basis.
         </p>
       </div>
     </div>
@@ -1794,14 +1810,7 @@ export default function CompareTargetsPage() {
     <div className="flex-1 flex flex-col w-full">
       {pageHeader}
 
-      <div className="app-container flex-1 flex flex-col py-8">
-        <ScreeningWorkflowGuide active="compare" className="mb-6" />
-
-        {/* Beta notice */}
-        <div className="mb-6 bg-primary/5 border border-primary/20 text-muted-foreground px-4 py-3 rounded-md flex items-center gap-3 text-sm">
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">PRIVATE BETA</span>
-          Public-source preview. Evidence checked. Gaps flagged.
-        </div>
+      <div className="app-container flex-1 flex flex-col py-7">
 
         {phase === 'form' && (
           <>
@@ -1837,7 +1846,7 @@ export default function CompareTargetsPage() {
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Manual quick compare</p>
+                  <p className="text-sm font-semibold text-foreground">Preliminary comparison</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Use this for a quick public-source preview. For stronger evidence, screen companies individually first.
                   </p>
@@ -1883,7 +1892,7 @@ export default function CompareTargetsPage() {
                         onClick={() => handleSubmit(true)}
                         className="inline-flex items-center justify-center rounded-md border border-[var(--semantic-claim-border)] bg-background/70 px-3 py-1.5 text-xs font-semibold text-[var(--semantic-claim-text)] hover:bg-background transition-colors"
                       >
-                        Manual quick compare
+                        Preliminary comparison
                       </button>
                     </div>
                   </div>

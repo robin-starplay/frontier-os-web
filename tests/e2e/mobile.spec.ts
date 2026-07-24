@@ -18,15 +18,15 @@ test('mobile navigation is grouped and reaches key routes', async ({ page }, tes
   await createTestWorkspace(page);
   await gotoAndAssertUsable(page, '/');
   await openMobileMenu(page);
-  await expect(page.getByRole('link', { name: /^Screen$/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /^Cockpit$/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Review$/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Pipeline$/i })).toBeVisible();
   await expect(page.getByText(/^More$/)).toBeVisible();
 
   const links = [
-    { name: /^Screen$/i, url: /\/app\/run/ },
-    { name: /^Cockpit$/i, url: /\/app\/cockpit/ },
+    { name: /^Review$/i, url: /\/app\/run/ },
+    { name: /^Pipeline$/i, url: /\/app\/cockpit/ },
     { name: /^Compare$/i, url: /\/app\/compare/ },
-    { name: /^Origination$/i, url: /\/app\/origination/ },
+    { name: /^Discover$/i, url: /\/app\/origination/ },
     { name: /^Request pilot$/i, url: /\/request-pilot/ },
   ];
 

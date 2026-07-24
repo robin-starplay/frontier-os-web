@@ -58,6 +58,7 @@ import RequestPilotPage from '@/pages/RequestPilotPage';
 import PricingPage from '@/pages/PricingPage';
 import PublicEvidencePage from '@/pages/PublicEvidencePage';
 import PublicAIRiskPage from '@/pages/PublicAIRiskPage';
+import DesignSystemPage from '@/pages/DesignSystemPage';
 import { clerkEnabled, clerkPublishableKey, useOptionalUser } from '@/lib/optionalClerk';
 
 // ── Clerk setup ───────────────────────────────────────────────────────────────
@@ -428,6 +429,7 @@ function PublicRouter() {
     <Switch>
       {/* Home */}
       <Route path="/" component={Landing} />
+      {import.meta.env.DEV && <Route path="/dev/design-system" component={DesignSystemPage} />}
 
       {/* Auth — /*? wildcard required for Clerk OAuth sub-paths */}
       <Route path="/sign-in/*?" component={SignInPage} />

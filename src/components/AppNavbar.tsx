@@ -16,20 +16,20 @@ import {
 // ── App nav items (all /app/* prefixed) ───────────────────────────────────────
 
 const APP_NAV = [
-  { label: 'How it works', href: '/how-it-works' },
-  { label: 'Origination', href: '/app/origination' },
-  { label: 'Screen',      href: '/app/run' },
-  { label: 'Cockpit',     href: '/app/cockpit' },
-  { label: 'Compare',     href: '/app/compare' },
-  { label: 'Pricing',     href: '/pricing' },
-  { label: 'AI risk',     href: '/app/ai-risk' },
-  { label: 'Trust',       href: '/trust' },
+  { label: 'Discover', href: '/app/origination' },
+  { label: 'Review',   href: '/app/run' },
+  { label: 'Pipeline', href: '/app/cockpit' },
+  { label: 'Compare',  href: '/app/compare' },
 ];
 
 // Primary app links — all /app/* prefixed.
 // Secondary informational links (trust, pricing, faq) are intentionally included
 // so signed-in users can access them without leaving the app shell.
 const APP_MORE = [
+  { label: 'How it works',      href: '/how-it-works' },
+  { label: 'Trust',             href: '/trust' },
+  { label: 'AI risk',           href: '/app/ai-risk' },
+  { label: 'Pricing',           href: '/pricing' },
   { label: 'Request pilot',     href: '/request-pilot' },
   { label: 'Book intro',        href: BOOK_INTRO_URL, external: true },
   { label: 'Workspace',         href: '/app/settings' },
@@ -39,10 +39,10 @@ const APP_MORE = [
 ];
 
 const APP_MOBILE_PRIMARY = [
-  { label: 'How it works', href: '/how-it-works' },
-  { label: 'Origination', href: '/app/origination' },
-  { label: 'Screen',      href: '/app/run' },
-  { label: 'Cockpit',     href: '/app/cockpit' },
+  { label: 'Discover', href: '/app/origination' },
+  { label: 'Review',   href: '/app/run' },
+  { label: 'Pipeline', href: '/app/cockpit' },
+  { label: 'Compare',  href: '/app/compare' },
 ];
 
 const APP_MOBILE_MORE = [
@@ -207,7 +207,7 @@ export function AppNavbar() {
           </div>
 
           <div className="ml-7 hidden min-w-0 items-center gap-1 lg:flex xl:hidden">
-            {APP_NAV.filter(({ label }) => ['Origination', 'Screen', 'Cockpit', 'Compare'].includes(label)).map(({ label, href }) => (
+            {APP_NAV.map(({ label, href }) => (
               <Link data-header-nav-item key={href} href={href} className={cn(HEADER_NAV_ITEM_CLASS, isActive(href) ? HEADER_NAV_ACTIVE_CLASS : HEADER_NAV_INACTIVE_CLASS)}>
                 {label}
               </Link>

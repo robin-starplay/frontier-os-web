@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import {
-  ArrowRight, Search, Target, ChevronRight,
+  ArrowRight, ChevronRight,
   Loader2, AlertCircle, Info,
 } from 'lucide-react';
 import { BetaCTA } from '@/components/BetaCTA';
@@ -9,7 +9,6 @@ import { getBackendBaseUrl } from '@/lib/frontierApi';
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { saveOriginationTarget } from '@/lib/runHistory';
 import { SemanticBadge } from '@/components/SemanticBadge';
-import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import { normalizeWebsiteUrl, isValidWebsiteUrl, WEBSITE_URL_VALIDATION_MESSAGE } from '@/lib/urlUtils';
 import {
   addCompareCandidate,
@@ -2835,7 +2834,6 @@ function OriginationForm() {
           )}
         </div>
       )}
-      <ScreeningWorkflowGuide active="originate" />
       {state.kind !== 'error' && <OriginationQuotaNotice />}
       <form onSubmit={handleSubmit} className="space-y-5 border-t border-border pt-6">
         <div>
@@ -3142,49 +3140,25 @@ export default function OriginationPage() {
 
       {/* Header */}
       <div className="w-full border-b border-border bg-card/20">
-        <div className="app-container py-12">
-          <div className="flex items-center gap-2 mb-3">
-            <p className="text-[10px] font-semibold tracking-normal text-primary">Origination</p>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-              PRIVATE BETA
-            </span>
-          </div>
+        <div className="app-container py-7">
+          <p className="mb-2 text-xs font-medium text-primary">Discover</p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            Find acquisition targets
+            Discover opportunities
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl">
-            Build a source-backed company universe, then screen the strongest candidates.
+            Build and qualify a target universe against an investment thesis.
           </p>
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-[95rem] flex-1 space-y-12 px-4 py-12 md:px-6 lg:px-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-b border-border pb-8">
-          {[
-            { icon: <Search className="w-4 h-4" />, step: '1', title: 'Find companies', desc: 'Use sector, geography and optional keywords to build a source-backed lead list.' },
-            { icon: <Target className="w-4 h-4" />, step: '2', title: 'Confirm websites', desc: 'Treat possible leads as unverified until the official company website is confirmed.' },
-            { icon: <ChevronRight className="w-4 h-4" />, step: '3', title: 'Screen evidence', desc: 'Run company URLs through Screen before saving to Cockpit or comparing.' },
-          ].map(({ icon, step, title, desc }) => (
-            <div key={step} className="flex gap-3">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-[11px] font-bold font-medium">
-                  {step}
-                </span>
-                <span className="text-primary">{icon}</span>
-              </div>
-              <p className="text-sm font-semibold text-foreground mb-1">{title}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
-            </div>
-          ))}
-        </div>
-
+      <div className="mx-auto w-full max-w-[95rem] flex-1 space-y-8 px-4 py-7 md:px-6 lg:px-10">
         <div className="space-y-8">
           {/* Live origination thesis form */}
           <div className="min-w-0">
             <div className="mb-4">
-              <p className="text-xs font-semibold text-primary mb-1">Find companies</p>
+              <p className="text-xs font-semibold text-primary mb-1">Investment thesis</p>
               <p className="text-sm text-muted-foreground">
-                Start with a specific vertical, then manage source-backed leads in the workspace.
+                Define mandatory, preferred and excluded characteristics before starting discovery.
               </p>
             </div>
             <OriginationForm />

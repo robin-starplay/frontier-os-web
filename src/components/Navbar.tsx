@@ -21,16 +21,16 @@ import {
 
 const PUBLIC_NAV = [
   { label: 'How it works', href: '/how-it-works' },
-  { label: 'Origination', href: '/app/origination' },
-  { label: 'Screen',      href: '/app/run' },
-  { label: 'Cockpit',     href: '/app/cockpit' },
+  { label: 'Discover',    href: '/app/origination' },
+  { label: 'Review',      href: '/app/run' },
+  { label: 'Pipeline',    href: '/app/cockpit' },
   { label: 'Compare',     href: '/app/compare' },
-  { label: 'Pricing',     href: '/pricing' },
-  { label: 'AI risk',     href: '/app/ai-risk' },
-  { label: 'Trust',       href: '/trust' },
 ];
 
 const PUBLIC_MORE = [
+  { label: 'Trust',                href: '/trust' },
+  { label: 'AI risk',              href: '/app/ai-risk' },
+  { label: 'Pricing',              href: '/pricing' },
   { label: 'Request pilot',        href: '/request-pilot' },
   { label: 'Book intro',           href: BOOK_INTRO_URL, external: true },
   { label: 'Product',              href: '/product' },
@@ -47,10 +47,10 @@ const PUBLIC_MORE = [
 ];
 
 const PUBLIC_MOBILE_PRIMARY = [
-  { label: 'How it works', href: '/how-it-works' },
-  { label: 'Origination', href: '/app/origination' },
-  { label: 'Screen',      href: '/app/run' },
-  { label: 'Cockpit',     href: '/app/cockpit' },
+  { label: 'Discover', href: '/app/origination' },
+  { label: 'Review',   href: '/app/run' },
+  { label: 'Pipeline', href: '/app/cockpit' },
+  { label: 'Compare',  href: '/app/compare' },
 ];
 
 const PUBLIC_MOBILE_MORE = [
@@ -256,7 +256,7 @@ export function Navbar() {
           </div>
 
           <div className="ml-7 hidden min-w-0 items-center gap-1 lg:flex xl:hidden">
-            {PUBLIC_NAV.filter(({ label }) => ['Origination', 'Screen', 'Cockpit', 'Compare'].includes(label)).map(({ label, href }) => (
+            {PUBLIC_NAV.filter(({ label }) => ['Discover', 'Review', 'Pipeline', 'Compare'].includes(label)).map(({ label, href }) => (
               <Link
                 data-header-nav-item
                 key={href}
@@ -266,7 +266,7 @@ export function Navbar() {
                 {label}
               </Link>
             ))}
-            <MoreDropdown items={[...PUBLIC_NAV.filter(({ label }) => !['Origination', 'Screen', 'Cockpit', 'Compare'].includes(label)), ...PUBLIC_MORE]} isActive={isActive} onFeedback={() => setFeedbackOpen(true)} />
+            <MoreDropdown items={[...PUBLIC_NAV.filter(({ label }) => !['Discover', 'Review', 'Pipeline', 'Compare'].includes(label)), ...PUBLIC_MORE]} isActive={isActive} onFeedback={() => setFeedbackOpen(true)} />
           </div>
 
           {/* Right side */}
@@ -311,7 +311,7 @@ export function Navbar() {
                   href={clerkEnabled ? '/app/run' : '/create-workspace'}
                   className={cn(HEADER_UTILITY_CONTROL_CLASS, 'hidden bg-primary font-semibold text-primary-foreground hover:bg-primary/90 sm:inline-flex')}
                 >
-                  {clerkEnabled ? 'Screen company' : 'Start free'}
+                  {clerkEnabled ? 'Review opportunity' : 'Start free'}
                 </Link>
               </>
             )}
@@ -440,7 +440,7 @@ export function Navbar() {
                       className="inline-flex items-center justify-center text-[var(--font-size-nav)] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-4 rounded-md transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
-                      {clerkEnabled ? 'Screen company' : 'Start free'}
+                      {clerkEnabled ? 'Review opportunity' : 'Start free'}
                     </Link>
                   </div>
                 </>

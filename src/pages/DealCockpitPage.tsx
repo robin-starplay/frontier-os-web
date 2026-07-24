@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import { BetaCTA } from '@/components/BetaCTA';
 import { SendFeedbackButton } from '@/components/SendFeedbackButton';
 import {
   GitCompare, Clock, ChevronRight, X,
@@ -19,7 +18,6 @@ import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { useOptionalUser } from '@/lib/optionalClerk';
 import type { RecommendationLevel } from '@/data/mockData';
 import { SemanticBadge } from '@/components/SemanticBadge';
-import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import { type StoredCompareCandidate } from '@/lib/compareSelection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,23 +42,27 @@ import {
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
-type FilterKey = 'all' | 'financials' | 'monitor' | 'high-ai-risk' | 'evidence-gaps';
+type FilterKey = 'all' | 'needs-review' | 'waiting-evidence' | 'ready-decision' | 'active-diligence' | 'inactive' | 'declined';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all',           label: 'All' },
-  { key: 'financials',    label: 'Financial evidence needed' },
-  { key: 'monitor',       label: 'Monitor' },
-  { key: 'high-ai-risk',  label: 'High AI risk' },
-  { key: 'evidence-gaps', label: 'Diligence blockers' },
+  { key: 'needs-review',     label: 'Needs review' },
+  { key: 'waiting-evidence', label: 'Waiting for evidence' },
+  { key: 'ready-decision',   label: 'Ready for decision' },
+  { key: 'active-diligence', label: 'Active diligence' },
+  { key: 'inactive',         label: 'No recent activity' },
+  { key: 'declined',         label: 'Declined' },
 ];
 
 function applyFilter(runs: RunEntry[], filter: FilterKey): RunEntry[] {
   switch (filter) {
-    case 'financials':    return runs.filter(r => r.recommendation === 'Request Financials');
-    case 'monitor':       return runs.filter(r => r.recommendation_level === 'blue');
-    case 'high-ai-risk':  return runs.filter(r => r.ai_replica_risk === 'High' || r.ai_replica_risk === 'Medium-high');
-    case 'evidence-gaps': return runs.filter(r => r.blockers.length > 0);
-    default:              return runs;
+    case 'needs-review': return runs.filter(r => r.type === 'origination' || !r.recommendation);
+    case 'waiting-evidence': return runs.filter(r => r.recommendation === 'Request Financials' || r.evidence_confidence === 'Low');
+    case 'ready-decision': return runs.filter(r => /ready/i.test(r.ic_readiness));
+    case 'active-diligence': return runs.filter(r => r.blockers.length > 0);
+    case 'inactive': return runs.filter(r => Date.now() - new Date(r.timestamp).getTime() > 30 * 24 * 60 * 60 * 1000);
+    case 'declined': return runs.filter(r => /decline|pass|reject/i.test(r.recommendation));
+    default: return runs;
   }
 }
 
@@ -276,7 +278,7 @@ function writeCockpitCompareSelection(candidates: StoredCompareCandidate[]): voi
 
 // ─── Screen Detail Panel (real run entries) ──────────────────────────────────────
 
-type CockpitTab = 'summary' | 'evidence' | 'ai-risk' | 'diligence' | 'decisions' | 'exports';
+type CockpitTab = 'summary' | 'evidence' | 'ai-risk' | 'diligence' | 'decisions' | 'activity' | 'exports';
 type CockpitEditMode = 'target' | 'website' | 'evidence' | 'financials' | 'clients' | 'team' | 'product_ai' | 'note';
 
 function ContextActionRow({
@@ -316,12 +318,16 @@ function RunDetailPanel({
 }) {
   const level = safeLevel(run.recommendation_level);
   const [activeTab, setActiveTab] = useState<CockpitTab>('summary');
+  const resultRecord = (run.result ?? {}) as unknown as Record<string, unknown>;
+  const decisionHistory = Array.isArray(resultRecord.decisions) ? resultRecord.decisions as Record<string, unknown>[] : [];
+  const decisionText = (value: unknown) => displayText(typeof value === 'string' ? value : undefined);
 
   const tabs: { id: CockpitTab; label: string }[] = [
-    { id: 'summary',   label: 'Summary' },
+    { id: 'summary',   label: 'Overview' },
     { id: 'evidence',  label: 'Evidence' },
     { id: 'diligence', label: 'Diligence' },
     { id: 'decisions', label: 'Decisions' },
+    { id: 'activity',  label: 'Activity' },
   ];
 
   return (
@@ -641,7 +647,7 @@ function RunDetailPanel({
                 <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Next action</p>
                 <div className="space-y-2">
                   <Link href="/app/run" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-border bg-background hover:bg-accent rounded-md transition-colors text-foreground">
-                    Screen company <ArrowRight className="w-3.5 h-3.5" />
+                    Review opportunity <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-medium border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-md transition-colors text-primary">
                     Request diligence support
@@ -668,18 +674,33 @@ function RunDetailPanel({
                 </div>
               </div>
               <div>
-                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Decision log</p>
-                <div className="space-y-1">
-                  {['Track IC decision', 'Add IC date', 'Add memo note'].map(feat => (
-                    <div key={feat} className="flex items-center gap-2 text-xs text-muted-foreground/50">
-                      <Lock className="w-3 h-3 shrink-0" /> {feat}
+                <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-2">Decision history</p>
+                {decisionHistory.length > 0 ? decisionHistory.map((decision, index) => (
+                  <div key={String(decision.decision_id ?? index)} className="border-b border-border py-3 last:border-0">
+                    <div className="flex justify-between gap-3">
+                      <p className="text-sm font-semibold text-foreground">{decisionText(decision.decision) ?? 'Decision recorded'}</p>
+                      <p className="text-xs text-muted-foreground">{decisionText(decision.decided_at ?? decision.date) ?? 'Date not recorded'}</p>
                     </div>
-                  ))}
-                </div>
+                    <p className="mt-2 text-xs text-foreground"><span className="text-muted-foreground">Rationale:</span> {decisionText(decision.rationale) ?? 'Not recorded'}</p>
+                    <p className="mt-1 text-xs text-foreground"><span className="text-muted-foreground">Conditions:</span> {Array.isArray(decision.conditions) ? decision.conditions.map(String).join(' · ') : decisionText(decision.conditions) ?? 'None recorded'}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">User: {decisionText(decision.decided_by ?? decision.user) ?? 'Not recorded'} · Evidence state: {decisionText(decision.evidence_snapshot_id ?? decision.evidence_state) ?? 'Not recorded'}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Next review: {decisionText(decision.next_review_at) ?? 'Not scheduled'}</p>
+                  </div>
+                )) : <p className="text-xs text-muted-foreground">No decisions have been recorded for this opportunity.</p>}
               </div>
               <Link href="/request-pilot" className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-4 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors">
                 Request pilot access
               </Link>
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="px-5 py-4">
+              <h3 className="text-sm font-semibold text-foreground">Activity</h3>
+              <div className="mt-3 border-l border-border pl-4">
+                <p className="text-sm text-foreground">Opportunity review saved</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatTs(run.timestamp)}</p>
+              </div>
             </div>
           )}
 
@@ -715,7 +736,7 @@ function RunDetailPanel({
 
         <div className="shrink-0 px-5 py-3 border-t border-border bg-card">
         <p className="text-[10px] text-muted-foreground/50 text-center">
-            {run.type === 'compare' ? 'Comparison run · local browser storage' : run.type === 'document' ? 'Document-assisted review · local browser storage' : 'Public-source screen · local browser storage'}
+            {run.type === 'compare' ? 'Comparison record' : run.type === 'document' ? 'Document-assisted review record' : 'Opportunity review record'}
           </p>
         </div>
       </div>
@@ -1553,14 +1574,14 @@ export default function DealCockpitPage() {
 
       {/* ── Header ── */}
       <div className="mb-4">
-        <p className="text-xs font-semibold text-primary mb-2">Deal pipeline</p>
+        <p className="text-xs font-semibold text-primary mb-2">Deal workspace</p>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Deal pipeline</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Pipeline</h1>
             <p className="text-base text-muted-foreground">
               {hasRealRuns
-                ? 'Your screened targets: track recommendation, evidence confidence, blockers and next action.'
-                : 'Track screened targets, compare evidence quality and turn gaps into next actions.'}
+                ? 'Track opportunities, investment decisions and the work required to reach the next stage.'
+                : 'Track opportunities, investment decisions and the work required to reach the next stage.'}
             </p>
             <p className="text-xs text-muted-foreground/60 mt-1">
               Public-source screens are decision support. Financials and document evidence must be verified before IC or client use.
@@ -1570,19 +1591,14 @@ export default function DealCockpitPage() {
             href="/app/run"
             className="inline-flex items-center gap-2 text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 rounded-md transition-colors text-foreground shrink-0"
           >
-            Screen another company
+            Review an opportunity
           </Link>
         </div>
       </div>
 
-      <details className="mb-3 rounded-md border border-border/70 bg-card/40 px-3 py-2">
-        <summary className="cursor-pointer text-xs font-medium text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">How the screening workflow works</summary>
-        <ScreeningWorkflowGuide active="cockpit" className="mt-3" />
-      </details>
-
-      <div className="mb-4 rounded-lg border border-border/80 bg-card/80 px-3 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-xs">
+      <div className="mb-4 border-y border-border px-1 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-foreground">Cockpit keeps screened targets.</p>
+          <p className="text-sm font-semibold text-foreground">Current opportunities</p>
           <p className="text-xs text-muted-foreground">
             Select two or more saved screens to compare evidence side by side.
           </p>
@@ -1597,7 +1613,7 @@ export default function DealCockpitPage() {
             href="/app/run"
             className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors"
           >
-            Back to Screen
+            Start review
           </Link>
           <button
             type="button"
@@ -1622,7 +1638,7 @@ export default function DealCockpitPage() {
       )}
 
       {/* ── Account state banner (no workspace) ── */}
-      {isLoaded && !isSignedIn && (
+      {isLoaded && !isSignedIn && !getWorkspaceId() && (
         <div className="mb-6 rounded-lg border border-border bg-card/50 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-foreground mb-0.5">Runs are saved locally in this browser.</p>
@@ -1723,9 +1739,8 @@ export default function DealCockpitPage() {
               >
                 {label}
                 {key === 'all' && ` (${runs.length})`}
-                {key === 'financials' && stats.financials > 0 && ` (${stats.financials})`}
-                {key === 'high-ai-risk' && stats.highAiRisk > 0 && ` (${stats.highAiRisk})`}
-                {key === 'evidence-gaps' && stats.blockers > 0 && ` (${stats.blockers})`}
+                {key === 'waiting-evidence' && stats.financials > 0 && ` (${stats.financials})`}
+                {key === 'active-diligence' && stats.blockers > 0 && ` (${stats.blockers})`}
               </button>
             ))}
           </div>
@@ -1841,7 +1856,7 @@ export default function DealCockpitPage() {
             <div>
               <p className="text-base font-semibold text-foreground mb-1">No screened targets saved yet.</p>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Screen a company URL and save it to Cockpit before comparing.
+                Review an opportunity and add it to Pipeline before comparing.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -1855,7 +1870,7 @@ export default function DealCockpitPage() {
           </div>
 
           {/* ── 2. Local-storage notice (signed-out only) ── */}
-          {!isSignedIn && (
+          {!isSignedIn && !getWorkspaceId() && (
             <div className="mb-6 flex items-center gap-3 text-xs text-muted-foreground px-4 py-3 rounded-lg border border-border bg-card/30">
               <Lock className="w-3.5 h-3.5 shrink-0 text-muted-foreground/50" />
               <span>
@@ -1881,15 +1896,6 @@ export default function DealCockpitPage() {
         />
       </div>
 
-      <BetaCTA
-        title="Want to evaluate this on your own pipeline?"
-        body="Request pilot access or book a 30-minute intro to discuss acquisition screening, evidence confidence and IC workflow."
-        primaryLabel="Request pilot access"
-        primaryHref="/request-pilot"
-        secondaryLabel=""
-        secondaryHref=""
-        eventName="deal_cockpit_bottom"
-      />
       <CockpitEditSheet
         run={editRun}
         mode={editMode}

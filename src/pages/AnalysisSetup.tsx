@@ -44,8 +44,8 @@ import {
 import { BOOK_INTRO_URL } from '@/components/BookIntroButton';
 import { safeEvidenceStatus } from '@/lib/evidenceUtils';
 import { SemanticBadge, semanticBadgeClass } from '@/components/SemanticBadge';
-import { ScreeningWorkflowGuide } from '@/components/ScreeningWorkflowGuide';
 import { FinancialEvidenceGrid, isFinancialEvidenceFact } from '@/components/FinancialEvidenceGrid';
+import { InvestmentView, MetricTable } from '@/components/investment/DecisionWorkspace';
 import {
   getCockpitTargets,
   getCompareCandidates,
@@ -2487,14 +2487,6 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
   const readinessSummary = asRecord(rawResult.acquisition_readiness_summary);
   const isSampleFallback = result.__sample_fallback === true || result.fallback_used === true;
 
-  // Hero metric cards — key acquisition signals for committee triage.
-  const topCards = [
-    { label: 'Recommendation',     value: result.recommendation,      level: result.recommendation_level },
-    { label: 'IC readiness',        value: result.ic_readiness,        level: result.ic_readiness === 'Not ready' ? 'red' : result.ic_readiness === 'Ready' ? 'green' : 'amber' },
-    { label: 'Evidence confidence', value: result.evidence_confidence, level: result.evidence_confidence === 'High' ? 'green' : result.evidence_confidence === 'Low' ? 'red' : 'amber' },
-    { label: 'AI replica risk',     value: result.ai_replica_risk,     level: result.ai_replica_risk === 'High' ? 'red' : result.ai_replica_risk.startsWith('Low') ? 'green' : 'amber' },
-  ] as const;
-
   const sf = result.strategic_fit;
   const ai = result.ai_disruption;
 
@@ -2504,13 +2496,6 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
   const claimCards    = result.evidence_cards.filter(c => { const s = safeEvidenceStatus(c.status, c.source, c.confidence); return s === 'claim' || s === 'caveat'; });
   const unknownCards  = result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'unknown');
   const blockerCards  = result.evidence_cards.filter(c => safeEvidenceStatus(c.status, c.source, c.confidence) === 'blocking');
-  const primaryBlocker = actionableBlockers.find(item => /revenue quality/i.test(blockerTitle(item)))
-    ?? actionableBlockers[0]
-    ?? blockerCards[0]
-    ?? null;
-  const primaryBlockerText = primaryBlocker
-    ? `${blockerTitle(primaryBlocker)}${blockerSummary(primaryBlocker) ? ` - ${blockerSummary(primaryBlocker)}` : ''}`
-    : 'No blocker identified from public sources';
   const icNotReady    = !['Ready', 'IC-ready'].includes(result.ic_readiness);
 
   // IC gaps — derive from evidence cards; fall back to canonical gaps
@@ -2523,6 +2508,24 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
         ]
       : ['Revenue split not verified', 'Retention rate not sourced', 'Customer concentration unknown', 'Financials not independently sourced']
   ).slice(0, 5);
+  const recommendationText = result.recommendation.toLowerCase();
+  const canonicalRecommendation = recommendationText.includes('decline') || recommendationText.includes('pass')
+    ? 'Decline'
+    : recommendationText.includes('hold')
+      ? 'Hold'
+      : recommendationText.includes('progress') && !recommendationText.includes('condition')
+        ? 'Progress'
+        : recommendationText.includes('request') || recommendationText.includes('condition')
+          ? 'Progress with conditions'
+          : 'Insufficient evidence';
+  const readinessText = result.ic_readiness.toLowerCase();
+  const canonicalReadiness = readinessText.includes('committee') || readinessText.includes('ic-ready')
+    ? 'Ready for committee review'
+    : readinessText === 'ready' || readinessText.includes('internal')
+      ? 'Ready for internal review'
+      : readinessText.includes('diligence') || readinessText.includes('request') || readinessText.includes('not ready')
+        ? 'Diligence required'
+        : 'Initial review';
 
   return (
     <div className="w-full space-y-4">
@@ -2548,36 +2551,16 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
         </Link>
       </div>
 
-      {/* ─── Hero: acquisition screen verdict ─────────────────────────── */}
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-card/50 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold text-primary">Evidence-first acquisition screen · {resultModeLabel(result.data_mode)}</p>
-          <span className="text-xs text-muted-foreground">{result.company}</span>
-        </div>
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {topCards.map(card => (
-            <div key={card.label} className="rounded-md border border-border/70 bg-background/45 px-3 py-2.5">
-              <p className="text-[11px] font-medium text-muted-foreground mb-1">{card.label}</p>
-              <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
-                levelClass(card.level),
-              )}>
-                {card.value}
-              </span>
-            </div>
-          ))}
-          <div className="rounded-md border border-border/70 bg-background/45 px-3 py-2.5">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Main blocker</p>
-            <p className={cn('text-xs leading-snug', primaryBlocker ? 'text-foreground' : 'text-muted-foreground')}>
-              {primaryBlockerText}
-            </p>
-          </div>
-          <div className="rounded-md border border-[var(--semantic-info-border)] bg-[var(--semantic-info-bg)] px-3 py-2.5">
-            <p className="text-[11px] font-medium text-primary mb-1">Next action</p>
-            <p className="text-xs text-foreground leading-snug">{result.next_action}</p>
-          </div>
-        </div>
-      </div>
+      <InvestmentView
+        recommendation={canonicalRecommendation}
+        readiness={canonicalReadiness}
+        confidence={result.evidence_confidence || 'Not assessed'}
+        thesisFit={result.strategic_fit_label || 'Not assessed'}
+        reasonsToProceed={sf.why_fits || []}
+        reasonsForCaution={[...(sf.why_not || []), ...icGaps]}
+        principalUnknown={icGaps[0] || 'No principal unknown identified'}
+        nextAction={result.next_action}
+      />
 
       {Object.keys(readinessSummary).length > 0 && (
         <PackSection title="Executive acquisition screen">
@@ -3338,6 +3321,22 @@ function AnalysisResultDisplay({
   const cards = result.evidence_cards ?? [];
   const warnings = result.warnings ?? [];
   const events = result.events ?? [];
+  const resultBlockingGaps = asArray(result.blocking_gaps);
+  const resultUnknowns = asArray(result.unknowns);
+  const [activeTab, setActiveTab] = useState<'overview' | 'financials' | 'business' | 'risks' | 'evidence' | 'diligence'>('overview');
+  const resultTabs = [
+    ['overview', 'Overview'],
+    ['financials', 'Financials'],
+    ['business', 'Business quality'],
+    ['risks', 'Risks'],
+    ['evidence', 'Evidence'],
+    ['diligence', 'Diligence'],
+  ] as const;
+  const financialMetrics = Object.entries(result.key_metrics ?? {}).map(([metric, value]) => ({
+    metric: formatLabel(metric),
+    value: displayValue(value),
+    status: 'Unknown',
+  }));
 
   return (
     <div className="w-full space-y-4">
@@ -3358,58 +3357,43 @@ function AnalysisResultDisplay({
         )}
       </div>
 
-      {/* ── Key metrics ────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-card/50">
-          <p className="text-[10px] font-semibold tracking-normal text-primary">
-            Acquisition screen · {resultModeLabel(result.analysis_mode)}
-          </p>
-        </div>
-        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {result.recommendation && (
-            <div>
-              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Recommendation</p>
-              <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
-                levelClass(recommendationToLevel(result.recommendation)),
-              )}>
-                {result.recommendation}
-              </span>
-            </div>
-          )}
-          {result.ic_readiness && (
-            <div>
-              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">IC readiness</p>
-              <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
-                levelClass(readinessLevel(result.ic_readiness)),
-              )}>
-                {formatLabel(result.ic_readiness)}
-              </span>
-            </div>
-          )}
-          {result.valuation_readiness && (
-            <div>
-              <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Valuation readiness</p>
-              <span className={cn(
-                'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
-                levelClass(readinessLevel(result.valuation_readiness)),
-              )}>
-                {formatLabel(result.valuation_readiness)}
-              </span>
-            </div>
-          )}
-        </div>
-        {result.recommendation_reason && (
-          <div className="px-4 py-3 border-t border-border bg-card/30">
-            <p className="text-[10px] font-semibold tracking-normal text-muted-foreground mb-1">Rationale</p>
-            <p className="text-xs text-foreground leading-snug">{result.recommendation_reason}</p>
-          </div>
-        )}
+      <div role="tablist" aria-label="Investment review sections" className="flex gap-1 overflow-x-auto border-b border-border">
+        {resultTabs.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === id}
+            onClick={() => setActiveTab(id)}
+            className={cn(
+              'whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium',
+              activeTab === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
+      {activeTab === 'overview' && <InvestmentView
+        recommendation={result.recommendation || 'Insufficient evidence'}
+        readiness={formatLabel(result.ic_readiness || 'initial_review')}
+        confidence={displayValue((result.metadata as Record<string, unknown> | undefined)?.evidence_confidence, 'Not assessed')}
+        thesisFit={displayValue(sf?.fit_label ?? sf?.overall_fit ?? sf?.conclusion, 'Not assessed')}
+        reasonsToProceed={Array.isArray(sf?.why_fits) ? sf.why_fits.map(item => displayValue(item)) : []}
+        reasonsForCaution={Array.isArray(sf?.why_not) ? sf.why_not.map(item => displayValue(item)) : resultBlockingGaps.map(item => displayValue(item))}
+        principalUnknown={resultUnknowns.length ? displayValue(resultUnknowns[0]) : 'No principal unknown identified'}
+        nextAction={displayValue(result.next_best_action, 'Review the evidence and assign the next decision.')}
+      />}
+
+      {activeTab === 'financials' && (
+        financialMetrics.length > 0
+          ? <MetricTable metrics={financialMetrics} />
+          : <p className="rounded-lg border border-border px-4 py-6 text-sm text-muted-foreground">No canonical financial metrics are available from this review.</p>
+      )}
+
       {/* ── Strategic fit ──────────────────────────────────────────── */}
-      {sf && Object.keys(sf).length > 0 && (
+      {activeTab === 'business' && sf && Object.keys(sf).length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
             <p className="text-[10px] font-semibold tracking-normal text-primary">Strategic fit</p>
@@ -3439,7 +3423,7 @@ function AnalysisResultDisplay({
       )}
 
       {/* ── Evidence cards ─────────────────────────────────────────── */}
-      {cards.length > 0 && (
+      {activeTab === 'evidence' && cards.length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-card/50">
             <p className="text-[10px] font-semibold tracking-normal text-primary">Evidence</p>
@@ -3496,8 +3480,9 @@ function AnalysisResultDisplay({
       )}
 
       {/* ── Events timeline (last 5) ───────────────────────────────── */}
-      {events.length > 0 && (
-        <div className="rounded-lg border border-border overflow-hidden">
+      {activeTab === 'evidence' && events.length > 0 && (
+        <details className="rounded-lg border border-border overflow-hidden">
+          <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-muted-foreground">Technical details</summary>
           <div className="px-4 py-3 border-b border-border bg-card/50">
             <p className="text-[10px] font-semibold tracking-normal text-primary">Review log</p>
           </div>
@@ -3517,11 +3502,11 @@ function AnalysisResultDisplay({
               </div>
             ))}
           </div>
-        </div>
+        </details>
       )}
 
       {/* ── Warnings ───────────────────────────────────────────────── */}
-      {warnings.length > 0 && (
+      {activeTab === 'risks' && warnings.length > 0 && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
           <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <ul className="space-y-1">
@@ -3529,6 +3514,21 @@ function AnalysisResultDisplay({
               <li key={i} className="text-xs text-amber-700/80">{w}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {activeTab === 'diligence' && (
+        <div className="rounded-lg border border-border px-4 py-4">
+          <h3 className="text-sm font-semibold text-foreground">Diligence requirements</h3>
+          {resultBlockingGaps.length > 0 ? (
+            <ul className="mt-3 divide-y divide-border">
+              {resultBlockingGaps.map((gap, index) => (
+                <li key={index} className="py-3 text-sm text-foreground">{displayValue(gap)}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">No diligence requirements were returned by this review.</p>
+          )}
         </div>
       )}
 
@@ -4646,23 +4646,22 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
 
       {/* Page header */}
       <div className="w-full border-b border-border bg-card/30">
-        <div className="app-container py-10">
+        <div className="app-container py-7">
           <p className="text-xs font-semibold text-primary mb-2">
-            {sampleMode ? 'Example screen' : 'Evidence-first acquisition screen'}
+            {sampleMode ? 'Example review' : 'Review'}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
-            {sampleMode ? 'Example acquisition screen.' : 'Screen an evidence-first acquisition target.'}
+            {sampleMode ? 'Example investment review' : 'Investment review'}
           </h1>
           <p className="text-base text-muted-foreground">
             {sampleMode
-              ? 'This static example shows how Frontier OS separates facts, claims and unknowns. Create a free account to run website-only analysis on your own targets.'
-              : 'Start with a company website and, where available, one non-confidential PDF. Frontier OS separates verified facts, company claims, unknowns and diligence blockers for IC readiness.'}
+              ? 'See how Frontier separates facts, interpretations and unknowns in an initial investment view.'
+              : 'Form a source-backed initial view of an opportunity and identify what must be proven next.'}
           </p>
         </div>
       </div>
 
-      <div className="app-container flex-1 flex flex-col py-8">
-        <ScreeningWorkflowGuide active="run" className="mb-6" originationAvailable={hasLastOriginationResult()} />
+      <div className="app-container flex-1 flex flex-col py-7">
 
         {/* ── Screen note ──────────────────────────────────── */}
         {sampleMode ? (
@@ -4678,16 +4677,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
               {' '}to run your own screen.
             </span>
           </div>
-        ) : (
-          <div className="mb-6 bg-primary/5 border border-primary/20 px-4 py-3 rounded-md flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
-              Evidence-first
-            </span>
-            <span className="text-muted-foreground">
-              Evidence-first acquisition screen. Verified facts, claims, unknowns and blockers stay separate.
-            </span>
-          </div>
-        )}
+        ) : null}
 
         {/* ── Railway path: active states ────────────────────────────── */}
         {railwayActive && (

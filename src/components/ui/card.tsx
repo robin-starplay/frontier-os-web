@@ -8,7 +8,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-lg border border-card-border bg-card text-card-foreground shadow-xs',
+      'rounded-[var(--feds-radius-8)] border border-border-subtle bg-surface-primary text-text-primary shadow-[var(--feds-shadow-xs)]',
       className,
     )}
     {...props}
@@ -80,3 +80,15 @@ export {
   CardDescription,
   CardContent,
 };
+
+export const Panel = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <section
+    ref={ref}
+    className={cn('rounded-[var(--feds-radius-8)] border border-border-subtle bg-surface-primary', className)}
+    {...props}
+  />
+));
+Panel.displayName = 'Panel';
