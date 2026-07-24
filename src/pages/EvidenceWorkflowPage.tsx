@@ -77,7 +77,7 @@ interface EvidenceRow {
 const EXAMPLE_ROWS: EvidenceRow[] = [
   {
     field: 'Revenue',
-    value: '—',
+    value: 'Not stated',
     status: 'Unknown',
     statusColor: 'bg-muted/40 text-muted-foreground border-border',
     confidence: 'Unverified',
@@ -86,7 +86,7 @@ const EXAMPLE_ROWS: EvidenceRow[] = [
   },
   {
     field: 'ARR',
-    value: '—',
+    value: 'Not stated',
     status: 'Unknown',
     statusColor: 'bg-muted/40 text-muted-foreground border-border',
     confidence: 'Blocking gap',
@@ -175,9 +175,9 @@ export default function EvidenceWorkflowPage() {
             <p className="text-[10px] font-semibold tracking-normal text-green-700 mb-5">After Frontier OS: evidence workflow</p>
             <div className="space-y-3">
               {[
-                { label: 'Revenue',            value: 'Conflict detected — figures differ between Tier 1 and Tier 3', chip: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]', chipLabel: 'Conflict' },
-                { label: 'AI assistant',       value: 'Claim, not verified adoption — product page only', chip: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]', chipLabel: 'Claim' },
-                { label: 'Recurring revenue',  value: 'ARR definition missing — blocks valuation readiness', chip: 'bg-muted/40 text-muted-foreground border-border', chipLabel: 'Unknown' },
+                { label: 'Revenue',            value: 'Conflict detected. Figures differ between Tier 1 and Tier 3.', chip: 'bg-[var(--semantic-blocker-bg)] text-[var(--semantic-blocker-text)] border-[var(--semantic-blocker-border)]', chipLabel: 'Conflict' },
+                { label: 'AI assistant',       value: 'Claim with no verified adoption. Product page only.', chip: 'bg-[var(--semantic-claim-bg)] text-[var(--semantic-claim-text)] border-[var(--semantic-claim-border)]', chipLabel: 'Claim' },
+                { label: 'Recurring revenue',  value: 'ARR definition missing. This blocks valuation readiness.', chip: 'bg-muted/40 text-muted-foreground border-border', chipLabel: 'Unknown' },
               ].map(({ label, value, chip, chipLabel }) => (
                 <div key={label} className="flex items-start gap-3">
                   <span className={`mt-0.5 shrink-0 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border ${chip}`}>{chipLabel}</span>
@@ -347,11 +347,11 @@ export default function EvidenceWorkflowPage() {
               <h3 className="text-xl font-bold text-foreground mb-5">How confidence flows</h3>
               <div className="rounded-xl border border-border bg-card divide-y divide-border/60">
                 {[
-                  { from: 'Tier 1 source', result: 'High confidence — enters IC as fact' },
-                  { from: 'Tier 2 non-GAAP figure', result: 'Medium confidence — enters IC as caveated' },
-                  { from: 'Tier 4 claim', result: 'Low confidence — enters IC as claim requiring verification' },
-                  { from: 'Missing data', result: 'Unknown — becomes diligence question' },
-                  { from: 'Conflict between tiers', result: 'Flagged — human review required before IC' },
+                  { from: 'Tier 1 source', result: 'High confidence. Enters IC as fact.' },
+                  { from: 'Tier 2 non-GAAP figure', result: 'Medium confidence. Enters IC with a caveat.' },
+                  { from: 'Tier 4 claim', result: 'Low confidence. Requires verification.' },
+                  { from: 'Missing data', result: 'Unknown. Becomes a diligence question.' },
+                  { from: 'Conflict between tiers', result: 'Flagged. Human review required before IC.' },
                 ].map(({ from, result }) => (
                   <div key={from} className="grid grid-cols-5 px-5 py-4 gap-3 items-start">
                     <span className="col-span-2 text-sm text-muted-foreground">{from}</span>

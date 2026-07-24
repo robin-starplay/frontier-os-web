@@ -376,7 +376,7 @@ export function DocumentReviewPanel({ collapsible = false, defaultExpanded = fal
           </div>
           <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { label: 'Pages processed',    value: String(data.pages_processed || '—') },
+              { label: 'Pages processed',    value: String(data.pages_processed || 'Not stated') },
               { label: 'Confidentiality',    value: data.confidentiality_flag ? 'Flagged' : 'Not detected',
                 extra: data.confidentiality_flag ? 'text-red-700' : 'text-green-700' },
               { label: 'Claims extracted',   value: String(data.claims_extracted) },

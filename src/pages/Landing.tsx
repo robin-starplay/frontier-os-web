@@ -18,9 +18,9 @@ function Chip({ label, variant }: { label: string; variant: ChipVariant }) {
 }
 
 const SCREEN_ROWS: { label: string; value?: string; chip?: { label: string; variant: ChipVariant }; bold?: boolean }[] = [
-  { label: 'Recommendation',      chip: { label: 'Request Financials', variant: 'amber' } },
-  { label: 'IC readiness',        chip: { label: 'Partial', variant: 'amber' } },
-  { label: 'Valuation readiness', value: 'Financial evidence required', chip: { label: 'Blocked', variant: 'red' } },
+  { label: 'Recommendation',      chip: { label: 'Progress with conditions', variant: 'amber' } },
+  { label: 'Readiness',           chip: { label: 'Initial review', variant: 'amber' } },
+  { label: 'Valuation evidence',  value: 'Financial evidence required', chip: { label: 'Incomplete', variant: 'red' } },
   { label: 'AI replica risk',     chip: { label: 'Medium-high', variant: 'amber' } },
   { label: 'AI moat evidence',    chip: { label: 'Unproven', variant: 'muted' } },
   { label: 'Next action',         value: 'Request ARR definition, SaaS/services split, customer concentration and AI feature usage data.', bold: true },
@@ -36,7 +36,7 @@ function RunYourOwnLink() {
       href={href}
       className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
     >
-      Screen your own <ArrowRight className="w-3 h-3" />
+      Review your own <ArrowRight className="w-3 h-3" />
     </Link>
   );
 }
@@ -51,7 +51,7 @@ function ReviewerStartButton() {
       href={href}
       className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-5 rounded-md transition-colors"
     >
-      Screen a company <ArrowRight className="w-4 h-4" />
+      Review a company <ArrowRight className="w-4 h-4" />
     </Link>
   );
 }
@@ -64,7 +64,7 @@ function AcquisitionScreenCard() {
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-xs font-semibold text-muted-foreground">
-            Acquisition screen
+            Investment review
           </span>
         </div>
         <span className="text-[11px] text-muted-foreground">Public-source preview</span>
@@ -95,7 +95,7 @@ function AcquisitionScreenCard() {
 
       {/* Footer */}
       <div className="px-5 py-3.5 border-t border-border bg-muted/30 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">URL-only mode · 8 stages · 24 evidence items</span>
+        <span className="text-xs text-muted-foreground">Public evidence · Initial review</span>
         <RunYourOwnLink />
       </div>
     </div>
@@ -114,38 +114,38 @@ interface Persona {
 const PERSONAS: Persona[] = [
   {
     title: 'PE deal teams',
-    desc: 'Screen targets faster. See IC readiness, valuation blockers and diligence questions before spending analyst time.',
-    action: 'Screen company',
+    desc: 'Assess whether an opportunity merits further work. Identify valuation evidence and diligence requirements before committing analyst time.',
+    action: 'Review company',
     href: '/app/run',
   },
   {
     title: 'Software roll-ups',
-    desc: 'Compare targets against a buyer thesis. Identify fit, integration risk and AI replica exposure.',
-    action: 'Screen company',
+    desc: 'Compare targets against the acquisition thesis. Test fit, integration risk and AI exposure on a consistent basis.',
+    action: 'Review company',
     href: '/app/run',
   },
   {
     title: 'VC / growth investors',
-    desc: 'Test whether AI claims are real, whether the product has defensibility, and where inference economics could affect margin.',
+    desc: 'Test AI claims, product defensibility and the effect of inference economics on margin.',
     action: 'View AI disruption',
     href: '/ai-disruption',
   },
   {
     title: 'Investment banks / advisors',
-    desc: 'Prepare buyer Q&A, evidence gap maps and sell-side diligence narratives without treating claims as facts.',
+    desc: 'Prepare buyer questions, evidence gaps and sell-side diligence requirements while keeping claims separate from facts.',
     action: 'View evidence workflow',
     href: '/evidence-workflow',
   },
   {
     title: 'Operating partners',
-    desc: 'Find where AI can expand revenue, reduce OPEX or create product risk across software assets.',
+    desc: 'Assess revenue opportunities, operating cost implications and product risk from AI across the portfolio.',
     action: 'View AI disruption',
     href: '/ai-disruption',
   },
   {
     title: 'Corp dev teams',
-    desc: 'Assess strategic fit, adjacency logic and what must be verified before internal approval.',
-    action: 'Screen company',
+    desc: 'Assess strategic fit, adjacency logic and the evidence required before internal approval.',
+    action: 'Review company',
     href: '/app/run',
   },
 ];
@@ -154,18 +154,18 @@ const PERSONAS: Persona[] = [
 
 const MODULES = [
   { name: 'Source hierarchy',   desc: 'Official filings outrank decks, websites, press and aggregators.' },
-  { name: 'Evidence registry',  desc: 'Facts, claims, assumptions and unknowns are separated.' },
+  { name: 'Evidence registry',  desc: 'Facts, company statements, interpretations, assumptions and unknowns remain distinct.' },
   { name: 'AI defensibility',   desc: 'Replica risk, AI moat evidence and inference economics are tested.' },
-  { name: 'Software scorecard', desc: 'Revenue quality, services mix, EBITDA caveats and product risk are flagged.' },
+  { name: 'Business quality',   desc: 'Revenue quality, services mix, EBITDA adjustments and product risk are assessed.' },
   { name: 'Buyer-specific fit', desc: 'The target is assessed against a buyer thesis, not generic attractiveness.' },
-  { name: 'Diligence gaps',     desc: 'Uncertainty becomes a concrete request list.' },
+  { name: 'Diligence plan',     desc: 'Each material uncertainty becomes a question, evidence request and owner.' },
 ];
 
 // ─── Trust strip ──────────────────────────────────────────────────────────────
 
 const TRUST_ITEMS = [
-  'URL-only first',
-  'Company-isolated workspaces',
+  'Public evidence first',
+  'Isolated company workspaces',
   'Documents optional',
   'Claims are not treated as facts',
   'Delete when done',
@@ -187,7 +187,7 @@ export default function Landing() {
               Make investment decisions from evidence, not fragmented information.
             </h1>
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
-              Frontier structures company, market and deal evidence into a reviewable investment view—showing what is known, what is inferred and what must be proven next.
+              Frontier structures company, market and deal evidence into a reviewable investment view. It shows what is known, what is inferred and what must be proven next.
             </p>
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <Link
@@ -205,13 +205,13 @@ export default function Landing() {
               </Link>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
-              Public-source preview. Outputs are decision support. Human review required.
+              Initial review from public evidence. Human review required.
             </p>
             <Link
               href="/how-it-works"
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
             >
-              See how evidence becomes a decision <ArrowRight className="w-3 h-3" />
+              Review the evidence workflow <ArrowRight className="w-3 h-3" />
             </Link>
             <BookIntroButton
               eventName="clicked_book_intro_home_hero"
@@ -237,10 +237,10 @@ export default function Landing() {
 
             {/* Left: title + CTA */}
             <div className="md:w-64 shrink-0">
-              <p className="text-xs font-semibold text-primary mb-2">3-minute review</p>
-              <h2 className="text-xl font-bold text-foreground mb-2">Start a focused company screen</h2>
+              <p className="text-xs font-semibold text-primary mb-2">Initial review</p>
+              <h2 className="text-xl font-bold text-foreground mb-2">Form an initial investment view</h2>
               <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                Enter a real company website and review only the public-source evidence returned by the screen.
+                Enter a company website. Frontier will structure the available public evidence and identify what remains unproven.
               </p>
               <ReviewerStartButton />
             </div>
@@ -250,23 +250,23 @@ export default function Landing() {
               {[
                 {
                   n: 1,
-                  label: 'Screen a company website',
-                  detail: 'Public-source evidence',
+                  label: 'Review a company website',
+                  detail: 'Assess available public evidence',
                 },
                 {
                   n: 2,
-                  label: 'Compare screened targets',
-                  detail: 'Use saved, screened companies',
+                  label: 'Compare reviewed opportunities',
+                  detail: 'Disclose evidence maturity',
                 },
                 {
                   n: 3,
-                  label: 'Open Deal Cockpit',
-                  detail: 'See IC readiness and next actions',
+                  label: 'Open the pipeline',
+                  detail: 'Track decisions and next actions',
                 },
                 {
                   n: 4,
                   label: 'Send feedback',
-                  detail: 'Takes 3 minutes. Helps us prioritise.',
+                  detail: 'Three minutes. Your response sets product priorities.',
                   isFeedback: true,
                 },
               ].map(({ n, label, detail, isFeedback }) => (
@@ -360,7 +360,7 @@ export default function Landing() {
             className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors"
           >
             <GitCompare className="w-4 h-4" />
-            Compare screened targets
+            Compare reviewed opportunities
           </Link>
         </div>
       </div>
@@ -368,8 +368,8 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════ WHO IT IS FOR */}
       <div className="w-full bg-card/40 border-y border-border py-16">
         <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
-          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Who uses it</p>
-          <h2 className="text-2xl font-bold text-foreground mb-10">Who it is for</h2>
+          <p className="text-[10px] font-semibold tracking-normal text-primary mb-2">Investment teams</p>
+          <h2 className="text-2xl font-bold text-foreground mb-10">Built for transaction workflows</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {PERSONAS.map(({ title, desc, action, href }) => (
               <div key={title} className="rounded-xl border border-border bg-card p-6 flex flex-col gap-4">
@@ -431,12 +431,12 @@ export default function Landing() {
               </Link>
             </div>
             <div className="shrink-0">
-              <p className="text-sm text-muted-foreground mb-3">Screen a software target and see what must be verified before IC.</p>
+              <p className="text-sm text-muted-foreground mb-3">Form an initial view and identify the evidence required before IC.</p>
               <Link
                 href="/app/run"
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-7 rounded-md transition-colors"
               >
-                Screen company <ArrowRight className="w-4 h-4" />
+                Review company <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
@@ -455,7 +455,7 @@ export default function Landing() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">
-                Preview extraction of claims, metrics and diligence questions from non-confidential PDFs.
+                Extract claims, metrics and diligence questions from non-confidential PDFs for review.
               </p>
             </div>
             <Link
@@ -469,9 +469,9 @@ export default function Landing() {
       </div>
 
       <BetaCTA
-        title="Want to test Frontier OS on your workflow?"
-        body="Screen a company, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
-        primaryLabel="Screen company"
+        title="Review an opportunity with Frontier"
+        body="Run a company review, request beta access or discuss your screening process with the Frontier team."
+        primaryLabel="Review company"
         primaryHref="/app/run"
         secondaryLabel="Request private beta access"
         secondaryHref="/request-pilot"

@@ -57,7 +57,7 @@ const FAQ_ITEMS = [
   // Differentiation
   {
     q: 'How is this different from a company research database?',
-    a: 'Research databases help find and enrich targets. Frontier OS is focused on acquisition judgement: what is verified, what is uncertain, and what must be diligenced before IC.',
+    a: 'Research databases find and enrich targets. Frontier records the current investment view, supporting evidence and diligence required before IC.',
   },
   {
     q: 'What makes the source hierarchy useful?',

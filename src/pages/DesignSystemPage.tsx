@@ -24,7 +24,7 @@ export default function DesignSystemPage() {
 
         <section><h2 className="type-heading-2">Decision and evidence</h2><div className="mt-4 space-y-6"><InvestmentView recommendation="Progress with conditions" readiness="Diligence required" confidence="Moderate" thesisFit="Potential fit" reasonsToProceed={['Recurring revenue is supported.']} reasonsForCaution={['Customer concentration remains unproven.']} principalUnknown="Retention by cohort" nextAction="Request underwriting evidence" /><Panel className="px-5"><EvidenceItem conclusion="Revenue is predominantly recurring." source="Annual report" page="42" type="Verified fact" status="Verified" confidence="High" freshness="FY 2025">Source excerpt and extraction provenance.</EvidenceItem></Panel><NextAction>Assign customer concentration diligence to the deal lead.</NextAction></div></section>
 
-        <section><h2 className="type-heading-2">Data table</h2><div className="mt-4"><MetricTable metrics={[{ metric: 'Revenue', value: '£12.4m', period: 'FY 2025', source: 'Annual report', page: '38', status: 'Verified' }, { metric: 'Net retention', value: 'Not stated', period: 'Current', source: '—', status: 'Unknown' }]} /></div></section>
+        <section><h2 className="type-heading-2">Data table</h2><div className="mt-4"><MetricTable metrics={[{ metric: 'Revenue', value: '£12.4m', period: 'FY 2025', source: 'Annual report', page: '38', status: 'Verified' }, { metric: 'Net retention', value: 'Not stated', period: 'Current', source: 'Not available', status: 'Unknown' }]} /></div></section>
       </div>
     </main>
   );

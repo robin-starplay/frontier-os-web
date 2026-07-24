@@ -36,11 +36,11 @@ export default function ICMemo() {
     <div className="flex-1 flex flex-col w-full max-w-7xl mx-auto p-4 md:p-8">
       <div className="mb-4 px-3 py-2 rounded-md border border-amber-500/20 bg-amber-500/5 text-xs text-amber-700">
         <span className="font-semibold tracking-normal">Example screen</span>
-        {' · '}This is a static illustrative preview — not a live analysis result. Financial figures are not independently verified.
+        {' · '}This is a static illustrative preview. It is not a live analysis result. Financial figures are not independently verified.
       </div>
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">IC Draft Memo: Illustrative target</h1>
-        <p className="text-muted-foreground">Comprehensive extraction, analysis, and sanity check results.</p>
+        <p className="text-muted-foreground">Extracted evidence, analysis and review checks.</p>
       </div>
 
       <Tabs defaultValue="executive" className="w-full">
@@ -159,11 +159,11 @@ export default function ICMemo() {
                     <div className="col-span-2">Confidence</div>
                   </div>
                   {[
-                    { m: "Revenue", v: "— (illustrative)", s: "Not verified in preview", c: "Low" },
-                    { m: "Recurring revenue", v: "—", s: "Management Pack", c: "Low", note: "(definition unclear)" },
+                    { m: "Revenue", v: "Illustrative only", s: "Not verified in preview", c: "Low" },
+                    { m: "Recurring revenue", v: "Not stated", s: "Management Pack", c: "Low", note: "(definition unclear)" },
                     { m: "Adj. EBITDA", v: "[illustrative]", s: "Annual Report", c: "Medium", note: "(non-GAAP)" },
                     { m: "Net cash", v: "[illustrative]", s: "Companies House", c: "High" },
-                    { m: "ARR", v: "Claimed — definition absent", s: "Management Pack", c: "Low", note: "(candidate)" }
+                    { m: "ARR", v: "Claimed. Definition absent.", s: "Management Pack", c: "Low", note: "(candidate)" }
                   ].map((row, i) => (
                     <div key={i} className="grid grid-cols-12 p-3 border-b border-border last:border-0 items-center bg-card">
                       <div className="col-span-4 text-sm font-medium">
@@ -416,7 +416,7 @@ export default function ICMemo() {
                     <div className="col-span-4">Resolution</div>
                   </div>
                   {[
-                    { item: "Revenue Figure", finding: "Management pack figure differs from filed accounts — variance flagged as diligence item (example)", res: "Filed accounts take precedence. Variance flagged as diligence item.", status: "diligence" },
+                    { item: "Revenue Figure", finding: "Management pack figure differs from filed accounts. The variance is a diligence item in this example.", res: "Filed accounts take precedence. Variance flagged as diligence item.", status: "diligence" },
                     { item: "ARR Validation", finding: "ARR from management pack absent from official accounts", res: "Demoted to 'Candidate' fact. Blocking gap.", status: "blocking" },
                     { item: "Customer Mix", finding: "Customer concentration not verified in static sample mode", res: "Request concentration schedule before IC use.", status: "warning" }
                   ].map((row, i) => (

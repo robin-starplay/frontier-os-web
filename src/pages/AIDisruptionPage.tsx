@@ -139,7 +139,7 @@ const EVIDENCE_PANELS: { title: string; signals: EvidenceSignal[] }[] = [
   {
     title: 'People and innovation capacity',
     signals: [
-      { label: '~300 employees (LinkedIn estimate)',  status: 'Claim',    note: 'Aggregator source — Tier 6' },
+      { label: '~300 employees (LinkedIn estimate)',  status: 'Claim',    note: 'Aggregator source, Tier 6' },
       { label: 'Technical / engineering headcount',   status: 'Unknown',  note: 'Not disclosed' },
       { label: 'AI or ML roles identified',           status: 'Unknown',  note: 'No verified AI team evidence' },
       { label: 'R&D spend',                           status: 'Unknown',  note: 'Not broken out in filings' },
@@ -151,7 +151,7 @@ const EVIDENCE_PANELS: { title: string; signals: EvidenceSignal[] }[] = [
       { label: 'Vertical software category identified', status: 'Verified', note: 'Confirmed from filings' },
       { label: 'AI-native competitor presence',         status: 'Unknown',  note: 'No competitor analysis in public sources' },
       { label: 'Customer switching evidence',           status: 'Unknown',  note: 'Requires customer reference calls' },
-      { label: 'Market growth trajectory',              status: 'Claim',    note: 'Management claim — not independently verified' },
+      { label: 'Market growth trajectory',              status: 'Claim',    note: 'Management claim. Not independently verified.' },
     ],
   },
 ];
@@ -304,7 +304,7 @@ export default function AIDisruptionPage() {
             <div className="space-y-2.5">
               {[
                 'Product expansion: Add AI-native capabilities that increase the addressable market.',
-                'Operating leverage: Automate support, onboarding and implementation work.',
+                'Operating efficiency: Automate support, onboarding and implementation work.',
                 'Customer productivity: Reduce implementation time and accelerate time to value.',
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-2.5">

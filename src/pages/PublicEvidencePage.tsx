@@ -186,8 +186,8 @@ export default function PublicEvidencePage() {
             { tier: 'Tier 2', label: 'Primary registries', desc: 'Patent offices, trademark registries, land registries, court records', weight: 'High' },
             { tier: 'Tier 3', label: 'Verified third parties', desc: 'Rated credit reports, professional body registers, regulated data providers', weight: 'Medium-high' },
             { tier: 'Tier 4', label: 'Reputable secondary', desc: 'Established news sources, professional press, analyst reports from named firms', weight: 'Medium' },
-            { tier: 'Tier 5', label: 'Company own content', desc: 'Website, investor relations, press releases, LinkedIn — treated as claims', weight: 'Low' },
-            { tier: 'Tier 6', label: 'Aggregators', desc: 'Crunchbase, PitchBook, LinkedIn company pages — used for context, not as primary evidence', weight: 'Lowest' },
+            { tier: 'Tier 5', label: 'Company own content', desc: 'Website, investor relations, press releases and LinkedIn. Treated as claims.', weight: 'Low' },
+            { tier: 'Tier 6', label: 'Aggregators', desc: 'Crunchbase, PitchBook and LinkedIn company pages. Used for context, not as primary evidence.', weight: 'Lowest' },
           ].map((row, i) => (
             <div key={row.tier} className={`grid grid-cols-[80px_1fr_80px] gap-4 px-5 py-3.5 items-start ${i > 0 ? 'border-t border-border' : ''}`}>
               <span className="text-[10px] font-mono text-primary/70">{row.tier}</span>

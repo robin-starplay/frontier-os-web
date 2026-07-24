@@ -1075,7 +1075,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
   const top = result.targets[0];
   const strongestEvidence = [...result.targets].sort(
     (a, b) => evidenceScore(b.evidence_confidence) - evidenceScore(a.evidence_confidence),
-  )[0]?.company ?? '—';
+  )[0]?.company ?? 'Not available';
   const mostBlockers = [...result.targets].sort((a, b) => b.blockers.length - a.blockers.length)[0];
   const evidenceMaturity = result.targets.map(target => ({
     company: target.company,
@@ -1469,7 +1469,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
             { title: 'Full IC memo (PDF)', desc: 'Export a structured acquisition memo for any target: financials, evidence register and AI assessment.' },
             { title: 'Evidence comparison matrix', desc: 'Side-by-side evidence quality scores, conflict flags and source rankings across all targets.' },
             { title: 'PowerPoint IC pack', desc: 'Ready-to-present slide deck for the IC: ranked targets, fit scores, risk flags and recommended next action.' },
-            { title: 'Save to Deal Cockpit', desc: 'Add any target to your pipeline, set IC status and track progress across the team.' },
+            { title: 'Add to pipeline', desc: 'Record the stage, decision, owner and next action for each opportunity.' },
             { title: 'Historical pipeline view', desc: 'See all previous comparisons, archived by deal, fund and date, with saved IC decisions.' },
           ].map(f => (
             <div key={f.title} className="rounded-lg border border-border bg-card/40 p-4 flex items-start gap-3">
@@ -1494,7 +1494,7 @@ function CompareResultView({ result, onReset, saveSource, manualQuickCompare, us
 
       {/* Upgrade CTA */}
       <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-5">
-        <p className="text-sm font-semibold text-foreground mb-1">Screen a full screen on your top target.</p>
+        <p className="text-sm font-semibold text-foreground mb-1">Run a full review on the leading opportunity.</p>
         <p className="text-xs text-muted-foreground mb-4">
           A URL-only screen provides evidence cards, AI replica risk, strategic fit and IC readiness. Document-assisted analysis is available in private beta.
         </p>
@@ -2048,8 +2048,8 @@ export default function CompareTargetsPage() {
       </div>
 
       <BetaCTA
-        title="Want to test this on your own pipeline?"
-        body="Screen a sample company, request private beta access, or book a 30-minute intro to discuss your acquisition screening process."
+        title="Compare opportunities from your pipeline"
+        body="Review a company, request beta access or discuss your comparison workflow with the Frontier team."
         primaryLabel="Screen company"
         primaryHref="/run"
         secondaryLabel="Request private beta access"

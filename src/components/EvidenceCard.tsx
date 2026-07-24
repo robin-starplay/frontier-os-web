@@ -18,7 +18,7 @@ interface EvidenceCardProps {
  * Last-resort defence — callers should also use safeEvidenceStatus before passing status.
  */
 const WEAK_CARD_SOURCES = new Set([
-  '', '—', '-', '--', 'n/a', 'none', 'not filed', 'not disclosed', 'unknown',
+  '', '\u2014', '-', '--', 'n/a', 'none', 'not filed', 'not disclosed', 'unknown',
 ]);
 
 export function EvidenceCard({ field, value, source, confidence, status, className }: EvidenceCardProps) {

@@ -17,36 +17,36 @@ type StepConfig = {
 const STEPS: StepConfig[] = [
   {
     id: 'originate',
-    label: 'Originate',
-    accessibleLabel: 'Originate — Open workflow step',
-    description: 'Build or paste a source-backed target universe.',
+    label: 'Discover',
+    accessibleLabel: 'Discover. Open workflow step',
+    description: 'Build or import an evidenced target universe.',
     href: '/app/origination',
-    cta: 'Open origination',
+    cta: 'Discover opportunities',
     icon: Search,
   },
   {
     id: 'run',
-    label: 'Screen',
-    accessibleLabel: 'Screen — Open workflow step',
-    description: 'Screen one company URL to collect evidence.',
+    label: 'Review',
+    accessibleLabel: 'Review. Open workflow step',
+    description: 'Form an initial investment view from available evidence.',
     href: '/app/run',
-    cta: 'Screen company',
+    cta: 'Review opportunity',
     icon: ShieldCheck,
   },
   {
     id: 'cockpit',
-    label: 'Cockpit',
-    accessibleLabel: 'Save to Cockpit — Open workflow step',
-    description: 'Keep screened targets, decisions and next actions.',
+    label: 'Pipeline',
+    accessibleLabel: 'Pipeline. Open workflow step',
+    description: 'Track opportunities, decisions and next actions.',
     href: '/app/cockpit',
-    cta: 'Open Cockpit',
+    cta: 'Open pipeline',
     icon: LayoutDashboard,
   },
   {
     id: 'compare',
     label: 'Compare',
-    accessibleLabel: 'Compare — Open workflow step',
-    description: 'Compare screened candidates side by side.',
+    accessibleLabel: 'Compare. Open workflow step',
+    description: 'Compare reviewed opportunities on a consistent evidence basis.',
     href: '/app/compare',
     cta: 'Compare targets',
     icon: GitCompare,
@@ -72,7 +72,7 @@ export function ScreeningWorkflowGuide({
           Origination → Screen → Cockpit → Compare
         </h2>
         <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Move from a source-backed target universe to evidence-led screening, decision tracking and comparable candidates.
+          Move from target discovery to investment review, decision tracking and consistent comparison.
         </p>
       </div>
       <div className={cn('relative grid gap-0 divide-y divide-border px-2 py-3 md:divide-y-0 md:px-4 md:py-5', compact ? 'md:grid-cols-4' : 'md:grid-cols-4')}>

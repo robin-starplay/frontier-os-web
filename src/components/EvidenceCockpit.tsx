@@ -10,12 +10,12 @@ interface EvidenceRow {
 }
 
 const EVIDENCE_ROWS: EvidenceRow[] = [
-  { field: 'Revenue', value: '—', source: '—', status: 'unknown' },
-  { field: 'Recurring revenue', value: '—', source: '—', status: 'unknown' },
+  { field: 'Revenue', value: 'Not stated', source: 'Not available', status: 'unknown' },
+  { field: 'Recurring revenue', value: 'Not stated', source: 'Not available', status: 'unknown' },
   { field: 'Adjusted EBITDA', value: '[illustrative]', source: 'Annual Report', status: 'caveated' },
-  { field: 'ARR', value: '—', source: 'Not disclosed', status: 'blocking' },
-  { field: 'Top-5 customer concentration', value: '—', source: 'Management Pack', status: 'diligence' },
-  { field: 'Ownership structure', value: 'Unknown', source: '—', status: 'blocking' },
+  { field: 'ARR', value: 'Not stated', source: 'Not disclosed', status: 'blocking' },
+  { field: 'Top-5 customer concentration', value: 'Not stated', source: 'Management Pack', status: 'diligence' },
+  { field: 'Ownership structure', value: 'Unknown', source: 'Not available', status: 'blocking' },
 ];
 
 const SOURCE_TIERS = [

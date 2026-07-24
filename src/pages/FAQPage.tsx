@@ -56,7 +56,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     category: 'Trust',
     q: 'Can it run without confidential documents?',
-    a: 'Yes. URL-only mode uses public sources and registry connectors where available. Document upload is optional and only needed when deeper analysis is required. The initial screen is designed to be run without any confidential material.',
+    a: 'Yes. URL-only mode uses public sources and available registry connectors. Document upload is optional and reserved for deeper analysis. An initial review requires no confidential material.',
   },
   {
     category: 'Trust',

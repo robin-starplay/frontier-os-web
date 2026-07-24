@@ -33,8 +33,8 @@ export default function TermsPage() {
           title: 'About Frontier OS',
           content: (
             <p>
-              Frontier OS is a software acquisition screening and decision-support tool. It is designed to help
-              buyers, investors and deal teams organise, assess and act on acquisition-related evidence.
+              Frontier OS is a software acquisition screening and decision-support tool. Buyers, investors
+              and deal teams use it to organise, assess and act on acquisition-related evidence.
               It is not a financial adviser, legal adviser or valuation service.
             </p>
           ),

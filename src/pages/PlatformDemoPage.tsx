@@ -199,7 +199,7 @@ const BUYER_THESES = [
     score: 48,
     fits: ['Deal size in financing range'],
     blocks: ['AI defensibility risk', 'EBITDA not disclosed', 'Valuation blocked'],
-    question: 'What leverage is achievable without confirmed EBITDA? What are lender conditions on AI product claims?',
+    question: 'What debt capacity is achievable without confirmed EBITDA? What are lender conditions on AI product claims?',
   },
 ];
 

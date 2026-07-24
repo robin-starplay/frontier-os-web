@@ -471,7 +471,7 @@ function polishOriginationPreviewSummary(summary: string): string {
   );
   if (!match) return summary;
   const [, buyerType, geography, sector] = match;
-  return `No source-backed targets are available for this ${formatBuyerType(buyerType)} thesis in ${geography} ${sector} in the hosted preview.`;
+  return `No evidenced targets are available for this ${formatBuyerType(buyerType)} thesis in ${geography} ${sector} within the hosted preview.`;
 }
 
 function isSyntheticReferenceCandidate(candidate: Record<string, unknown>): boolean {
@@ -511,11 +511,11 @@ function discoveryStatusCopy(
   response?: OriginationResult,
 ): string {
   if (hasKnownTargetUniverse(targetUniverse)) {
-    return 'Frontier OS will rank the supplied/source-backed targets and will not invent acquisition targets.';
+    return 'Frontier will rank the supplied targets. It will not invent companies.';
   }
 
   if (!response) {
-    return 'If live discovery is available, Frontier OS will return source-backed leads. If not, it will interpret the thesis and suggest search angles without inventing targets.';
+    return 'Live discovery returns evidenced leads. Where coverage is unavailable, Frontier interprets the thesis and identifies research angles without inventing companies.';
   }
 
   if (response) {
@@ -529,20 +529,20 @@ function discoveryStatusCopy(
       responseSourceMode.includes('user_supplied_target_universe')
       || responseCandidates.some(candidate => safeStr(candidate.source_label).toLowerCase().includes('user supplied target universe'))
     ) {
-      return 'Frontier OS will rank the supplied/source-backed targets and will not invent acquisition targets.';
+      return 'Frontier will rank the supplied targets. It will not invent companies.';
     }
     if (hasRegistryCandidates(response)) {
       return 'Registry discovery returned Companies House leads. Product websites still need verification before screening.';
     }
     if (responseSourceMode.includes('web_search')) {
-      return 'Web discovery returned source-backed candidates. Screen company URLs before outreach.';
+      return 'Web discovery returned evidenced candidates. Review each company before outreach.';
     }
     if (response.source_backed_target_universe_available === false) {
-      return 'No source-backed target universe was available. Frontier OS did not invent targets.';
+      return 'No evidenced target universe was available. No companies were invented.';
     }
   }
 
-  return 'If live discovery is available, Frontier OS will return source-backed leads. If not, it will interpret the thesis and suggest search angles without inventing targets.';
+  return 'Live discovery returns evidenced leads. Where coverage is unavailable, Frontier interprets the thesis and identifies research angles without inventing companies.';
 }
 
 function sourceUrls(candidate: Record<string, unknown>): string[] {
@@ -2151,7 +2151,7 @@ function OriginationUnavailable({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">{discoveryCopy || discoveryStatusCopy('')}</p>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            {message || 'Frontier OS will rank only supplied/source-backed targets and will not invent acquisition targets.'}
+            {message || 'Frontier will rank only supplied targets. It will not invent companies.'}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
@@ -3046,7 +3046,7 @@ Example format:
                   ].filter(([, value]) => value !== undefined).map(([label, value]) => (
                     <div key={String(label)} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
                       <p className="text-[10px] font-semibold tracking-normal text-muted-foreground/60 mb-0.5">{String(label)}</p>
-                      <p className="text-xs text-foreground break-words">{safeStr(value) || '—'}</p>
+                      <p className="text-xs text-foreground break-words">{safeStr(value) || 'Not stated'}</p>
                     </div>
                   ))}
                 </div>

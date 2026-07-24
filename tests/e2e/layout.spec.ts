@@ -68,10 +68,10 @@ test('how it works presents one canonical workflow', async ({ page }) => {
   await page.goto('/how-it-works', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Workflow overview')).toHaveCount(0);
   await expect(page.getByText('Evidence-first', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Originate — Open workflow step', exact: true })).toHaveCount(1);
-  await expect(page.getByRole('link', { name: 'Screen — Open workflow step', exact: true })).toHaveCount(1);
-  await expect(page.getByRole('link', { name: 'Save to Cockpit — Open workflow step', exact: true })).toHaveCount(1);
-  await expect(page.getByRole('link', { name: 'Compare — Open workflow step', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Discover. Open workflow step', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Review. Open workflow step', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Pipeline. Open workflow step', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Compare. Open workflow step', exact: true })).toHaveCount(1);
 });
 
 test('public header omits the standalone beta badge', async ({ page }) => {

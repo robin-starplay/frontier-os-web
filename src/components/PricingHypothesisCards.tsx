@@ -45,7 +45,7 @@ export function PricingHypothesisCards() {
       </div>
 
       <p className="text-sm text-muted-foreground max-w-2xl">
-        Frontier OS is designed to move from free URL-only screens to paid deep screens, team workspaces and advisory workflow sprints.
+        Frontier OS supports URL reviews, deeper evidence work, team workspaces and advisory workflow sprints.
       </p>
 
       {/* Deep Screen Sprint */}

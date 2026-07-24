@@ -179,7 +179,7 @@ export function MetricTable({
               <td data-numeric="true" className="px-3 py-2.5 text-right type-data text-foreground">{item.value}</td>
               <td className="px-3 py-2.5 text-muted-foreground">{item.period || 'Not stated'}</td>
               <td className="px-3 py-2.5 text-muted-foreground">{item.source || 'Not sourced'}</td>
-              <td className="px-3 py-2.5 text-muted-foreground">{item.page || '—'}</td>
+              <td className="px-3 py-2.5 text-muted-foreground">{item.page || 'Not stated'}</td>
               <td className="px-3 py-2.5"><EvidenceStatus status={item.status || 'Unknown'} /></td>
             </tr>
           ))}

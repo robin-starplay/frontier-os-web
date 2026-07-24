@@ -1893,7 +1893,7 @@ function Step2({
                 Evidence depth: Preview
               </SemanticBadge>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Preview depth means Frontier OS checked available public/source-backed evidence, but financial, customer and retention data may still require diligence.
+                This initial review covers available public evidence. Financial, customer and retention evidence may still require diligence.
               </p>
             </div>
           )}
@@ -2024,7 +2024,7 @@ function Step2({
               )}
               {finalisingElapsedSecs >= 30 && (
                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                  Still working. Public-source checks can be slow. You can keep waiting or run another target.
+                  Review still in progress. Public-source checks can take time. Continue waiting or start another target.
                 </p>
               )}
             </div>
@@ -3200,11 +3200,11 @@ function Step3({ result, buyerThesis, onRunAnother, saveSource, fromOrigination 
           />
           <LockedFeature
             title="Save to Deal Cockpit"
-            description="Track this target in your pipeline, record IC decisions, set status and monitor progress across the team."
+            description="Add this target to the pipeline. Record the decision, owner and next action."
           />
           <LockedFeature
             title="Target comparison history"
-            description="Compare this screen against others in your pipeline: ranked by fit, evidence quality and AI risk."
+            description="Compare this review with other opportunities across fit, evidence quality and AI risk."
           />
           <LockedFeature
             title="PowerPoint IC pack"
@@ -3305,7 +3305,7 @@ function recommendationToLevel(v?: string): Level {
 }
 
 function formatLabel(s?: string | null): string {
-  if (!s) return '—';
+  if (!s) return 'Not stated';
   return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
@@ -3710,11 +3710,11 @@ function AnalysisResultDisplay({
           />
           <LockedFeature
             title="Save to Deal Cockpit"
-            description="Track this target in your pipeline, record IC decisions, set status and monitor progress across the team."
+            description="Add this target to the pipeline. Record the decision, owner and next action."
           />
           <LockedFeature
             title="Target comparison history"
-            description="Compare this screen against others in your pipeline: ranked by fit, evidence quality and AI risk."
+            description="Compare this review with other opportunities across fit, evidence quality and AI risk."
           />
           <LockedFeature
             title="PowerPoint IC pack"
@@ -3956,12 +3956,12 @@ const SAMPLE_RESULT: AnalysisResult = {
     },
     {
       field: 'Customer concentration', value: 'Unknown',
-      status: 'unknown', source: '—',
+      status: 'unknown', source: 'Not stated',
       summary: 'No data on top customer concentration in available public sources.', confidence: 'Low',
     },
     {
       field: 'Adjusted EBITDA', value: 'Not disclosed',
-      status: 'blocking', source: '—',
+      status: 'blocking', source: 'Not stated',
       summary: 'EBITDA not stated in available public filings. Blocks valuation readiness assessment.', confidence: 'Low',
     },
   ],
@@ -5025,7 +5025,7 @@ export default function AnalysisSetup({ sampleMode = false }: { sampleMode?: boo
                     <div className="py-10 text-center">
                       <p className="text-lg font-semibold text-foreground mb-2">Screen your own company.</p>
                       <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-                        Create a free workspace to run public-source analysis on your own targets.
+                        Create a workspace to review your own targets using public evidence.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
                         <Link

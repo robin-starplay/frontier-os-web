@@ -13,15 +13,15 @@ const RISK_LEVELS = [
 ];
 
 const MOAT_SIGNALS = [
-  { icon: <Cpu className="w-4 h-4 text-primary shrink-0" />, label: 'Proprietary training data', desc: 'Unique datasets created from customer workflows — not replicable by a new entrant using public data or foundation models alone.' },
+  { icon: <Cpu className="w-4 h-4 text-primary shrink-0" />, label: 'Proprietary training data', desc: 'Unique datasets created from customer workflows. A new entrant cannot replicate them using public data or foundation models alone.' },
   { icon: <Layers className="w-4 h-4 text-primary shrink-0" />, label: 'Deep workflow integration', desc: 'Embedded in regulatory, compliance or mission-critical workflows where switching cost is high and failure risk is material.' },
-  { icon: <GitBranch className="w-4 h-4 text-primary shrink-0" />, label: 'Network and feedback loops', desc: 'Platform improves as usage grows — data flywheel, multi-sided network, or community-driven content that a new entrant cannot bootstrap.' },
+  { icon: <GitBranch className="w-4 h-4 text-primary shrink-0" />, label: 'Network and feedback loops', desc: 'The platform improves as usage grows through data, network effects or community content that a new entrant cannot bootstrap.' },
   { icon: <ShieldAlert className="w-4 h-4 text-primary shrink-0" />, label: 'Regulatory and accreditation lock-in', desc: 'Compliance certification, sector accreditation or regulatory approval creates a structural barrier independent of underlying AI capability.' },
 ];
 
 const INFERENCE_ECONOMICS = [
   { question: 'What is the estimated cost per inference at current volume?', why: 'High per-query cost limits margin at scale and creates vulnerability to lower-cost foundation model providers.' },
-  { question: 'Has the company quantified its AI cost as a percentage of revenue?', why: 'Undisclosed AI COGS is a valuation risk — margin expansion assumptions may be unsupported.' },
+  { question: 'Has the company quantified its AI cost as a percentage of revenue?', why: 'Undisclosed AI COGS is a valuation risk. Margin expansion assumptions may be unsupported.' },
   { question: 'Is AI capability owned, licensed, or accessed via an API?', why: 'API-dependent AI creates third-party provider price risk and replaceability risk.' },
   { question: 'What is the infrastructure cost trajectory as foundation model prices fall?', why: 'If the core product is thin wrapper logic around commodity AI, falling API prices reduce switching costs for customers.' },
 ];
@@ -35,7 +35,7 @@ const WORKFLOW_DEFENSIBILITY = [
 ];
 
 const DILIGENCE_QUESTIONS = [
-  { area: 'Technical architecture', questions: ['Which foundation models are used and under what licence terms?', 'Is model fine-tuning or RAG used — and on what proprietary data?', 'What is the estimated AI inference cost per customer per year?'] },
+  { area: 'Technical architecture', questions: ['Which foundation models are used and under what licence terms?', 'Is model fine-tuning or RAG used? If so, what proprietary data supports it?', 'What is the estimated AI inference cost per customer per year?'] },
   { area: 'Competitive moat', questions: ['Has the company shipped a feature that a foundation model company could ship in 6 months?', 'What does the product do that GPT-4o cannot do if combined with a thin UI layer?', 'What proprietary data does the company own that cannot be recreated by a new entrant?'] },
   { area: 'Market risk', questions: ['Is there an incumbent (Adobe, Salesforce, Microsoft) that has already announced an equivalent feature?', 'Is the go-to-market dependent on pricing arbitrage against human labour that AI also displaces?', 'What is the company\'s stated view on the 2–3 year foundation model capability trajectory?'] },
 ];

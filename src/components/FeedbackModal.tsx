@@ -164,7 +164,7 @@ export function FeedbackModal({ open, onClose }: FeedbackModalProps) {
           <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               <p className="text-xs text-muted-foreground">
-                {QUESTIONS.length} questions — takes about 3 minutes. Answers are sent directly to{' '}
+                {QUESTIONS.length} questions. This takes about 3 minutes. Answers are sent directly to{' '}
                 <span className="font-mono">contact@getfrontieros.com</span> via your mail client.
               </p>
 

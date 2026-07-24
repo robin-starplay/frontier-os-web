@@ -20,12 +20,12 @@ const PROCESS_STEPS: { label: string; status: ProcessStatus }[] = [
 ];
 
 const EVIDENCE_ROWS: { field: string; value: string; source: string; status: EvidenceStatus }[] = [
-  { field: 'Revenue',              value: '—',             source: '—',             status: 'Unknown' },
-  { field: 'Recurring revenue',    value: '—',             source: '—',             status: 'Unknown' },
+  { field: 'Revenue',              value: 'Not stated',    source: 'Not available', status: 'Unknown' },
+  { field: 'Recurring revenue',    value: 'Not stated',    source: 'Not available', status: 'Unknown' },
   { field: 'Adjusted EBITDA',      value: '[illustrative]', source: 'Annual Report', status: 'Caveated' },
-  { field: 'ARR',                  value: '—',             source: 'Not filed',     status: 'Blocking' },
-  { field: 'AI module revenue',    value: '—',             source: 'Not disclosed', status: 'Diligence' },
-  { field: 'Customer concentration', value: '—',           source: 'Mgmt pack',     status: 'Diligence' },
+  { field: 'ARR',                  value: 'Not stated',    source: 'Not filed',     status: 'Blocking' },
+  { field: 'AI module revenue',    value: 'Not stated',    source: 'Not disclosed', status: 'Diligence' },
+  { field: 'Customer concentration', value: 'Not stated', source: 'Mgmt pack',     status: 'Diligence' },
 ];
 
 const IMPACT_ROWS: { label: string; value: string; level: ImpactLevel }[] = [

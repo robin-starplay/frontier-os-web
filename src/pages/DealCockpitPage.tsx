@@ -1888,7 +1888,7 @@ export default function DealCockpitPage() {
       <div className="mt-10 py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-foreground mb-0.5">Share product feedback.</p>
-          <p className="text-xs text-muted-foreground">Takes 3 minutes and helps prioritise diligence workflow improvements.</p>
+          <p className="text-xs text-muted-foreground">Three minutes. Your response sets diligence workflow priorities.</p>
         </div>
         <SendFeedbackButton
           label="Send feedback"

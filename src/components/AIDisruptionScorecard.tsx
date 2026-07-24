@@ -12,8 +12,8 @@ const DIMENSIONS: Dimension[] = [
   { label: 'Workflow embeddedness',       score: 8, direction: 'higher-better', note: 'Telco operations are deeply integrated into operator systems' },
   { label: 'Data advantage',              score: 6, direction: 'higher-better', note: 'Some proprietary workflow logic, no clear unique dataset' },
   { label: 'Implementation complexity',   score: 7, direction: 'higher-better', note: 'Complex regulatory and carrier integrations raise switching cost' },
-  { label: 'Switching costs',             score: 7, direction: 'higher-better', note: 'Moderate-high — embedded in core telco workflows' },
-  { label: 'AI-native substitution risk', score: 4, direction: 'lower-better',  note: 'Moderate risk — workflow logic is complex but AI tooling is advancing' },
+  { label: 'Switching costs',             score: 7, direction: 'higher-better', note: 'Moderate-high. Embedded in core telco workflows.' },
+  { label: 'AI-native substitution risk', score: 4, direction: 'lower-better',  note: 'Moderate risk. Workflow logic is complex, while AI tooling continues to advance.' },
   { label: 'Services automation exposure',score: 5, direction: 'lower-better',  note: 'Implementation services could partially automate over time' },
   { label: 'Rebuildability risk',         score: 3, direction: 'lower-better',  note: 'Regulatory compliance and carrier integrations limit rebuildability' },
 ];

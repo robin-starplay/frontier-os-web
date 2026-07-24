@@ -54,7 +54,7 @@ export function EvidenceQuality() {
                     {doc.confidence === 'medium' && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
                     {doc.confidence === 'low' && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
                     <span className="capitalize text-xs font-medium">
-                      {doc.confidence} {doc.status === 'missing' && "— Missing"}
+                      {doc.confidence} {doc.status === 'missing' && "· Missing"}
                     </span>
                   </div>
                 </td>
